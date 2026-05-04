@@ -1,0 +1,930 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>악보/콘티 매니저 — 함께하는교회 안성</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=Noto+Serif+KR:wght@400;600;700&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --olive:#8B8B5A;--olive-light:#B5B57A;--olive-bg:#F5F4EE;--olive-dark:#5A5A35;
+  --cream:#FAF9F5;--border:rgba(139,139,90,0.18);--border-strong:rgba(139,139,90,0.38);
+  --text:#2C2C1E;--text-muted:#6B6B50;--text-light:#9B9B78;--white:#FFFFFF;--sidebar-w:212px;
+  --shadow:0 2px 12px rgba(0,0,0,.07);
+}
+[data-theme="dark"]{
+  --olive:#B5B57A;--olive-light:#C8C890;--olive-bg:#2A2A1A;--olive-dark:#D4D49A;
+  --cream:#1A1A14;--border:rgba(181,181,122,0.15);--border-strong:rgba(181,181,122,0.3);
+  --text:#E8E8D0;--text-muted:#A8A880;--text-light:#6B6B50;--white:#242418;
+  --shadow:0 2px 12px rgba(0,0,0,.3);
+}
+html,body{height:100%;overflow:hidden;font-family:'Noto Sans KR',sans-serif;background:var(--cream);color:var(--text);}
+/* YT 플레이 버튼 */
+.yt-btn{width:28px;height:28px;background:#FF0000;border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0;text-decoration:none;border:none;cursor:pointer;}
+.yt-btn svg{width:14px;height:14px;}
+/* 다크모드 토글 */
+.theme-toggle{width:32px;height:32px;border-radius:8px;border:1px solid var(--border-strong);background:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:15px;transition:all .13s;color:var(--text-muted);}
+.theme-toggle:hover{background:var(--olive-bg);}
+/* 임포트 탭 */
+.tab-bar{display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:18px;}
+.tab-btn{padding:9px 18px;font-size:12.5px;font-family:'Noto Sans KR',sans-serif;border:none;background:none;cursor:pointer;color:var(--text-light);border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .13s;}
+.tab-btn:hover{color:var(--text);}
+.tab-btn.active{color:var(--olive-dark);border-bottom-color:var(--olive);font-weight:600;}
+.tab-panel{display:none;}.tab-panel.active{display:block;}
+/* 임포트 드롭존 */
+.import-zone{border:2px dashed var(--border-strong);border-radius:12px;padding:36px 20px;text-align:center;cursor:pointer;transition:all .15s;background:var(--white);}
+.import-zone:hover{border-color:var(--olive);background:var(--olive-bg);}
+.import-zone-icon{font-size:32px;margin-bottom:10px;}
+.import-zone-title{font-size:14px;font-weight:600;color:var(--text);margin-bottom:4px;}
+.import-zone-sub{font-size:12px;color:var(--text-light);}
+.import-actions{display:flex;gap:10px;margin-top:16px;justify-content:center;}
+.app{display:flex;height:100vh;overflow:hidden;}
+
+/* SIDEBAR */
+.sidebar{width:var(--sidebar-w);background:var(--white);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;height:100vh;overflow:hidden;}
+.logo-area{padding:16px 16px 13px;border-bottom:1px solid var(--border);flex-shrink:0;}
+.logo-row{display:flex;align-items:center;gap:10px;margin-bottom:3px;}
+.logo-img-wrap{width:42px;height:42px;border-radius:50%;border:1.5px solid var(--border-strong);background:var(--olive-bg);flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center;}
+.logo-img-wrap img{width:100%;height:100%;object-fit:contain;padding:4px;}
+.logo-name{font-family:'Noto Serif KR',serif;font-size:14px;font-weight:700;color:var(--olive-dark);line-height:1.2;}
+.logo-tagline{font-size:9px;color:var(--text-light);padding-left:52px;margin-top:1px;}
+.app-badge{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--olive);padding:8px 16px 4px;flex-shrink:0;}
+nav{flex:1;padding:4px 8px;overflow-y:auto;}
+.nav-section{font-size:9px;letter-spacing:1px;color:var(--text-light);padding:10px 10px 3px;text-transform:uppercase;}
+.nav-item{display:flex;align-items:center;gap:9px;padding:9px 10px;border-radius:8px;cursor:pointer;font-size:13px;color:var(--text-muted);transition:all .13s;margin-bottom:1px;border:none;background:none;width:100%;text-align:left;font-family:'Noto Sans KR',sans-serif;}
+.nav-item:hover{background:var(--olive-bg);color:var(--text);}
+.nav-item.active{background:var(--olive-bg);color:var(--olive-dark);font-weight:500;}
+.nav-icon{font-size:14px;width:20px;text-align:center;flex-shrink:0;}
+.sidebar-footer{padding:12px 14px;border-top:1px solid var(--border);font-size:10px;color:var(--text-light);flex-shrink:0;line-height:1.6;}
+
+/* MAIN */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;background:var(--cream);min-width:0;}
+.page{display:none;flex-direction:column;height:100%;overflow:hidden;}
+.page.active{display:flex;}
+.page-header{display:flex;align-items:center;justify-content:space-between;padding:18px 26px 15px;border-bottom:1px solid var(--border);background:var(--white);flex-shrink:0;}
+.page-title{font-family:'Noto Serif KR',serif;font-size:18px;font-weight:700;color:var(--text);}
+.page-sub{font-size:11.5px;color:var(--text-light);margin-top:2px;}
+.page-body{flex:1;overflow-y:auto;padding:20px 26px;}
+::-webkit-scrollbar{width:5px;}::-webkit-scrollbar-track{background:transparent;}::-webkit-scrollbar-thumb{background:var(--border-strong);border-radius:4px;}
+
+/* COMMON */
+.btn{padding:8px 15px;border-radius:8px;border:1px solid var(--border-strong);font-size:12.5px;font-family:'Noto Sans KR',sans-serif;cursor:pointer;background:var(--white);color:var(--olive-dark);transition:all .13s;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;}
+.btn:hover{background:var(--olive-bg);}
+.btn-primary{background:var(--olive);color:white;border-color:var(--olive);}
+.btn-primary:hover{background:var(--olive-dark);}
+.btn-sm{padding:5px 10px;font-size:11px;border-radius:6px;}
+.tag{font-size:11px;padding:3px 8px;border-radius:20px;border:1px solid var(--border);color:var(--text-muted);background:var(--cream);display:inline-block;}
+.tag.key{background:var(--olive-bg);color:var(--olive-dark);border-color:var(--border-strong);font-weight:700;}
+.card{background:var(--white);border:1px solid var(--border);border-radius:12px;padding:16px 18px;}
+.card-title{font-size:10.5px;font-weight:700;color:var(--text-light);letter-spacing:1px;text-transform:uppercase;margin-bottom:12px;display:flex;align-items:center;gap:6px;}
+.section-label{font-size:11px;font-weight:700;color:var(--text-light);letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;}
+.link-btn{font-size:11px;padding:4px 10px;border-radius:6px;border:1px solid var(--border);text-decoration:none;color:var(--text-muted);background:var(--white);cursor:pointer;display:inline-flex;align-items:center;gap:4px;transition:all .1s;font-family:'Noto Sans KR',sans-serif;white-space:nowrap;}
+.link-btn:hover{background:var(--olive-bg);}
+.link-btn.yt{background:#FFF0F0;color:#BB0000;border-color:#FFCCCC;}
+.link-btn.yt:hover{background:#FFE0E0;}
+.link-btn.score{background:var(--olive-bg);color:var(--olive-dark);}
+
+/* DASHBOARD */
+.ann-banner{background:var(--white);border:1px solid var(--border);border-left:3px solid var(--olive);border-radius:12px;padding:18px 20px;margin-bottom:18px;}
+.ann-header{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+.ann-label{font-size:10px;font-weight:700;letter-spacing:1px;color:var(--olive);text-transform:uppercase;}
+.ann-badge{background:var(--olive-bg);color:var(--olive-dark);font-size:10.5px;padding:2px 10px;border-radius:20px;font-weight:500;}
+.ann-theme{font-family:'Noto Serif KR',serif;font-size:15px;color:var(--text);margin-bottom:9px;font-weight:600;line-height:1.5;}
+.ann-body{font-size:12.5px;line-height:1.9;color:var(--text-muted);white-space:pre-line;}
+.ann-meta{display:flex;flex-wrap:wrap;gap:14px;margin-top:13px;padding-top:13px;border-top:1px solid var(--border);font-size:11px;color:var(--text-light);}
+.dash-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.song-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);cursor:pointer;transition:all .13s;}
+.song-row:last-child{border-bottom:none;}
+.song-row:hover{background:var(--olive-bg);margin:0 -10px;padding:10px 10px;border-radius:8px;}
+.song-num{width:23px;height:23px;border-radius:50%;background:var(--olive-bg);color:var(--olive);font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.song-info{flex:1;min-width:0;}
+.song-name{font-size:12.5px;font-weight:500;color:var(--text);}
+.song-meta{font-size:11px;color:var(--text-light);margin-top:1px;}
+.song-key{color:var(--olive);font-weight:600;}
+.yt-btn{width:28px;height:28px;background:#FF0000;border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0;text-decoration:none;font-size:10px;color:white;font-weight:700;border:none;cursor:pointer;}
+.stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px;}
+.stat-card{background:var(--olive-bg);border-radius:10px;padding:13px 15px;}
+.stat-num{font-size:26px;font-weight:700;color:var(--olive-dark);}
+.stat-label{font-size:10.5px;color:var(--text-muted);margin-top:1px;}
+
+/* WEEKLY */
+.week-card{background:var(--white);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:10px;}
+.week-header{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;cursor:pointer;transition:background .13s;}
+.week-header:hover{background:var(--olive-bg);}
+.week-title{font-size:13.5px;font-weight:500;color:var(--text);}
+.week-meta{font-size:11px;color:var(--text-light);margin-top:2px;}
+.week-arrow{color:var(--text-light);font-size:12px;transition:transform .2s;flex-shrink:0;}
+.week-arrow.open{transform:rotate(180deg);}
+.week-body{display:none;padding:0 18px 16px;border-top:1px solid var(--border);}
+.week-body.open{display:block;}
+.detail-row{display:flex;align-items:flex-start;gap:11px;padding:12px 0;border-bottom:1px solid var(--border);}
+.detail-row:last-child{border-bottom:none;}
+.detail-num{width:28px;height:28px;border-radius:50%;background:var(--olive);color:white;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px;}
+.detail-title{font-size:13.5px;font-weight:600;color:var(--text);}
+.detail-tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px;}
+.detail-links{display:flex;gap:7px;margin-top:8px;}
+
+/* LIBRARY */
+.search-bar{display:flex;gap:8px;margin-bottom:16px;}
+.search-input{flex:1;padding:9px 14px;border:1px solid var(--border-strong);border-radius:8px;font-size:13px;font-family:'Noto Sans KR',sans-serif;background:var(--white);color:var(--text);outline:none;}
+.search-input:focus{border-color:var(--olive);}
+.search-select{padding:9px 12px;border:1px solid var(--border-strong);border-radius:8px;font-size:12.5px;background:var(--white);color:var(--text);font-family:'Noto Sans KR',sans-serif;outline:none;cursor:pointer;}
+.score-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:12px;}
+.score-card{background:var(--white);border:1px solid var(--border);border-radius:10px;padding:14px;cursor:pointer;transition:all .15s;}
+.score-card:hover{border-color:var(--olive-light);transform:translateY(-1px);box-shadow:0 4px 14px rgba(139,139,90,.12);}
+.score-card-title{font-size:13px;font-weight:600;color:var(--text);margin-bottom:7px;line-height:1.4;}
+.score-card-meta{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:9px;}
+.score-card-links{display:flex;gap:6px;}
+.score-edit{font-size:10px;color:var(--text-light);margin-top:9px;}
+.score-add-card{background:var(--olive-bg);border:2px dashed var(--border-strong);border-radius:10px;padding:14px;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:120px;transition:all .15s;}
+.score-add-card:hover{border-color:var(--olive);background:var(--white);}
+
+/* CONTI */
+.conti-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;flex:1;overflow:hidden;}
+.conti-panel{background:var(--white);border:1px solid var(--border);border-radius:12px;display:flex;flex-direction:column;overflow:hidden;}
+.panel-header{padding:12px 16px;border-bottom:1px solid var(--border);font-size:11.5px;font-weight:700;color:var(--text-muted);letter-spacing:.5px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;text-transform:uppercase;}
+.panel-body{flex:1;overflow-y:auto;padding:8px;}
+.pool-song{display:flex;align-items:center;gap:9px;padding:10px 12px;border:1px solid var(--border);border-radius:8px;margin-bottom:6px;cursor:pointer;background:var(--cream);transition:all .13s;}
+.pool-song:hover{border-color:var(--olive-light);background:var(--olive-bg);}
+.drop-hint{min-height:80px;border:2px dashed var(--border);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--text-light);margin-bottom:6px;}
+.conti-item{display:flex;align-items:center;gap:9px;padding:10px 12px;border:1px solid var(--border);border-radius:8px;margin-bottom:6px;background:var(--white);}
+.conti-num{width:23px;height:23px;border-radius:50%;background:var(--olive);color:white;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.rm-btn{margin-left:auto;width:22px;height:22px;border-radius:50%;background:none;border:1px solid var(--border);color:var(--text-light);font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .1s;}
+.rm-btn:hover{background:#FEE;border-color:#F99;color:#C33;}
+
+/* MERGE */
+.merge-slots{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:18px;}
+.merge-slot{background:var(--white);border:2px dashed var(--border);border-radius:12px;padding:18px;min-height:130px;display:flex;flex-direction:column;cursor:pointer;transition:all .15s;}
+.merge-slot:hover{border-color:var(--olive-light);background:var(--olive-bg);}
+.merge-slot.filled{border-style:solid;border-color:var(--olive);cursor:default;}
+.merge-slot-label{font-size:10px;font-weight:700;color:var(--olive);letter-spacing:1px;text-transform:uppercase;margin-bottom:7px;}
+.merge-slot-title{font-size:14px;font-weight:600;color:var(--text);line-height:1.4;}
+.merge-slot-hint{font-size:12px;color:var(--text-light);}
+.merge-opts{display:flex;gap:8px;margin-bottom:18px;}
+.merge-opt{flex:1;border:2px solid var(--border);border-radius:10px;padding:12px;cursor:pointer;transition:all .15s;text-align:center;}
+.merge-opt:hover{border-color:var(--olive-light);}
+.merge-opt.sel{border-color:var(--olive);background:var(--olive-bg);}
+.merge-opt-icon{font-size:22px;margin-bottom:5px;}
+.merge-opt-label{font-size:12px;font-weight:500;color:var(--text-muted);}
+/* 섹션 드롭다운 */
+.section-select-wrap{margin-top:10px;}
+.section-select-sublabel{font-size:10px;color:var(--text-light);margin-bottom:4px;}
+.section-select{width:100%;padding:7px 10px;border:1px solid var(--border-strong);border-radius:7px;font-size:12px;font-family:'Noto Sans KR',sans-serif;background:var(--white);color:var(--text);outline:none;cursor:pointer;}
+.section-select:focus{border-color:var(--olive);}
+
+/* KAKAO */
+.kakao-rooms{display:flex;flex-direction:column;gap:8px;margin-bottom:20px;}
+.kakao-room{display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--white);border:1px solid var(--border);border-radius:10px;cursor:pointer;transition:all .13s;}
+.kakao-room:hover{background:var(--olive-bg);}
+.kakao-room.sel{border-color:var(--olive);background:var(--olive-bg);}
+.kakao-icon{width:38px;height:38px;border-radius:9px;background:#FEE500;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;}
+.kakao-info{flex:1;}
+.kakao-name{font-size:13px;font-weight:500;color:var(--text);}
+.kakao-count{font-size:11px;color:var(--text-light);}
+.kakao-check{color:var(--olive);font-weight:700;font-size:13px;}
+.kakao-preview{background:#FDF8E8;border-radius:10px;padding:16px 18px;margin-bottom:16px;font-size:13px;line-height:1.85;color:var(--text);white-space:pre-line;border:1px solid rgba(254,229,0,.4);}
+.info-note{padding:13px 16px;background:var(--olive-bg);border-radius:8px;font-size:12px;color:var(--text-muted);line-height:1.7;}
+
+/* MODAL 공통 */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.52);z-index:1000;display:none;align-items:center;justify-content:center;padding:20px;}
+.modal-bg.open{display:flex;}
+.modal-box{background:var(--white);border-radius:16px;width:100%;max-width:580px;max-height:90vh;overflow-y:auto;padding:26px;}
+.modal-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:16px;gap:12px;}
+.modal-title{font-family:'Noto Serif KR',serif;font-size:19px;font-weight:700;color:var(--text);line-height:1.3;}
+.modal-close{width:32px;height:32px;border-radius:50%;border:1px solid var(--border);background:none;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;color:var(--text-muted);flex-shrink:0;transition:all .1s;}
+.modal-close:hover{background:var(--olive-bg);}
+.modal-info-grid{display:grid;grid-template-columns:auto 1fr;gap:7px 18px;font-size:12.5px;margin-bottom:16px;}
+.mi-label{color:var(--text-light);font-size:12px;}
+.mi-value{color:var(--text);font-weight:500;}
+.modal-score-img{width:100%;border-radius:8px;border:1px solid var(--border);margin-bottom:12px;display:block;}
+.modal-links{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px;}
+.modal-note{font-size:11px;color:var(--text-light);line-height:1.6;}
+
+/* 새 콘티 등록 팝업 */
+.reg-modal-box{background:var(--white);border-radius:16px;width:100%;max-width:500px;max-height:92vh;overflow-y:auto;padding:28px;}
+.form-group{margin-bottom:15px;}
+.form-label{font-size:12px;font-weight:600;color:var(--text-muted);margin-bottom:5px;display:block;}
+.form-input{width:100%;padding:9px 13px;border:1px solid var(--border-strong);border-radius:8px;font-size:13px;font-family:'Noto Sans KR',sans-serif;background:var(--white);color:var(--text);outline:none;transition:border-color .13s;}
+.form-input:focus{border-color:var(--olive);}
+.form-textarea{width:100%;padding:9px 13px;border:1px solid var(--border-strong);border-radius:8px;font-size:13px;font-family:'Noto Sans KR',sans-serif;background:var(--white);color:var(--text);outline:none;resize:vertical;min-height:80px;transition:border-color .13s;}
+.form-textarea:focus{border-color:var(--olive);}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.form-divider{border:none;border-top:1px solid var(--border);margin:18px 0;}
+.reg-song-item{display:flex;align-items:center;gap:8px;padding:9px 12px;border:1px solid var(--border);border-radius:8px;background:var(--cream);margin-bottom:6px;}
+.reg-song-num{width:22px;height:22px;border-radius:50%;background:var(--olive);color:white;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.reg-key-input{width:70px;flex:none;}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="logo-area">
+      <div class="logo-row">
+        <div class="logo-img-wrap">
+          <img src="logo.png" alt="함께하는교회 로고"
+            onerror="this.style.display='none';this.parentNode.innerHTML='<svg viewBox=\'0 0 44 44\' fill=\'none\'><circle cx=\'22\' cy=\'22\' r=\'22\' fill=\'#F0EFE8\'/><path d=\'M22 8C22 8 13 17 13 24c0 5 4 9 9 11 5-2 9-6 9-11 0-7-9-16-9-16z\' fill=\'#8B8B5A\' opacity=\'.75\'/><line x1=\'22\' y1=\'35\' x2=\'22\' y2=\'42\' stroke=\'#8B8B5A\' stroke-width=\'2.2\' stroke-linecap=\'round\'/><circle cx=\'13\' cy=\'22\' r=\'2.5\' fill=\'#B5B57A\'/><circle cx=\'31\' cy=\'22\' r=\'2.5\' fill=\'#B5B57A\'/></svg>'"/>
+        </div>
+        <div class="logo-name">함께하는교회</div>
+      </div>
+      <div class="logo-tagline">세상을 하나님의 사랑으로 품는 · 안성</div>
+    </div>
+    <div class="app-badge">악보 / 콘티 매니저</div>
+    <nav>
+      <button class="nav-item active" onclick="showPage('dashboard',this)"><span class="nav-icon">🏠</span>대시보드</button>
+      <button class="nav-item" onclick="showPage('weekly',this)"><span class="nav-icon">📅</span>주차별 찬양</button>
+      <button class="nav-item" onclick="showPage('library',this)"><span class="nav-icon">🎵</span>악보 창고</button>
+      <div class="nav-section">워크플로우</div>
+      <button class="nav-item" onclick="showPage('conti',this)"><span class="nav-icon">✍️</span>콘티 짜기</button>
+      <button class="nav-item" onclick="showPage('merge',this)"><span class="nav-icon">📋</span>악보 합치기</button>
+      <button class="nav-item" onclick="showPage('kakao',this)"><span class="nav-icon">💬</span>카톡 발송</button>
+    </nav>
+    <div class="sidebar-footer">
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <span>v0.1 · 함께하는교회 안성</span>
+        <button class="theme-toggle" id="themeBtn" onclick="toggleTheme()" title="다크/라이트 모드">🌙</button>
+      </div>
+    </div>
+  </aside>
+
+  <main class="main">
+
+    <!-- DASHBOARD -->
+    <div id="page-dashboard" class="page active">
+      <div class="page-header">
+        <div><div class="page-title">대시보드</div><div class="page-sub">2026년 5월 1주 · 주일 9시 예배</div></div>
+        <button class="btn btn-primary" onclick="openRegModal()">＋ 간편 콘티 등록</button>
+      </div>
+      <div class="page-body">
+        <div class="ann-banner">
+          <div class="ann-header">
+            <span class="ann-label">📢 전도사님 전달사항</span>
+            <span class="ann-badge">2026. 05. 04 · 주일 9시</span>
+          </div>
+          <div class="ann-theme">여호수아의 과업 — 평안함과 담대함으로 승리하는 믿음</div>
+          <div class="ann-body">기나긴 전쟁에서 승리하고 가나안을 점령했지만, 또 다시 끝나지 않는 과업을 맞이하는 여호수아와 백성들. 예수님께서는 십자가에서 죽으심으로 승리하시고, '평안함'과 '담대함'으로 그 승리에 동참하라고 말씀하십니다.
+
+그렇게 끝나도 끝나지 않는 믿음의 여정에서 평안함과 담대함으로 승리하는 믿음되기를 소망하며 콘티를 준비했습니다 🙏🏻</div>
+          <div class="ann-meta">
+            <span>⏰ 연습: 오전 8시</span><span>🙏 예배: 오전 9시</span><span>👍 공감/아멘으로 화답해주세요</span>
+          </div>
+        </div>
+        <div class="dash-grid">
+          <div class="card">
+            <div class="card-title">🎵 이번 주 콘티 — 5월 1주</div>
+            <div class="song-row" onclick="openModal(0)">
+              <div class="song-num">1</div>
+              <div class="song-info"><div class="song-name">주 예수보다 더 귀한 것은 없네</div><div class="song-meta"><span class="song-key">Bb</span> · 아이자야씩스티원</div></div>
+              <a href="https://www.youtube.com/watch?v=O66SLvLJWNY" target="_blank" class="yt-btn" onclick="event.stopPropagation()"><svg viewBox="0 0 24 24" fill="white" width="12" height="12"><path d="M8 5v14l11-7z"/></svg></a>
+            </div>
+            <div class="song-row" onclick="openModal(1)">
+              <div class="song-num">2</div>
+              <div class="song-info"><div class="song-name">나의 죄를 씻기는</div><div class="song-meta"><span class="song-key">G</span> · FIA ver. (박신형 Arr.)</div></div>
+              <a href="https://www.youtube.com/watch?v=6UqoAZwp6QY" target="_blank" class="yt-btn" onclick="event.stopPropagation()"><svg viewBox="0 0 24 24" fill="white" width="12" height="12"><path d="M8 5v14l11-7z"/></svg></a>
+            </div>
+            <div class="song-row" onclick="openModal(2)">
+              <div class="song-num">3</div>
+              <div class="song-info"><div class="song-name">예수 하나님의 공의</div><div class="song-meta"><span class="song-key">D</span> · This Kingdom (아이자야)</div></div>
+              <a href="https://www.youtube.com/watch?v=PNfbZIAiEuI" target="_blank" class="yt-btn" onclick="event.stopPropagation()"><svg viewBox="0 0 24 24" fill="white" width="12" height="12"><path d="M8 5v14l11-7z"/></svg></a>
+            </div>
+            <div class="song-row" onclick="openModal(3)">
+              <div class="song-num">4</div>
+              <div class="song-info"><div class="song-name">나의 하나님</div><div class="song-meta"><span class="song-key">D</span> · 박우정 (zozoanna)</div></div>
+              <span style="font-size:11px;color:var(--text-light);">악보</span>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:12px;">
+            <div class="stat-grid">
+              <div class="stat-card"><div class="stat-num">4</div><div class="stat-label">이번주 곡수</div></div>
+              <div class="stat-card"><div class="stat-num">23</div><div class="stat-label">총 악보수</div></div>
+              <div class="stat-card"><div class="stat-num">12</div><div class="stat-label">주차 기록</div></div>
+            </div>
+            <div class="card" style="flex:1;">
+              <div class="card-title">🔗 악보 바로보기</div>
+              <div style="display:flex;flex-direction:column;gap:7px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;padding:5px 0;border-bottom:1px solid var(--border);"><span>주 예수보다 더 귀한 것은 없네</span><button class="link-btn score btn-sm" onclick="openModal(0)">악보 보기</button></div>
+                <div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;padding:5px 0;border-bottom:1px solid var(--border);"><span>나의 죄를 씻기는</span><button class="link-btn score btn-sm" onclick="openModal(1)">악보 보기</button></div>
+                <div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;padding:5px 0;border-bottom:1px solid var(--border);"><span>예수 하나님의 공의</span><button class="link-btn score btn-sm" onclick="openModal(2)">악보 보기</button></div>
+                <div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;padding:5px 0;"><span>나의 하나님</span><button class="link-btn score btn-sm" onclick="openModal(3)">악보 보기</button></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- WEEKLY -->
+    <div id="page-weekly" class="page">
+      <div class="page-header">
+        <div><div class="page-title">주차별 찬양</div><div class="page-sub">주차 카드를 클릭하면 콘티 상세를 확인할 수 있습니다</div></div>
+        <button class="btn btn-primary" onclick="openRegModal()">＋ 간편 콘티 등록</button>
+      </div>
+      <div class="page-body">
+        <div class="week-card">
+          <div class="week-header" onclick="toggleWeek(this)">
+            <div><div class="week-title">2026년 5월 1주 — 주일 9시 예배</div><div class="week-meta">찬양 4곡 · 연습 08:00 · 2026.05.04</div></div>
+            <span class="week-arrow open">▼</span>
+          </div>
+          <div class="week-body open">
+            <div style="padding:10px 0 8px;font-size:12px;color:var(--text-light);">📖 여호수아 — 끝나도 끝나지 않는 믿음의 여정 (평안함과 담대함)</div>
+            <div class="detail-row">
+              <div class="detail-num">1</div>
+              <div style="flex:1;"><div class="detail-title">주 예수보다 더 귀한 것은 없네</div>
+                <div class="detail-tags"><span class="tag key">Bb</span><span class="tag">아이자야씩스티원</span><span class="tag">THE GOSPEL II</span><span class="tag">♩=64</span></div>
+                <div class="detail-links"><a href="https://www.youtube.com/watch?v=O66SLvLJWNY" target="_blank" class="link-btn yt"><svg viewBox="0 0 24 24" fill="currentColor" width="10" height="10"><path d="M8 5v14l11-7z"/></svg> 유튜브</a><button class="link-btn score" onclick="openModal(0)">악보 보기</button></div>
+              </div>
+            </div>
+            <div class="detail-row">
+              <div class="detail-num">2</div>
+              <div style="flex:1;"><div class="detail-title">나의 죄를 씻기는</div>
+                <div class="detail-tags"><span class="tag key">G</span><span class="tag">FIA ver.</span><span class="tag">Arr. 박신형</span><span class="tag">♩=105</span></div>
+                <div class="detail-links"><a href="https://www.youtube.com/watch?v=6UqoAZwp6QY" target="_blank" class="link-btn yt"><svg viewBox="0 0 24 24" fill="currentColor" width="10" height="10"><path d="M8 5v14l11-7z"/></svg> 유튜브</a><button class="link-btn score" onclick="openModal(1)">악보 보기</button></div>
+              </div>
+            </div>
+            <div class="detail-row">
+              <div class="detail-num">3</div>
+              <div style="flex:1;"><div class="detail-title">예수 하나님의 공의</div>
+                <div class="detail-tags"><span class="tag key">D</span><span class="tag">This Kingdom</span><span class="tag">아이자야씩스티원 ver.</span><span class="tag">♩=66</span></div>
+                <div class="detail-links"><a href="https://www.youtube.com/watch?v=PNfbZIAiEuI" target="_blank" class="link-btn yt"><svg viewBox="0 0 24 24" fill="currentColor" width="10" height="10"><path d="M8 5v14l11-7z"/></svg> 유튜브</a><button class="link-btn score" onclick="openModal(2)">악보 보기</button></div>
+              </div>
+            </div>
+            <div class="detail-row">
+              <div class="detail-num">4</div>
+              <div style="flex:1;"><div class="detail-title">나의 하나님</div>
+                <div class="detail-tags"><span class="tag key">D</span><span class="tag">박우정</span><span class="tag">Scored by zozoanna</span></div>
+                <div class="detail-links"><button class="link-btn score" onclick="openModal(3)">악보 보기</button></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="week-card">
+          <div class="week-header" onclick="toggleWeek(this)"><div><div class="week-title">2026년 4월 4주 — 주일 9시 예배</div><div class="week-meta">찬양 3곡</div></div><span class="week-arrow">▼</span></div>
+          <div class="week-body"><div style="padding:16px 0;text-align:center;font-size:13px;color:var(--text-light);">데이터를 등록해주세요</div></div>
+        </div>
+        <div class="week-card">
+          <div class="week-header" onclick="toggleWeek(this)"><div><div class="week-title">2026년 4월 3주 — 주일 9시 예배</div><div class="week-meta">찬양 4곡</div></div><span class="week-arrow">▼</span></div>
+          <div class="week-body"><div style="padding:16px 0;text-align:center;font-size:13px;color:var(--text-light);">데이터를 등록해주세요</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- LIBRARY -->
+    <div id="page-library" class="page">
+      <div class="page-header">
+        <div><div class="page-title">악보 창고</div><div class="page-sub">전체 악보를 검색하고 관리합니다</div></div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn" onclick="downloadTemplate()">📄 Import Template</button>
+          <button class="btn btn-primary" onclick="switchLibTab('import')">📥 악보 임포트</button>
+        </div>
+      </div>
+      <div class="page-body">
+        <!-- 탭바 -->
+        <div class="tab-bar">
+          <button class="tab-btn active" id="tab-scores" onclick="switchLibTab('scores')">악보 목록</button>
+          <button class="tab-btn" id="tab-import" onclick="switchLibTab('import')">일괄 임포트</button>
+        </div>
+
+        <!-- 악보 목록 탭 -->
+        <div class="tab-panel active" id="panel-scores">
+          <div class="search-bar">
+            <input class="search-input" type="text" placeholder="곡 제목, 아티스트, 키 검색..." id="searchInput" oninput="filterScores()"/>
+            <select class="search-select"><option>전체 아티스트</option><option>아이자야씩스티원</option><option>FIA</option><option>박우정</option></select>
+          </div>
+          <div class="score-grid" id="scoreGrid">
+            <div class="score-card" onclick="openModal(0)">
+              <div class="score-card-title">주 예수보다 더 귀한 것은 없네</div>
+              <div class="score-card-meta"><span class="tag key">Bb</span><span class="tag">아이자야씩스티원</span></div>
+              <div class="score-card-links">
+                <a href="https://www.youtube.com/watch?v=O66SLvLJWNY" target="_blank" class="link-btn yt" onclick="event.stopPropagation()"><svg viewBox="0 0 24 24" fill="currentColor" width="10" height="10"><path d="M8 5v14l11-7z"/></svg> 유튜브</a>
+                <button class="link-btn score btn-sm" onclick="event.stopPropagation();openModal(0)">악보 보기</button>
+              </div>
+              <div class="score-edit">Last edit: 2026.04.28</div>
+            </div>
+            <div class="score-card" onclick="openModal(1)">
+              <div class="score-card-title">나의 죄를 씻기는</div>
+              <div class="score-card-meta"><span class="tag key">G</span><span class="tag">FIA ver.</span></div>
+              <div class="score-card-links">
+                <a href="https://www.youtube.com/watch?v=6UqoAZwp6QY" target="_blank" class="link-btn yt" onclick="event.stopPropagation()"><svg viewBox="0 0 24 24" fill="currentColor" width="10" height="10"><path d="M8 5v14l11-7z"/></svg> 유튜브</a>
+                <button class="link-btn score btn-sm" onclick="event.stopPropagation();openModal(1)">악보 보기</button>
+              </div>
+              <div class="score-edit">Last edit: 2026.04.30</div>
+            </div>
+            <div class="score-card" onclick="openModal(2)">
+              <div class="score-card-title">예수 하나님의 공의</div>
+              <div class="score-card-meta"><span class="tag key">D</span><span class="tag">This Kingdom</span></div>
+              <div class="score-card-links">
+                <a href="https://www.youtube.com/watch?v=PNfbZIAiEuI" target="_blank" class="link-btn yt" onclick="event.stopPropagation()"><svg viewBox="0 0 24 24" fill="currentColor" width="10" height="10"><path d="M8 5v14l11-7z"/></svg> 유튜브</a>
+                <button class="link-btn score btn-sm" onclick="event.stopPropagation();openModal(2)">악보 보기</button>
+              </div>
+              <div class="score-edit">Last edit: 2026.04.30</div>
+            </div>
+            <div class="score-card" onclick="openModal(3)">
+              <div class="score-card-title">나의 하나님</div>
+              <div class="score-card-meta"><span class="tag key">D</span><span class="tag">박우정</span></div>
+              <div class="score-card-links"><button class="link-btn score btn-sm" onclick="event.stopPropagation();openModal(3)">악보 보기</button></div>
+              <div class="score-edit">Last edit: 2026.05.04</div>
+            </div>
+            <div class="score-add-card"><div style="font-size:24px;margin-bottom:8px;">＋</div><div style="font-size:12px;color:var(--text-muted);">악보 추가</div></div>
+          </div>
+        </div>
+
+        <!-- 일괄 임포트 탭 -->
+        <div class="tab-panel" id="panel-import">
+          <div class="import-zone" id="importZone"
+            ondragover="event.preventDefault();this.style.borderColor='var(--olive)'"
+            ondragleave="this.style.borderColor=''"
+            ondrop="handleDrop(event)">
+            <div class="import-zone-icon">📂</div>
+            <div class="import-zone-title">악보 파일을 여기에 드래그하거나 클릭하여 업로드</div>
+            <div class="import-zone-sub">PNG, JPG, PDF 지원 · 여러 파일 한번에 업로드 가능</div>
+            <div class="import-actions">
+              <button class="btn btn-primary" onclick="document.getElementById('fileInput').click()">📁 파일 선택</button>
+              <button class="btn" onclick="downloadTemplate()">📄 Import Template 다운로드</button>
+            </div>
+            <input type="file" id="fileInput" multiple accept=".png,.jpg,.jpeg,.pdf" style="display:none" onchange="handleFileSelect(this)"/>
+          </div>
+
+          <!-- 업로드 대기 목록 -->
+          <div id="importQueue" style="margin-top:18px;display:none;">
+            <div class="section-label" style="margin-bottom:10px;">업로드 대기 목록</div>
+            <div id="importList" style="display:flex;flex-direction:column;gap:8px;"></div>
+            <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:14px;">
+              <button class="btn" onclick="clearImport()">취소</button>
+              <button class="btn btn-primary" onclick="confirmImport()">✅ 일괄 등록</button>
+            </div>
+          </div>
+
+          <!-- 템플릿 안내 -->
+          <div style="margin-top:20px;padding:16px;background:var(--olive-bg);border-radius:10px;font-size:12.5px;color:var(--text-muted);line-height:1.8;">
+            <strong style="color:var(--text);">📄 Import Template 사용법</strong><br>
+            Template CSV를 다운로드 → 곡 제목, Key, 아티스트, 유튜브 링크, 노트 입력 → 파일과 함께 임포트하면 악보 창고에 일괄 등록됩니다.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CONTI -->
+    <div id="page-conti" class="page">
+      <div class="page-header">
+        <div><div class="page-title">콘티 짜기</div><div class="page-sub">곡을 클릭하여 콘티를 구성하세요</div></div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn" onclick="clearConti()">초기화</button>
+          <button class="btn btn-primary" onclick="showPage('kakao',null)">💬 카톡 발송</button>
+        </div>
+      </div>
+      <div class="page-body" style="display:flex;flex-direction:column;">
+        <div class="conti-grid" style="flex:1;min-height:0;">
+          <div class="conti-panel">
+            <div class="panel-header">악보 목록 <span style="font-weight:400;color:var(--text-light);font-size:10.5px;">클릭하여 추가</span></div>
+            <div style="padding:8px 8px 0;flex-shrink:0;">
+              <input class="search-input" type="text" placeholder="🔍 악보 검색..." id="contiSearch" oninput="filterContiPool()" style="width:100%;padding:7px 12px;font-size:12px;"/>
+            </div>
+            <div class="panel-body" id="contiPool">
+              <div class="pool-song" onclick="addConti('주 예수보다 더 귀한 것은 없네','Bb')"><span style="font-size:16px;">🎵</span><div style="flex:1;"><div style="font-weight:500;font-size:13px;">주 예수보다 더 귀한 것은 없네</div><div style="font-size:11px;color:var(--text-light);">Key Bb · 아이자야씩스티원</div></div><span style="color:var(--text-light);font-size:20px;">＋</span></div>
+              <div class="pool-song" onclick="addConti('나의 죄를 씻기는','G')"><span style="font-size:16px;">🎵</span><div style="flex:1;"><div style="font-weight:500;font-size:13px;">나의 죄를 씻기는</div><div style="font-size:11px;color:var(--text-light);">Key G · FIA ver.</div></div><span style="color:var(--text-light);font-size:20px;">＋</span></div>
+              <div class="pool-song" onclick="addConti('예수 하나님의 공의','D')"><span style="font-size:16px;">🎵</span><div style="flex:1;"><div style="font-weight:500;font-size:13px;">예수 하나님의 공의</div><div style="font-size:11px;color:var(--text-light);">Key D · This Kingdom</div></div><span style="color:var(--text-light);font-size:20px;">＋</span></div>
+              <div class="pool-song" onclick="addConti('나의 하나님','D')"><span style="font-size:16px;">🎵</span><div style="flex:1;"><div style="font-weight:500;font-size:13px;">나의 하나님</div><div style="font-size:11px;color:var(--text-light);">Key D · 박우정</div></div><span style="color:var(--text-light);font-size:20px;">＋</span></div>
+            </div>
+          </div>
+          <div class="conti-panel">
+            <div class="panel-header">구성된 콘티 <span id="contiCount" style="font-weight:400;color:var(--text-light);font-size:10.5px;">0곡</span></div>
+            <div class="panel-body" id="contiList"><div class="drop-hint">여기에 곡을 추가하세요</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MERGE -->
+    <div id="page-merge" class="page">
+      <div class="page-header">
+        <div><div class="page-title">악보 합치기</div><div class="page-sub">두 악보를 하나의 문서로 합칩니다</div></div>
+      </div>
+      <div class="page-body">
+        <div class="merge-slots">
+          <!-- 1악보 -->
+          <div class="merge-slot filled" id="ms1">
+            <div class="merge-slot-label">1악보</div>
+            <div class="merge-slot-title">주 예수보다 더 귀한 것은 없네</div>
+            <div style="display:flex;gap:5px;margin-top:8px;flex-wrap:wrap;"><span class="tag key">Bb</span><span class="tag">아이자야씩스티원</span></div>
+            <div class="section-select-wrap">
+              <div class="section-select-sublabel">포함할 섹션</div>
+              <select class="section-select" id="sec1" onchange="updatePreview()">
+                <option value="all">전체 (Intro / Verse / Pre-Chorus / Chorus / Tag)</option>
+                <option value="intro">Intro &amp; Outro 만</option>
+                <option value="verse">Verse 만</option>
+                <option value="prechorus">Pre-Chorus 만</option>
+                <option value="chorus">Chorus 만</option>
+                <option value="tag">Tag 만</option>
+                <option value="vc">Verse + Chorus</option>
+                <option value="vct">Verse + Chorus + Tag</option>
+              </select>
+            </div>
+            <button class="link-btn btn-sm" style="margin-top:10px;width:fit-content;" onclick="resetSlot(1)">악보 변경</button>
+          </div>
+          <!-- 2악보 -->
+          <div class="merge-slot filled" id="ms2">
+            <div class="merge-slot-label">2악보</div>
+            <div class="merge-slot-title">나의 죄를 씻기는</div>
+            <div style="display:flex;gap:5px;margin-top:8px;flex-wrap:wrap;"><span class="tag key">G</span><span class="tag">FIA ver.</span></div>
+            <div class="section-select-wrap">
+              <div class="section-select-sublabel">포함할 섹션</div>
+              <select class="section-select" id="sec2" onchange="updatePreview()">
+                <option value="all">전체 (INTRO / VERSE / CHORUS / INTER&amp;OUTRO)</option>
+                <option value="intro">INTRO 만</option>
+                <option value="verse">VERSE 만</option>
+                <option value="chorus">CHORUS 만</option>
+                <option value="outro">INTER&amp;OUTRO 만</option>
+                <option value="vc">VERSE + CHORUS</option>
+                <option value="vco">VERSE + CHORUS + INTER&amp;OUTRO</option>
+              </select>
+            </div>
+            <button class="link-btn btn-sm" style="margin-top:10px;width:fit-content;" onclick="resetSlot(2)">악보 변경</button>
+          </div>
+        </div>
+
+        <div class="section-label">배열 방식</div>
+        <div class="merge-opts">
+          <div class="merge-opt sel" onclick="selOpt(this)"><div class="merge-opt-icon">☰</div><div class="merge-opt-label">위아래</div></div>
+          <div class="merge-opt" onclick="selOpt(this)"><div class="merge-opt-icon">⊟</div><div class="merge-opt-label">좌우</div></div>
+          <div class="merge-opt" onclick="selOpt(this)"><div class="merge-opt-icon">📄</div><div class="merge-opt-label">별도 페이지</div></div>
+        </div>
+
+        <div class="section-label">미리보기</div>
+        <div class="card">
+          <div id="mergePreview" style="background:var(--cream);border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:14px;"></div>
+          <div style="display:flex;justify-content:flex-end;">
+            <button class="btn btn-primary">📥 PDF로 내보내기</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- KAKAO -->
+    <div id="page-kakao" class="page">
+      <div class="page-header">
+        <div><div class="page-title">카톡 발송</div><div class="page-sub">단톡방에 콘티 알림을 전송합니다</div></div>
+      </div>
+      <div class="page-body">
+        <div class="section-label" style="margin-bottom:8px;">단톡방 선택</div>
+        <div class="kakao-rooms">
+          <div class="kakao-room sel" onclick="selRoom(this)">
+            <div class="kakao-icon">💬</div>
+            <div class="kakao-info"><div class="kakao-name">찬양팀 단톡방</div><div class="kakao-count">멤버 12명</div></div>
+            <span class="kakao-check">✓</span>
+          </div>
+          <div class="kakao-room" onclick="selRoom(this)">
+            <div class="kakao-icon">💬</div>
+            <div class="kakao-info"><div class="kakao-name">9시 예배팀</div><div class="kakao-count">멤버 8명</div></div>
+          </div>
+        </div>
+        <div class="section-label" style="margin-bottom:8px;">메시지 미리보기</div>
+        <div class="kakao-preview">할렐루야! 🙌
+2026년 5월 첫째주 주일 9시 예배 콘티입니다😁
+
+1. 주 예수보다 더 귀한 것은 없네 (Bb)
+   ▶ https://youtu.be/O66SLvLJWNY
+
+2. 나의 죄를 씻기는 (G)
+   ▶ https://youtu.be/6UqoAZwp6QY
+
+3. 예수 하나님의 공의 + 나의 하나님 (D)
+   ▶ https://youtu.be/PNfbZIAiEuI
+
+📖 기나긴 전쟁에서 승리하고 가나안을 점령했지만, 또 다시 끝나지 않는 과업을 맞이하는 여호수아와 백성들. 예수님께서는 십자가에서 죽으심으로 승리하시고, '평안함'과 '담대함'으로 그 승리에 동참하라고 말씀하십니다.
+
+⏰ 8시에 연습이 시작될 수 있도록 힘써주시기 바랍니다😁
+공감표시나 아멘으로 화답하여 주시면 큰 힘이 될 것 같습니다👍🏻
+감사합니다</div>
+        <div style="display:flex;gap:8px;justify-content:flex-end;margin-bottom:16px;">
+          <button class="btn">✏️ 메시지 편집</button>
+          <button class="btn btn-primary" onclick="alert('카카오톡 API 연동 후 발송됩니다!\n카카오워크 봇 API 또는 카카오채널 연결이 필요합니다.')">💬 카톡 전송</button>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- 악보 보기 모달 -->
+<div class="modal-bg" id="modalBg" onclick="bgClose(event,'modalBg')">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="modal-title" id="mTitle"></div>
+      <button class="modal-close" onclick="closeModal('modalBg')">✕</button>
+    </div>
+    <div class="modal-info-grid" id="mInfo"></div>
+    <img id="mImg" class="modal-score-img" src="" alt="악보 이미지"/>
+    <div id="mImgErr" style="display:none;padding:20px;text-align:center;font-size:13px;color:var(--text-light);background:var(--olive-bg);border-radius:8px;margin-bottom:12px;line-height:1.7;">
+      악보 이미지를 표시하려면<br>HTML 파일과 <strong>같은 폴더</strong>에 악보 이미지 파일을 넣어주세요.
+    </div>
+    <div class="modal-links" id="mLinks"></div>
+    <div class="modal-note" id="mNote"></div>
+  </div>
+</div>
+
+<!-- 새 콘티 등록 모달 -->
+<div class="modal-bg" id="regModalBg" onclick="bgClose(event,'regModalBg')">
+  <div class="reg-modal-box">
+    <div class="modal-header">
+      <div class="modal-title">간편 콘티 등록</div>
+      <button class="modal-close" onclick="closeModal('regModalBg')">✕</button>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">예배 날짜</label>
+      <input type="date" class="form-input" id="reg-date" value="2026-05-11"/>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">예배 구분</label>
+        <select class="form-input" id="reg-service">
+          <option>주일 9시 예배</option><option>주일 11시 예배</option>
+          <option>수요 예배</option><option>금요 예배</option><option>기타</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">연습 시작 시간</label>
+        <input type="time" class="form-input" id="reg-practice" value="08:00"/>
+      </div>
+    </div>
+
+    <hr class="form-divider"/>
+
+    <div class="form-group">
+      <label class="form-label">말씀 배경 / 전달사항 제목</label>
+      <input type="text" class="form-input" id="reg-theme" placeholder="예) 여호수아의 과업 — 평안함과 담대함으로 승리하는 믿음"/>
+    </div>
+    <div class="form-group">
+      <label class="form-label">전달사항 내용</label>
+      <textarea class="form-textarea" id="reg-note" placeholder="전도사님 메시지 내용을 입력하세요..."></textarea>
+    </div>
+
+    <hr class="form-divider"/>
+
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+      <label class="form-label" style="margin:0;">찬양 목록</label>
+      <button class="btn btn-sm" onclick="addRegSong()">＋ 직접 입력</button>
+    </div>
+    <!-- 악보 창고 서치바 -->
+    <div style="position:relative;margin-bottom:10px;">
+      <input class="form-input" id="regSearchInput" type="text" placeholder="🔍 악보 창고에서 곡 검색 후 클릭하여 추가..."
+        oninput="filterRegSearch()" autocomplete="off"
+        style="padding-right:36px;"/>
+      <div id="regSearchDrop" style="display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;background:var(--white);border:1px solid var(--border-strong);border-radius:8px;z-index:10;box-shadow:0 4px 16px rgba(0,0,0,.1);max-height:180px;overflow-y:auto;"></div>
+    </div>
+    <div id="regSongList"></div>
+
+    <hr class="form-divider"/>
+
+    <div style="display:flex;gap:10px;justify-content:flex-end;">
+      <button class="btn" onclick="closeModal('regModalBg')">취소</button>
+      <button class="btn btn-primary" onclick="saveReg()">✅ 콘티 등록</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const SONGS=[
+  {title:'주 예수보다 더 귀한 것은 없네',key:'Bb',artist:'아이자야씩스티원',source:'THE GOSPEL II · R.F.Miller / G.B.Shea',tempo:'♩=64',form:'Intro & Outro / Verse / Pre-Chorus / Chorus / Tag',yt:'https://www.youtube.com/watch?v=O66SLvLJWNY',img:'KakaoTalk_Photo_2026-05-04-00-22-52_001.jpeg',note:'Copyright © 2023 Isaiah 6tyOne Music · ARRANGED BY 아이자야씩스티원',lastEdit:'2026.04.28'},
+  {title:'나의 죄를 씻기는',key:'G',artist:'FIA ver.',source:'Arr. 박신형',tempo:'♩=105',form:'INTRO / VERSE / CHORUS / INTER&OUTRO',yt:'https://www.youtube.com/watch?v=6UqoAZwp6QY',img:'KakaoTalk_Photo_2026-05-04-00-22-52_003.png',note:'FIA_ver. Arr.박신형',lastEdit:'2026.04.30'},
+  {title:'예수 하나님의 공의',key:'D',artist:'아이자야씩스티원',source:'This Kingdom · 아이자야씩스티원 ver.',tempo:'♩=66',form:'Verse 1&2 / Chorus / Outro',yt:'https://www.youtube.com/watch?v=PNfbZIAiEuI',img:'KakaoTalk_Photo_2026-05-04-00-22-52_002.png',note:'Scored by zozoanna · https://blog.naver.com/zozoanna_',lastEdit:'2026.04.30'},
+  {title:'나의 하나님',key:'D',artist:'박우정',source:'Scored by zozoanna',tempo:'—',form:'Verse / Chorus / Bridge',yt:null,img:'KakaoTalk_Photo_2026-05-04-00-22-52_004.png',note:'Scored by zozoanna · https://blog.naver.com/zozoanna_',lastEdit:'2026.05.04'}
+];
+
+const SEC_LABELS={
+  sec1:{all:'전체 (Intro / Verse / Pre-Chorus / Chorus / Tag)',intro:'Intro & Outro',verse:'Verse',prechorus:'Pre-Chorus',chorus:'Chorus',tag:'Tag',vc:'Verse + Chorus',vct:'Verse + Chorus + Tag'},
+  sec2:{all:'전체 (INTRO / VERSE / CHORUS / INTER&OUTRO)',intro:'INTRO',verse:'VERSE',chorus:'CHORUS',outro:'INTER&OUTRO',vc:'VERSE + CHORUS',vco:'VERSE + CHORUS + INTER&OUTRO'}
+};
+
+function showPage(id,btn){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  if(btn)btn.classList.add('active');
+  else document.querySelectorAll('.nav-item').forEach(n=>{if(n.getAttribute('onclick')&&n.getAttribute('onclick').includes("'"+id+"'"))n.classList.add('active');});
+}
+
+function toggleWeek(h){
+  const b=h.nextElementSibling,a=h.querySelector('.week-arrow');
+  b.classList.toggle('open');a.classList.toggle('open');
+}
+
+/* 악보 모달 */
+function openModal(i){
+  const s=SONGS[i];
+  document.getElementById('mTitle').textContent=s.title;
+  document.getElementById('mInfo').innerHTML=`
+    <span class="mi-label">Key</span><span class="mi-value" style="color:var(--olive);font-weight:700;">${s.key}</span>
+    <span class="mi-label">아티스트</span><span class="mi-value">${s.artist}</span>
+    <span class="mi-label">출처</span><span class="mi-value">${s.source}</span>
+    <span class="mi-label">템포</span><span class="mi-value">${s.tempo}</span>
+    <span class="mi-label">송폼</span><span class="mi-value">${s.form}</span>
+    <span class="mi-label">최종수정</span><span class="mi-value">${s.lastEdit}</span>`;
+  const img=document.getElementById('mImg');
+  const err=document.getElementById('mImgErr');
+  img.style.display='block'; err.style.display='none';
+  img.onerror=function(){this.style.display='none';err.style.display='block';};
+  img.src=s.img;
+  document.getElementById('mNote').textContent=s.note;
+  document.getElementById('mLinks').innerHTML=s.yt?`<a href="${s.yt}" target="_blank" class="link-btn yt">▶ 유튜브 레퍼런스</a>`:'';
+  document.getElementById('modalBg').classList.add('open');
+}
+
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+function bgClose(e,id){if(e.target===document.getElementById(id))closeModal(id);}
+
+/* 콘티 */
+let conti=[];
+function addConti(t,k){conti.push({title:t,key:k});renderConti();}
+function removeConti(i){conti.splice(i,1);renderConti();}
+function clearConti(){conti=[];renderConti();}
+function renderConti(){
+  const el=document.getElementById('contiList');
+  document.getElementById('contiCount').textContent=conti.length+'곡';
+  if(!conti.length){el.innerHTML='<div class="drop-hint">여기에 곡을 추가하세요</div>';return;}
+  el.innerHTML=conti.map((c,i)=>`
+    <div class="conti-item">
+      <div class="conti-num">${i+1}</div>
+      <div style="flex:1;"><div style="font-weight:500;font-size:13px;">${c.title}</div><div style="font-size:11px;color:var(--text-light);">Key ${c.key}</div></div>
+      <button class="rm-btn" onclick="removeConti(${i})">✕</button>
+    </div>`).join('');
+}
+
+/* 합치기 */
+function selOpt(el){document.querySelectorAll('.merge-opt').forEach(o=>o.classList.remove('sel'));el.classList.add('sel');updatePreview();}
+function resetSlot(n){const s=document.getElementById('ms'+n);s.classList.remove('filled');s.innerHTML=`<div class="merge-slot-label">${n}악보</div><div class="merge-slot-hint">클릭하여 악보 선택</div>`;}
+function updatePreview(){
+  const s1=document.getElementById('sec1'),s2=document.getElementById('sec2');
+  const l1=s1?SEC_LABELS.sec1[s1.value]||s1.value:'전체';
+  const l2=s2?SEC_LABELS.sec2[s2.value]||s2.value:'전체';
+  document.getElementById('mergePreview').innerHTML=`
+    <div style="border-bottom:1px solid var(--border);padding-bottom:12px;margin-bottom:12px;text-align:center;">
+      <div style="font-size:13.5px;font-weight:600;color:var(--text);">주 예수보다 더 귀한 것은 없네</div>
+      <div style="font-size:11px;color:var(--text-light);margin-top:3px;">Key Bb · ${l1}</div>
+    </div>
+    <div style="text-align:center;">
+      <div style="font-size:13.5px;font-weight:600;color:var(--text);">나의 죄를 씻기는</div>
+      <div style="font-size:11px;color:var(--text-light);margin-top:3px;">Key G · ${l2}</div>
+    </div>`;
+}
+updatePreview();
+
+/* 카카오 */
+function selRoom(el){
+  document.querySelectorAll('.kakao-room').forEach(r=>{r.classList.remove('sel');const c=r.querySelector('.kakao-check');if(c)c.remove();});
+  el.classList.add('sel');
+  const chk=document.createElement('span');chk.className='kakao-check';chk.textContent='✓';el.appendChild(chk);
+}
+
+/* 다크모드 */
+function toggleTheme(){
+  const isDark=document.documentElement.getAttribute('data-theme')==='dark';
+  document.documentElement.setAttribute('data-theme',isDark?'light':'dark');
+  document.getElementById('themeBtn').textContent=isDark?'🌙':'☀️';
+  localStorage.setItem('theme',isDark?'light':'dark');
+}
+(function(){
+  const saved=localStorage.getItem('theme');
+  if(saved==='dark'){document.documentElement.setAttribute('data-theme','dark');const b=document.getElementById('themeBtn');if(b)b.textContent='☀️';}
+})();
+
+/* 콘티 서치 */
+function filterContiPool(){
+  const q=document.getElementById('contiSearch').value.toLowerCase();
+  document.querySelectorAll('#contiPool .pool-song').forEach(el=>{
+    el.style.display=el.textContent.toLowerCase().includes(q)?'':'none';
+  });
+}
+
+/* 라이브러리 탭 전환 */
+function switchLibTab(tab){
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById('tab-'+tab).classList.add('active');
+  document.getElementById('panel-'+tab).classList.add('active');
+}
+
+/* 임포트 */
+let importFiles=[];
+function handleDrop(e){
+  e.preventDefault();
+  document.getElementById('importZone').style.borderColor='';
+  const files=Array.from(e.dataTransfer.files);
+  addToImportQueue(files);
+}
+function handleFileSelect(input){
+  addToImportQueue(Array.from(input.files));
+  input.value='';
+}
+function addToImportQueue(files){
+  files.forEach(f=>{importFiles.push({file:f,title:f.name.replace(/\.[^.]+$/,''),key:'',artist:'',yt:''});});
+  renderImportQueue();
+}
+function renderImportQueue(){
+  if(!importFiles.length){document.getElementById('importQueue').style.display='none';return;}
+  document.getElementById('importQueue').style.display='block';
+  document.getElementById('importList').innerHTML=importFiles.map((f,i)=>`
+    <div style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--white);border:1px solid var(--border);border-radius:8px;">
+      <span style="font-size:18px;">${f.file.type.includes('pdf')?'📄':'🖼️'}</span>
+      <div style="flex:1;display:grid;grid-template-columns:2fr 1fr 1fr;gap:6px;">
+        <input class="form-input" style="font-size:11px;padding:5px 8px;" placeholder="곡 제목" value="${f.title}" oninput="importFiles[${i}].title=this.value"/>
+        <input class="form-input" style="font-size:11px;padding:5px 8px;" placeholder="Key" value="${f.key}" oninput="importFiles[${i}].key=this.value"/>
+        <input class="form-input" style="font-size:11px;padding:5px 8px;" placeholder="아티스트" value="${f.artist}" oninput="importFiles[${i}].artist=this.value"/>
+      </div>
+      <button class="rm-btn" onclick="removeImport(${i})">✕</button>
+    </div>`).join('');
+}
+function removeImport(i){importFiles.splice(i,1);renderImportQueue();}
+function clearImport(){importFiles=[];renderImportQueue();}
+function confirmImport(){
+  const filled=importFiles.filter(f=>f.title.trim());
+  alert(`✅ ${filled.length}개 악보가 등록되었습니다!\n(실제 저장은 백엔드 연동 후 동작합니다)`);
+  importFiles=[];renderImportQueue();
+  switchLibTab('scores');
+}
+function downloadTemplate(){
+  const csv='곡 제목,Key,아티스트,유튜브 링크,노트\n예시곡,G,아티스트명,https://youtube.com/...,노트입력\n';
+  const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='악보_임포트_템플릿.csv';a.click();
+}
+function filterScores(){
+  const q=document.getElementById('searchInput').value.toLowerCase();
+  document.querySelectorAll('#scoreGrid .score-card').forEach(c=>{c.style.display=c.textContent.toLowerCase().includes(q)?'':'none';});
+}
+
+/* 새 콘티 등록 팝업 */
+let regSongs=[{title:'',key:''}];
+function openRegModal(){
+  regSongs=[{title:'',key:''}];
+  renderRegSongs();
+  document.getElementById('reg-theme').value='';
+  document.getElementById('reg-note').value='';
+  document.getElementById('regSearchInput').value='';
+  document.getElementById('regSearchDrop').style.display='none';
+  document.getElementById('regModalBg').classList.add('open');
+}
+function filterRegSearch(){
+  const q=document.getElementById('regSearchInput').value.trim().toLowerCase();
+  const drop=document.getElementById('regSearchDrop');
+  if(!q){drop.style.display='none';return;}
+  const matches=SONGS.filter(s=>
+    s.title.toLowerCase().includes(q)||
+    s.artist.toLowerCase().includes(q)||
+    s.key.toLowerCase().includes(q)
+  );
+  if(!matches.length){
+    drop.innerHTML='<div style="padding:12px 14px;font-size:12px;color:var(--text-light);">검색 결과가 없습니다</div>';
+    drop.style.display='block';return;
+  }
+  drop.innerHTML=matches.map(s=>`
+    <div onclick="addRegSongFromSearch('${s.title.replace(/'/g,"\\'")}','${s.key}')"
+      style="display:flex;align-items:center;gap:10px;padding:10px 14px;cursor:pointer;border-bottom:1px solid var(--border);transition:background .1s;"
+      onmouseover="this.style.background='var(--olive-bg)'" onmouseout="this.style.background=''">
+      <span style="font-size:14px;">🎵</span>
+      <div style="flex:1;">
+        <div style="font-size:13px;font-weight:500;color:var(--text);">${s.title}</div>
+        <div style="font-size:11px;color:var(--text-light);">Key ${s.key} · ${s.artist}</div>
+      </div>
+      <span style="font-size:11px;color:var(--olive);font-weight:600;">＋ 추가</span>
+    </div>`).join('');
+  drop.style.display='block';
+}
+function addRegSongFromSearch(title,key){
+  regSongs.push({title,key});
+  renderRegSongs();
+  document.getElementById('regSearchInput').value='';
+  document.getElementById('regSearchDrop').style.display='none';
+}
+// 드롭다운 외부 클릭 시 닫기
+document.addEventListener('click',function(e){
+  const wrap=document.getElementById('regSearchInput');
+  const drop=document.getElementById('regSearchDrop');
+  if(wrap&&drop&&!wrap.contains(e.target)&&!drop.contains(e.target)) drop.style.display='none';
+});
+function renderRegSongs(){
+  document.getElementById('regSongList').innerHTML=regSongs.map((s,i)=>`
+    <div class="reg-song-item">
+      <div class="reg-song-num">${i+1}</div>
+      <input class="form-input" style="flex:1;" placeholder="곡 제목" value="${s.title}" oninput="regSongs[${i}].title=this.value"/>
+      <input class="form-input reg-key-input" placeholder="Key" value="${s.key}" oninput="regSongs[${i}].key=this.value"/>
+      ${regSongs.length>1?`<button class="rm-btn" onclick="removeRegSong(${i})">✕</button>`:''}
+    </div>`).join('');
+}
+function addRegSong(){regSongs.push({title:'',key:''});renderRegSongs();}
+function removeRegSong(i){regSongs.splice(i,1);renderRegSongs();}
+function saveReg(){
+  const date=document.getElementById('reg-date').value;
+  const service=document.getElementById('reg-service').value;
+  const practice=document.getElementById('reg-practice').value;
+  const theme=document.getElementById('reg-theme').value||'(제목 없음)';
+  if(!date){alert('날짜를 선택해주세요.');return;}
+  const filled=regSongs.filter(s=>s.title.trim());
+  if(!filled.length){alert('최소 1곡 이상 입력해주세요.');return;}
+  alert(`✅ 콘티가 등록되었습니다!\n\n📅 ${date} ${service}\n⏰ 연습: ${practice}\n📖 ${theme}\n🎵 ${filled.map((s,i)=>`\n   ${i+1}. ${s.title} (${s.key||'—'})`).join('')}`);
+  closeModal('regModalBg');
+}
+</script>
+</body>
+</html>
