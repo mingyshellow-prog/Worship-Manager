@@ -272,7 +272,7 @@ nav{flex:1;padding:4px 8px;overflow-y:auto;}
           </div>
         </div>
         <div class="dash-grid">
-          <div class="card">
+          <div class="card" id="dashContiCard">
             <div class="card-title">🎵 이번 주 콘티 — 5월 1주</div>
             <div class="song-row" onclick="openModal(0)">
               <div class="song-num">1</div>
@@ -321,10 +321,10 @@ nav{flex:1;padding:4px 8px;overflow-y:auto;}
         <div><div class="page-title">주차별 찬양</div><div class="page-sub">주차 카드를 클릭하면 콘티 상세를 확인할 수 있습니다</div></div>
         <button class="btn btn-primary" onclick="openRegModal()">＋ 간편 콘티 등록</button>
       </div>
-      <div class="page-body">
+      <div class="page-body" id="weeklyBody">
         <div class="week-card">
           <div class="week-header" onclick="toggleWeek(this)">
-            <div><div class="week-title">2026년 5월 1주 — 주일 9시 예배</div><div class="week-meta">찬양 4곡 · 연습 08:00 · 2026.05.04</div></div>
+            <div><div class="week-title">2026년 5월 1주 — 주일 9시 예배</div><div class="week-meta">찬양 4곡 · 연습 08:00 · 2026.05.04 <span style="font-size:11px;color:var(--olive);font-weight:600;">✍️ 김전도 (전도사)</span></div></div>
             <span class="week-arrow open">▼</span>
           </div>
           <div class="week-body open">
@@ -599,7 +599,7 @@ nav{flex:1;padding:4px 8px;overflow-y:auto;}
 감사합니다</div>
         <div style="display:flex;gap:8px;justify-content:flex-end;margin-bottom:16px;">
           <button class="btn">✏️ 메시지 편집</button>
-          <button class="btn btn-primary" onclick="alert('카카오톡 API 연동 후 발송됩니다!\n카카오워크 봇 API 또는 카카오채널 연결이 필요합니다.')">💬 카톡 전송</button>
+          <button class="btn btn-primary" onclick="handleKakaoSend()">💬 카톡 전송</button>
         </div>
       </div>
     </div>
@@ -652,6 +652,16 @@ nav{flex:1;padding:4px 8px;overflow-y:auto;}
 
     <hr class="form-divider"/>
 
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">📋 담당자 이름</label>
+        <input type="text" class="form-input" id="reg-manager-name" placeholder="예) 홍길동"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">직책</label>
+        <input type="text" class="form-input" id="reg-manager-role" placeholder="예) 전도사, 찬양팀장"/>
+      </div>
+    </div>
     <div class="form-group">
       <label class="form-label">말씀 배경 / 전달사항 제목</label>
       <input type="text" class="form-input" id="reg-theme" placeholder="예) 여호수아의 과업 — 평안함과 담대함으로 승리하는 믿음"/>
@@ -856,11 +866,16 @@ function filterScores(){
 
 /* 새 콘티 등록 팝업 */
 let regSongs=[{title:'',key:''}];
+// 등록된 주차 데이터 저장 (기존 하드코딩 제외, 동적으로 추가)
+let weekData=[];
+
 function openRegModal(){
   regSongs=[{title:'',key:''}];
   renderRegSongs();
   document.getElementById('reg-theme').value='';
   document.getElementById('reg-note').value='';
+  document.getElementById('reg-manager-name').value='';
+  document.getElementById('reg-manager-role').value='';
   document.getElementById('regSearchInput').value='';
   document.getElementById('regSearchDrop').style.display='none';
   document.getElementById('regModalBg').classList.add('open');
@@ -914,16 +929,88 @@ function renderRegSongs(){
 }
 function addRegSong(){regSongs.push({title:'',key:''});renderRegSongs();}
 function removeRegSong(i){regSongs.splice(i,1);renderRegSongs();}
+function handleKakaoSend(){
+  const preview=document.querySelector('.kakao-preview');
+  if(preview){
+    navigator.clipboard.writeText(preview.textContent.trim()).then(()=>{
+      alert('✅ 메시지가 클립보드에 복사되었습니다!\n카카오톡 단톡방에 붙여넣기(Ctrl+V / Cmd+V) 하세요.');
+    }).catch(()=>{
+      alert('메시지를 복사해서 카카오톡 단톡방에 붙여넣어 주세요!');
+    });
+  }
+}
 function saveReg(){
   const date=document.getElementById('reg-date').value;
   const service=document.getElementById('reg-service').value;
   const practice=document.getElementById('reg-practice').value;
   const theme=document.getElementById('reg-theme').value||'(제목 없음)';
+  const note=document.getElementById('reg-note').value||'';
+  const managerName=document.getElementById('reg-manager-name').value||'';
+  const managerRole=document.getElementById('reg-manager-role').value||'';
   if(!date){alert('날짜를 선택해주세요.');return;}
   const filled=regSongs.filter(s=>s.title.trim());
   if(!filled.length){alert('최소 1곡 이상 입력해주세요.');return;}
-  alert(`✅ 콘티가 등록되었습니다!\n\n📅 ${date} ${service}\n⏰ 연습: ${practice}\n📖 ${theme}\n🎵 ${filled.map((s,i)=>`\n   ${i+1}. ${s.title} (${s.key||'—'})`).join('')}`);
+
+  // 날짜 포맷 파싱
+  const d=new Date(date);
+  const month=d.getMonth()+1;
+  const day=d.getDate();
+  const weekNum=Math.ceil(day/7);
+  const weekLabel=`${month}월 ${weekNum}주`;
+  const dateLabel=`${d.getFullYear()}.${String(month).padStart(2,'0')}.${String(day).padStart(2,'0')}`;
+
+  // 주차별 찬양 페이지에 카드 추가
+  const weeklyBody=document.getElementById('weeklyBody');
+  const songRows=filled.map((s,i)=>`
+    <div class="detail-row">
+      <div class="detail-num">${i+1}</div>
+      <div style="flex:1;">
+        <div class="detail-title">${s.title}</div>
+        <div class="detail-tags">${s.key?`<span class="tag key">${s.key}</span>`:''}</div>
+      </div>
+    </div>`).join('');
+
+  const managerBadge = managerName
+    ? `<span style="font-size:11px;color:var(--olive);font-weight:600;">✍️ ${managerName}${managerRole?' ('+managerRole+')':''}</span>`
+    : '';
+
+  const newCard=document.createElement('div');
+  newCard.className='week-card';
+  newCard.style.borderLeft='3px solid var(--olive)';
+  newCard.innerHTML=`
+    <div class="week-header" onclick="toggleWeek(this)">
+      <div>
+        <div class="week-title">${d.getFullYear()}년 ${weekLabel} — ${service}</div>
+        <div class="week-meta">찬양 ${filled.length}곡 · 연습 ${practice||'미정'} · ${dateLabel} ${managerBadge}</div>
+      </div>
+      <span class="week-arrow open">▼</span>
+    </div>
+    <div class="week-body open">
+      <div style="padding:10px 0 8px;font-size:12px;color:var(--text-light);">📖 ${theme}</div>
+      ${note?`<div style="font-size:12px;color:var(--text-muted);padding:6px 0 8px;line-height:1.7;">${note}</div>`:''}
+      ${songRows}
+    </div>`;
+  // 맨 위에 삽입
+  weeklyBody.insertBefore(newCard, weeklyBody.firstChild);
+
+  // 대시보드 콘티 카드도 업데이트
+  const dashContiCard=document.getElementById('dashContiCard');
+  if(dashContiCard){
+    const header=dashContiCard.querySelector('.card-title');
+    if(header) header.textContent=`🎵 ${weekLabel} 콘티`;
+    const rows=dashContiCard.querySelectorAll('.song-row');
+    rows.forEach(r=>r.remove());
+    filled.forEach((s,i)=>{
+      const row=document.createElement('div');
+      row.className='song-row';
+      row.innerHTML=`<div class="song-num">${i+1}</div><div class="song-info"><div class="song-name">${s.title}</div><div class="song-meta"><span class="song-key">${s.key||'—'}</span></div></div>`;
+      dashContiCard.appendChild(row);
+    });
+  }
+
   closeModal('regModalBg');
+  // 주차별 찬양 페이지로 이동
+  showPage('weekly', null);
 }
 </script>
 </body>
