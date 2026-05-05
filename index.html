@@ -1,2303 +1,1171 @@
 <!DOCTYPE html>
-<html lang="ko" data-theme="light">
+<html lang="ko">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>악보/콘티 매니저 — 함께하는교회 안성</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=Noto+Serif+KR:wght@400;600;700&display=swap" rel="stylesheet"/>
 <style>
-/* ===== CSS VARIABLES ===== */
-:root {
-  --olive: #6b7c45;
-  --olive-dark: #4a5730;
-  --olive-light: #8a9d5a;
-  --olive-pale: #d4dfc0;
-  --cream: #f5f2eb;
-  --cream-dark: #ede8dd;
-  --cream-darker: #e0d8ca;
-  --text: #2c2c2c;
-  --text-muted: #6b6b6b;
-  --border: #d8d0c0;
-  --white: #ffffff;
-  --card-bg: #ffffff;
-  --sidebar-bg: #2c2f24;
-  --sidebar-text: #d4d9c8;
-  --sidebar-active: #6b7c45;
-  --danger: #c0392b;
-  --warning: #e67e22;
-  --success: #27ae60;
-  --shadow: 0 2px 12px rgba(0,0,0,0.08);
-  --shadow-lg: 0 8px 30px rgba(0,0,0,0.12);
-  --radius: 12px;
-  --radius-sm: 8px;
-}
-[data-theme="dark"] {
-  --cream: #1a1d15;
-  --cream-dark: #232618;
-  --cream-darker: #2a2e1e;
-  --text: #e8e4da;
-  --text-muted: #9a9a8a;
-  --border: #3a3f2a;
-  --card-bg: #252818;
-  --white: #1e211a;
-  --shadow: 0 2px 12px rgba(0,0,0,0.3);
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --olive:#8B8B5A;
+  --olive-light:#B5B57A;
+  --olive-bg:#F5F4EE;
+  --olive-dark:#5A5A35;
+  --cream:#FAF9F5;
+  --border:rgba(139,139,90,0.18);
+  --border-strong:rgba(139,139,90,0.38);
+  --text:#2C2C1E;
+  --text-muted:#6B6B50;
+  --text-light:#9B9B78;
+  --accent:#C4773A;
+  --white:#FFFFFF;
+  --sidebar-w:210px;
+  --red:#CC2200;
 }
 
-/* ===== RESET ===== */
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-html { font-size: 15px; }
-body {
-  font-family: 'Noto Sans KR', sans-serif;
-  background: var(--cream);
-  color: var(--text);
-  display: flex;
-  min-height: 100vh;
-  transition: background 0.3s, color 0.3s;
+html,body{height:100%;overflow:hidden;font-family:'Noto Sans KR',sans-serif;background:var(--cream);color:var(--text);}
+
+/* ── LAYOUT ── */
+.app{display:flex;height:100vh;overflow:hidden;}
+
+/* ── SIDEBAR ── */
+.sidebar{
+  width:var(--sidebar-w);
+  background:var(--white);
+  border-right:1px solid var(--border);
+  display:flex;
+  flex-direction:column;
+  flex-shrink:0;
+  height:100vh;
+  overflow:hidden;
 }
 
-/* ===== SCROLLBAR ===== */
-::-webkit-scrollbar { width: 5px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--olive-pale); border-radius: 4px; }
-
-/* ===== SIDEBAR ===== */
-#sidebar {
-  width: 220px;
-  min-height: 100vh;
-  background: var(--sidebar-bg);
-  display: flex;
-  flex-direction: column;
-  position: fixed;
-  top: 0; left: 0; bottom: 0;
-  z-index: 100;
-  transition: transform 0.3s;
-}
-.sidebar-logo {
-  padding: 24px 20px 16px;
-  border-bottom: 1px solid rgba(255,255,255,0.07);
-}
-.sidebar-logo h1 {
-  color: #fff;
-  font-size: 15px;
-  font-weight: 700;
-  line-height: 1.3;
-}
-.sidebar-logo p {
-  color: var(--sidebar-text);
-  font-size: 11px;
-  margin-top: 2px;
-  opacity: 0.6;
-}
-.sidebar-nav {
-  flex: 1;
-  padding: 12px 0;
-  overflow-y: auto;
-}
-.nav-section-label {
-  color: rgba(255,255,255,0.3);
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 1.2px;
-  text-transform: uppercase;
-  padding: 12px 20px 4px;
-}
-.nav-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 9px 20px;
-  color: var(--sidebar-text);
-  cursor: pointer;
-  font-size: 13.5px;
-  border-left: 3px solid transparent;
-  transition: all 0.15s;
-  user-select: none;
-}
-.nav-item:hover { background: rgba(255,255,255,0.05); color: #fff; }
-.nav-item.active {
-  background: rgba(107,124,69,0.2);
-  color: #b8c98a;
-  border-left-color: var(--olive-light);
-  font-weight: 600;
-}
-.nav-item .icon { font-size: 16px; width: 20px; text-align: center; }
-.sidebar-bottom {
-  padding: 16px 20px;
-  border-top: 1px solid rgba(255,255,255,0.07);
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
-.theme-toggle {
-  background: rgba(255,255,255,0.1);
-  border: none;
-  color: var(--sidebar-text);
-  padding: 6px 10px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 13px;
-  transition: background 0.15s;
-  flex: 1;
-}
-.theme-toggle:hover { background: rgba(255,255,255,0.15); }
-.version-badge {
-  font-size: 10px;
-  color: rgba(255,255,255,0.25);
+.logo-area{
+  padding:18px 16px 14px;
+  border-bottom:1px solid var(--border);
+  flex-shrink:0;
 }
 
-/* ===== MAIN CONTENT ===== */
-#main {
-  margin-left: 220px;
-  flex: 1;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-}
-.page-header {
-  background: var(--card-bg);
-  border-bottom: 1px solid var(--border);
-  padding: 20px 28px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  position: sticky;
-  top: 0;
-  z-index: 50;
-}
-.page-header h2 { font-size: 18px; font-weight: 700; }
-.page-header p { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
-.page-content { padding: 24px 28px; flex: 1; max-width: 1100px; }
+.logo-row{display:flex;align-items:center;gap:10px;margin-bottom:3px;}
 
-/* ===== CARDS ===== */
-.card {
-  background: var(--card-bg);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 20px;
-  box-shadow: var(--shadow);
-  transition: background 0.3s, border 0.3s;
-}
-.card-sm { padding: 14px 16px; }
+.logo-svg{width:36px;height:36px;flex-shrink:0;}
 
-/* ===== BUTTONS ===== */
-.btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 16px;
-  border-radius: var(--radius-sm);
-  border: none;
-  cursor: pointer;
-  font-family: inherit;
-  font-size: 13.5px;
-  font-weight: 500;
-  transition: all 0.15s;
-}
-.btn-primary { background: var(--olive); color: #fff; }
-.btn-primary:hover { background: var(--olive-dark); }
-.btn-secondary { background: var(--cream-dark); color: var(--text); border: 1px solid var(--border); }
-.btn-secondary:hover { background: var(--cream-darker); }
-.btn-ghost { background: transparent; color: var(--text-muted); border: 1px solid var(--border); }
-.btn-ghost:hover { background: var(--cream-dark); }
-.btn-sm { padding: 5px 10px; font-size: 12px; }
-.btn-danger { background: var(--danger); color: #fff; }
-
-/* ===== BADGES ===== */
-.badge {
-  display: inline-block;
-  padding: 2px 8px;
-  border-radius: 20px;
-  font-size: 11px;
-  font-weight: 600;
-}
-.badge-olive { background: var(--olive-pale); color: var(--olive-dark); }
-.badge-key { background: #e8f4e8; color: #2d6a2d; }
-[data-theme="dark"] .badge-key { background: #1e3a1e; color: #7ec87e; }
-
-/* ===== FORMS ===== */
-.form-group { margin-bottom: 14px; }
-.form-label { display: block; font-size: 12px; font-weight: 600; color: var(--text-muted); margin-bottom: 5px; }
-.form-input, .form-select, .form-textarea {
-  width: 100%;
-  padding: 9px 12px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  background: var(--cream);
-  color: var(--text);
-  font-family: inherit;
-  font-size: 13.5px;
-  transition: border-color 0.15s, background 0.3s;
-}
-.form-input:focus, .form-select:focus, .form-textarea:focus {
-  outline: none;
-  border-color: var(--olive);
-  background: var(--card-bg);
-}
-.form-textarea { resize: vertical; min-height: 80px; }
-.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-.form-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
-
-/* ===== MODAL ===== */
-.modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  padding: 20px;
-  opacity: 0;
-  visibility: hidden;
-  transition: all 0.2s;
-}
-.modal-overlay.open { opacity: 1; visibility: visible; }
-.modal {
-  background: var(--card-bg);
-  border-radius: var(--radius);
-  padding: 24px;
-  width: 100%;
-  max-width: 540px;
-  max-height: 85vh;
-  overflow-y: auto;
-  transform: translateY(20px);
-  transition: transform 0.2s;
-  box-shadow: var(--shadow-lg);
-}
-.modal-overlay.open .modal { transform: translateY(0); }
-.modal-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 20px;
-}
-.modal-header h3 { font-size: 17px; font-weight: 700; }
-.modal-close {
-  background: none;
-  border: none;
-  font-size: 20px;
-  cursor: pointer;
-  color: var(--text-muted);
-  line-height: 1;
-  padding: 4px;
-}
-.modal-close:hover { color: var(--text); }
-.modal-footer {
-  display: flex;
-  gap: 10px;
-  justify-content: flex-end;
-  margin-top: 20px;
-  padding-top: 16px;
-  border-top: 1px solid var(--border);
+.logo-name{
+  font-family:'Noto Serif KR',serif;
+  font-size:14px;
+  font-weight:700;
+  color:var(--olive-dark);
+  line-height:1.2;
 }
 
-/* ===== FILE UPLOAD ===== */
-.file-upload-area {
-  border: 2px dashed var(--olive-pale);
-  border-radius: var(--radius);
-  padding: 32px;
-  text-align: center;
-  cursor: pointer;
-  transition: all 0.2s;
-  background: var(--cream);
-}
-.file-upload-area:hover {
-  border-color: var(--olive);
-  background: var(--cream-dark);
-}
-.file-upload-area .icon { font-size: 36px; margin-bottom: 8px; }
-.file-upload-area p { color: var(--text-muted); font-size: 13px; }
-.file-upload-area strong { color: var(--olive); cursor: pointer; }
-
-/* ===== TABS ===== */
-.tab-list {
-  display: flex;
-  gap: 4px;
-  border-bottom: 2px solid var(--border);
-  margin-bottom: 20px;
-}
-.tab-btn {
-  padding: 8px 16px;
-  background: none;
-  border: none;
-  cursor: pointer;
-  font-family: inherit;
-  font-size: 13.5px;
-  color: var(--text-muted);
-  border-bottom: 2px solid transparent;
-  margin-bottom: -2px;
-  transition: all 0.15s;
-  font-weight: 500;
-}
-.tab-btn.active { color: var(--olive); border-bottom-color: var(--olive); font-weight: 700; }
-.tab-pane { display: none; }
-.tab-pane.active { display: block; }
-
-/* ===== SEARCH BAR ===== */
-.search-bar {
-  position: relative;
-  margin-bottom: 16px;
-}
-.search-bar input {
-  width: 100%;
-  padding: 10px 16px 10px 38px;
-  border: 1px solid var(--border);
-  border-radius: 24px;
-  background: var(--card-bg);
-  color: var(--text);
-  font-family: inherit;
-  font-size: 13.5px;
-}
-.search-bar input:focus { outline: none; border-color: var(--olive); }
-.search-bar .search-icon {
-  position: absolute;
-  left: 13px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: var(--text-muted);
-  font-size: 15px;
+.logo-tagline{
+  font-size:9.5px;
+  color:var(--text-light);
+  letter-spacing:0.2px;
+  padding-left:46px;
+  margin-top:1px;
 }
 
-/* ===== REACTION BAR ===== */
-.reaction-bar {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-  margin-top: 14px;
-}
-.reaction-btn {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 5px 10px;
-  border: 1px solid var(--border);
-  border-radius: 20px;
-  background: var(--cream);
-  cursor: pointer;
-  font-size: 13px;
-  transition: all 0.15s;
-  user-select: none;
-}
-.reaction-btn:hover { background: var(--olive-pale); border-color: var(--olive); }
-.reaction-btn.reacted { background: var(--olive-pale); border-color: var(--olive); color: var(--olive-dark); }
-.reaction-btn .count { font-size: 11px; font-weight: 600; color: var(--text-muted); }
-.reaction-btn.reacted .count { color: var(--olive-dark); }
-
-/* ===== SONG ROW (악보창고 리스트형) ===== */
-.song-row {
-  background: var(--card-bg);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  margin-bottom: 8px;
-  overflow: hidden;
-  transition: box-shadow 0.15s;
-}
-.song-row:hover { box-shadow: var(--shadow); }
-.song-row-header {
-  display: flex;
-  align-items: center;
-  padding: 12px 16px;
-  cursor: pointer;
-  gap: 12px;
-}
-.song-row-num {
-  width: 24px;
-  height: 24px;
-  background: var(--olive-pale);
-  color: var(--olive-dark);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 11px;
-  font-weight: 700;
-  flex-shrink: 0;
-}
-.song-row-info { flex: 1; min-width: 0; }
-.song-row-title { font-weight: 600; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.song-row-meta { font-size: 11.5px; color: var(--text-muted); margin-top: 2px; }
-.song-row-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
-.song-row-expand {
-  background: none;
-  border: none;
-  cursor: pointer;
-  font-size: 14px;
-  color: var(--text-muted);
-  padding: 4px;
-  transition: transform 0.2s;
-}
-.song-row-expand.open { transform: rotate(180deg); }
-.song-row-body {
-  display: none;
-  padding: 0 16px 14px;
-  border-top: 1px solid var(--border);
-  background: var(--cream);
-}
-.song-row-body.open { display: block; padding-top: 12px; }
-.song-row-body-grid { display: flex; gap: 10px; flex-wrap: wrap; }
-
-/* ===== CONTI LIST ===== */
-.conti-song-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 10px 14px;
-  background: var(--cream);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  margin-bottom: 8px;
-  cursor: grab;
-}
-.conti-song-num {
-  width: 28px;
-  height: 28px;
-  background: var(--olive);
-  color: white;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 12px;
-  font-weight: 700;
-  flex-shrink: 0;
-}
-.conti-song-info { flex: 1; }
-.conti-song-title { font-weight: 600; font-size: 13.5px; }
-.conti-song-meta { font-size: 11px; color: var(--text-muted); }
-.conti-song-remove { background: none; border: none; cursor: pointer; color: var(--text-muted); font-size: 16px; padding: 4px; }
-.conti-song-remove:hover { color: var(--danger); }
-
-/* ===== WEEK CARD ===== */
-.week-card {
-  background: var(--card-bg);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  margin-bottom: 12px;
-  overflow: hidden;
-}
-.week-card-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 14px 20px;
-  cursor: pointer;
-  transition: background 0.15s;
-}
-.week-card-header:hover { background: var(--cream); }
-.week-card-title { font-weight: 700; font-size: 15px; }
-.week-card-subtitle { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
-.week-card-body { display: none; padding: 16px 20px; border-top: 1px solid var(--border); background: var(--cream); }
-.week-card-body.open { display: block; }
-.week-card-arrow { transition: transform 0.2s; color: var(--text-muted); }
-.week-card-arrow.open { transform: rotate(180deg); }
-
-/* ===== COLLECTIONS ===== */
-.collection-folder {
-  background: var(--card-bg);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  margin-bottom: 12px;
-  overflow: hidden;
-}
-.folder-header {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 14px 18px;
-  cursor: pointer;
-  transition: background 0.15s;
-  user-select: none;
-}
-.folder-header:hover { background: var(--cream); }
-.folder-icon { font-size: 20px; }
-.folder-name { font-weight: 700; flex: 1; }
-.folder-count { font-size: 11px; color: var(--text-muted); }
-.folder-arrow { transition: transform 0.2s; color: var(--text-muted); }
-.folder-arrow.open { transform: rotate(90deg); }
-.folder-body { display: none; padding: 8px 12px 12px; border-top: 1px solid var(--border); }
-.folder-body.open { display: block; }
-.folder-song-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 8px 10px;
-  border-radius: var(--radius-sm);
-  font-size: 13.5px;
-  cursor: pointer;
-  transition: background 0.1s;
-}
-.folder-song-item:hover { background: var(--cream); }
-.folder-song-remove {
-  background: none; border: none; cursor: pointer;
-  color: var(--text-muted); font-size: 14px; padding: 2px; margin-left: auto;
-}
-.folder-song-remove:hover { color: var(--danger); }
-
-/* ===== MYPAGE SECTIONS ===== */
-.session-badges { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
-.session-badge {
-  padding: 6px 14px;
-  border-radius: 20px;
-  border: 2px solid var(--border);
-  background: var(--cream);
-  cursor: pointer;
-  font-size: 13px;
-  font-weight: 600;
-  transition: all 0.15s;
-}
-.session-badge.active { background: var(--olive); color: white; border-color: var(--olive); }
-
-/* ===== STATS GRID ===== */
-.stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px; }
-.stat-card {
-  background: var(--card-bg);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 16px;
-  text-align: center;
-}
-.stat-num { font-size: 28px; font-weight: 700; color: var(--olive); }
-.stat-label { font-size: 11.5px; color: var(--text-muted); margin-top: 3px; }
-
-/* ===== MOBILE NAV ===== */
-#mobile-nav {
-  display: none;
-  position: fixed;
-  bottom: 0; left: 0; right: 0;
-  background: var(--sidebar-bg);
-  z-index: 200;
-  padding: 8px 0 max(8px, env(safe-area-inset-bottom));
-  border-top: 1px solid rgba(255,255,255,0.1);
-}
-.mobile-nav-items { display: flex; justify-content: space-around; }
-.mobile-nav-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-  padding: 6px 10px;
-  cursor: pointer;
-  color: rgba(255,255,255,0.4);
-  font-size: 10px;
-  border-radius: 8px;
-  transition: color 0.15s;
-  user-select: none;
-}
-.mobile-nav-item.active { color: #b8c98a; }
-.mobile-nav-item .m-icon { font-size: 20px; }
-
-/* ===== BIBLE DROPDOWN ===== */
-.bible-selector {
-  background: var(--cream-dark);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 14px;
-  margin-bottom: 14px;
-}
-.bible-selector-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
-.bible-selector-row select {
-  flex: 1;
-  min-width: 100px;
-  padding: 8px 10px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  background: var(--card-bg);
-  color: var(--text);
-  font-family: inherit;
-  font-size: 13px;
-}
-.bible-verse-display {
-  padding: 10px 14px;
-  background: var(--card-bg);
-  border-radius: var(--radius-sm);
-  font-size: 13.5px;
-  line-height: 1.6;
-  border-left: 3px solid var(--olive);
-  color: var(--text);
-  min-height: 44px;
-  font-style: italic;
+.app-badge{
+  font-size:9px;
+  font-weight:700;
+  letter-spacing:1.5px;
+  text-transform:uppercase;
+  color:var(--olive);
+  padding:8px 16px 4px;
+  flex-shrink:0;
 }
 
-/* ===== AI RECOMMENDER ===== */
-.recommend-results {
-  display: grid;
-  gap: 10px;
-  margin-top: 14px;
-}
-.recommend-card {
-  background: var(--cream-dark);
-  border: 1px solid var(--olive-pale);
-  border-radius: var(--radius-sm);
-  padding: 12px 14px;
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-}
-.recommend-num {
-  width: 28px;
-  height: 28px;
-  background: var(--olive);
-  color: white;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 12px;
-  font-weight: 700;
-  flex-shrink: 0;
-}
-.recommend-info { flex: 1; }
-.recommend-title { font-weight: 700; font-size: 14px; }
-.recommend-reason { font-size: 12px; color: var(--text-muted); margin-top: 3px; line-height: 1.5; }
-.recommend-add {
-  background: var(--olive-pale);
-  border: none;
-  color: var(--olive-dark);
-  padding: 4px 10px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 12px;
-  font-weight: 600;
-  white-space: nowrap;
-  transition: background 0.15s;
-}
-.recommend-add:hover { background: var(--olive); color: white; }
+nav{flex:1;padding:4px 8px;overflow-y:auto;}
 
-/* ===== MESSAGE GENERATOR ===== */
-.message-preview {
-  background: #fff;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 16px;
-  font-size: 14px;
-  line-height: 1.7;
-  white-space: pre-wrap;
-  min-height: 120px;
-  color: #1a1a1a;
-  position: relative;
-}
-[data-theme="dark"] .message-preview { background: #1a1d15; color: var(--text); }
-.loading-dots::after {
-  content: '...';
-  animation: dots 1.2s infinite;
-}
-@keyframes dots {
-  0%, 20% { content: '.'; }
-  40% { content: '..'; }
-  60%, 100% { content: '...'; }
+.nav-section{
+  font-size:9px;letter-spacing:1px;
+  color:var(--text-light);
+  padding:10px 10px 3px;
+  text-transform:uppercase;
 }
 
-/* ===== UTILS ===== */
-.divider { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
-.mt-4 { margin-top: 16px; }
-.mb-4 { margin-bottom: 16px; }
-.flex { display: flex; }
-.items-center { align-items: center; }
-.justify-between { justify-content: space-between; }
-.gap-2 { gap: 8px; }
-.gap-3 { gap: 12px; }
-.text-muted { color: var(--text-muted); font-size: 12px; }
-.text-sm { font-size: 13px; }
-.font-bold { font-weight: 700; }
-.w-full { width: 100%; }
-.hidden { display: none !important; }
-.empty-state {
-  text-align: center;
-  padding: 40px 20px;
-  color: var(--text-muted);
+.nav-item{
+  display:flex;align-items:center;gap:9px;
+  padding:9px 10px;border-radius:8px;
+  cursor:pointer;font-size:13px;
+  color:var(--text-muted);
+  transition:all 0.13s;
+  margin-bottom:1px;
+  border:none;background:none;
+  width:100%;text-align:left;
+  font-family:'Noto Sans KR',sans-serif;
 }
-.empty-state .icon { font-size: 40px; margin-bottom: 10px; }
-.empty-state p { font-size: 14px; }
+.nav-item:hover{background:var(--olive-bg);color:var(--text);}
+.nav-item.active{background:var(--olive-bg);color:var(--olive-dark);font-weight:500;}
+.nav-icon{font-size:14px;width:20px;text-align:center;flex-shrink:0;}
 
-/* ===== RESPONSIVE ===== */
-@media (max-width: 768px) {
-  #sidebar { transform: translateX(-100%); }
-  #sidebar.mobile-open { transform: translateX(0); }
-  #main { margin-left: 0; padding-bottom: 70px; }
-  .page-content { padding: 16px; }
-  .page-header { padding: 14px 16px; }
-  #mobile-nav { display: block; }
-  .stats-grid { grid-template-columns: repeat(3, 1fr); gap: 8px; }
-  .stat-num { font-size: 22px; }
-  .form-row, .form-row-3 { grid-template-columns: 1fr; }
-  .modal { max-width: 100%; }
+.sidebar-footer{
+  padding:12px 14px;
+  border-top:1px solid var(--border);
+  font-size:10px;
+  color:var(--text-light);
+  flex-shrink:0;
+  line-height:1.6;
 }
 
-/* ===== CONTI MAKER LAYOUT ===== */
-.conti-maker-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 20px;
-}
-@media (max-width: 900px) {
-  .conti-maker-grid { grid-template-columns: 1fr; }
-}
-
-/* ===== LAST USED CHIP ===== */
-.last-used-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  font-size: 10px;
-  background: var(--cream-dark);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 1px 7px;
-  color: var(--text-muted);
+/* ── MAIN ── */
+.main{
+  flex:1;
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+  background:var(--cream);
+  min-width:0;
 }
 
-/* ===== TOAST ===== */
-#toast {
-  position: fixed;
-  bottom: 80px;
-  left: 50%;
-  transform: translateX(-50%) translateY(20px);
-  background: var(--olive-dark);
-  color: white;
-  padding: 10px 20px;
-  border-radius: 24px;
-  font-size: 13.5px;
-  font-weight: 500;
-  opacity: 0;
-  transition: all 0.3s;
-  z-index: 9999;
-  white-space: nowrap;
-  pointer-events: none;
+.page{
+  display:none;
+  flex-direction:column;
+  height:100%;
+  overflow:hidden;
 }
-#toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+.page.active{display:flex;}
+
+.page-header{
+  display:flex;align-items:center;
+  justify-content:space-between;
+  padding:20px 28px 16px;
+  border-bottom:1px solid var(--border);
+  background:var(--white);
+  flex-shrink:0;
+}
+
+.page-title{font-family:'Noto Serif KR',serif;font-size:18px;font-weight:700;color:var(--text);}
+.page-sub{font-size:11.5px;color:var(--text-light);margin-top:2px;}
+
+.page-body{
+  flex:1;
+  overflow-y:auto;
+  padding:22px 28px;
+}
+
+/* scrollbar */
+::-webkit-scrollbar{width:5px;height:5px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--border-strong);border-radius:4px;}
+
+/* ── BUTTONS ── */
+.btn{
+  padding:8px 16px;border-radius:8px;
+  border:1px solid var(--border-strong);
+  font-size:12.5px;font-family:'Noto Sans KR',sans-serif;
+  cursor:pointer;background:var(--white);color:var(--olive-dark);
+  transition:all 0.13s;display:inline-flex;align-items:center;gap:6px;
+  white-space:nowrap;
+}
+.btn:hover{background:var(--olive-bg);}
+.btn-primary{background:var(--olive);color:white;border-color:var(--olive);}
+.btn-primary:hover{background:var(--olive-dark);}
+.btn-sm{padding:5px 11px;font-size:11px;border-radius:6px;}
+
+/* ── TAGS ── */
+.tag{
+  font-size:11px;padding:3px 8px;
+  border-radius:20px;border:1px solid var(--border);
+  color:var(--text-muted);background:var(--cream);
+  display:inline-block;
+}
+.tag.key{background:var(--olive-bg);color:var(--olive-dark);border-color:var(--border-strong);font-weight:700;}
+
+/* ── CARDS ── */
+.card{
+  background:var(--white);
+  border:1px solid var(--border);
+  border-radius:12px;
+  padding:16px 18px;
+}
+
+.card-title{
+  font-size:10.5px;font-weight:700;
+  color:var(--text-light);letter-spacing:1px;
+  text-transform:uppercase;
+  margin-bottom:12px;
+  display:flex;align-items:center;gap:6px;
+}
+
+/* ── DASHBOARD ── */
+.ann-banner{
+  background:var(--white);
+  border:1px solid var(--border);
+  border-left:3px solid var(--olive);
+  border-radius:12px;
+  padding:18px 20px;
+  margin-bottom:18px;
+}
+.ann-header{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+.ann-label{font-size:10px;font-weight:700;letter-spacing:1px;color:var(--olive);text-transform:uppercase;}
+.ann-badge{background:var(--olive-bg);color:var(--olive-dark);font-size:10.5px;padding:2px 10px;border-radius:20px;font-weight:500;}
+.ann-theme{font-family:'Noto Serif KR',serif;font-size:15.5px;color:var(--text);margin-bottom:9px;font-weight:600;line-height:1.5;}
+.ann-body{font-size:12.5px;line-height:1.9;color:var(--text-muted);white-space:pre-line;}
+.ann-meta{display:flex;flex-wrap:wrap;gap:14px;margin-top:13px;padding-top:13px;border-top:1px solid var(--border);font-size:11px;color:var(--text-light);}
+
+.dash-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;}
+
+.song-row{
+  display:flex;align-items:center;gap:10px;
+  padding:10px 0;border-bottom:1px solid var(--border);
+  cursor:pointer;transition:all 0.13s;
+}
+.song-row:last-child{border-bottom:none;}
+.song-row:hover{background:var(--olive-bg);margin:0 -10px;padding:10px 10px;border-radius:8px;}
+
+.song-num{
+  width:23px;height:23px;border-radius:50%;
+  background:var(--olive-bg);color:var(--olive);
+  font-size:10px;font-weight:700;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+}
+.song-info{flex:1;min-width:0;}
+.song-name{font-size:12.5px;font-weight:500;color:var(--text);}
+.song-meta{font-size:11px;color:var(--text-light);margin-top:1px;}
+.song-key{color:var(--olive);font-weight:600;}
+
+.yt-btn{
+  width:28px;height:28px;background:#FF0000;
+  border-radius:6px;display:flex;align-items:center;
+  justify-content:center;flex-shrink:0;
+  text-decoration:none;font-size:10px;
+  color:white;font-weight:700;border:none;cursor:pointer;
+}
+
+.stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px;}
+.stat-card{background:var(--olive-bg);border-radius:10px;padding:13px 15px;}
+.stat-num{font-size:26px;font-weight:700;color:var(--olive-dark);}
+.stat-label{font-size:10.5px;color:var(--text-muted);margin-top:1px;}
+
+.link-btn{
+  font-size:11px;padding:4px 10px;border-radius:6px;
+  border:1px solid var(--border);text-decoration:none;
+  color:var(--text-muted);background:var(--white);
+  cursor:pointer;display:inline-flex;align-items:center;gap:4px;
+  transition:all 0.1s;font-family:'Noto Sans KR',sans-serif;
+  white-space:nowrap;
+}
+.link-btn:hover{background:var(--olive-bg);}
+.link-btn.yt{background:#FFF0F0;color:#BB0000;border-color:#FFCCCC;}
+.link-btn.yt:hover{background:#FFE0E0;}
+.link-btn.score{background:var(--olive-bg);color:var(--olive-dark);}
+
+/* ── WEEKLY ── */
+.week-card{
+  background:var(--white);border:1px solid var(--border);
+  border-radius:12px;overflow:hidden;margin-bottom:10px;
+}
+.week-header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:14px 18px;cursor:pointer;transition:background 0.13s;
+}
+.week-header:hover{background:var(--olive-bg);}
+.week-title{font-size:13.5px;font-weight:500;color:var(--text);}
+.week-meta{font-size:11px;color:var(--text-light);margin-top:2px;}
+.week-arrow{color:var(--text-light);font-size:12px;transition:transform 0.2s;flex-shrink:0;}
+.week-arrow.open{transform:rotate(180deg);}
+.week-body{display:none;padding:0 18px 16px;border-top:1px solid var(--border);}
+.week-body.open{display:block;}
+
+.detail-row{
+  display:flex;align-items:flex-start;gap:11px;
+  padding:12px 0;border-bottom:1px solid var(--border);
+}
+.detail-row:last-child{border-bottom:none;}
+.detail-num{
+  width:28px;height:28px;border-radius:50%;
+  background:var(--olive);color:white;
+  font-size:11px;font-weight:700;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px;
+}
+.detail-title{font-size:13.5px;font-weight:600;color:var(--text);}
+.detail-tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px;}
+.detail-links{display:flex;gap:7px;margin-top:8px;}
+
+/* ── LIBRARY ── */
+.search-bar{display:flex;gap:8px;margin-bottom:16px;}
+.search-input{
+  flex:1;padding:9px 14px;
+  border:1px solid var(--border-strong);border-radius:8px;
+  font-size:13px;font-family:'Noto Sans KR',sans-serif;
+  background:var(--white);color:var(--text);outline:none;
+}
+.search-input:focus{border-color:var(--olive);}
+.search-select{
+  padding:9px 12px;border:1px solid var(--border-strong);border-radius:8px;
+  font-size:12.5px;background:var(--white);color:var(--text);
+  font-family:'Noto Sans KR',sans-serif;outline:none;cursor:pointer;
+}
+
+.score-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:12px;}
+.score-card{
+  background:var(--white);border:1px solid var(--border);
+  border-radius:10px;padding:14px;cursor:pointer;transition:all 0.15s;
+}
+.score-card:hover{border-color:var(--olive-light);transform:translateY(-1px);box-shadow:0 4px 14px rgba(139,139,90,0.12);}
+.score-card-title{font-size:13px;font-weight:600;color:var(--text);margin-bottom:7px;line-height:1.4;}
+.score-card-meta{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:9px;}
+.score-card-links{display:flex;gap:6px;}
+.score-edit{font-size:10px;color:var(--text-light);margin-top:9px;}
+
+.score-add-card{
+  background:var(--olive-bg);border:2px dashed var(--border-strong);
+  border-radius:10px;padding:14px;cursor:pointer;
+  display:flex;flex-direction:column;align-items:center;
+  justify-content:center;min-height:120px;transition:all 0.15s;
+}
+.score-add-card:hover{border-color:var(--olive);background:var(--white);}
+
+/* ── CONTI ── */
+.conti-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;flex:1;overflow:hidden;}
+.conti-panel{
+  background:var(--white);border:1px solid var(--border);
+  border-radius:12px;display:flex;flex-direction:column;overflow:hidden;
+}
+.panel-header{
+  padding:12px 16px;border-bottom:1px solid var(--border);
+  font-size:11.5px;font-weight:700;color:var(--text-muted);
+  letter-spacing:0.5px;display:flex;align-items:center;
+  justify-content:space-between;flex-shrink:0;
+  text-transform:uppercase;
+}
+.panel-body{flex:1;overflow-y:auto;padding:8px;}
+
+.pool-song{
+  display:flex;align-items:center;gap:9px;
+  padding:10px 12px;border:1px solid var(--border);
+  border-radius:8px;margin-bottom:6px;cursor:pointer;
+  background:var(--cream);transition:all 0.13s;
+}
+.pool-song:hover{border-color:var(--olive-light);background:var(--olive-bg);}
+
+.drop-hint{
+  min-height:80px;border:2px dashed var(--border);
+  border-radius:8px;display:flex;align-items:center;
+  justify-content:center;font-size:12px;color:var(--text-light);
+  margin-bottom:6px;
+}
+.conti-item{
+  display:flex;align-items:center;gap:9px;
+  padding:10px 12px;border:1px solid var(--border);
+  border-radius:8px;margin-bottom:6px;background:var(--white);
+}
+.conti-num{
+  width:23px;height:23px;border-radius:50%;
+  background:var(--olive);color:white;
+  font-size:10px;font-weight:700;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+}
+.rm-btn{
+  margin-left:auto;width:22px;height:22px;border-radius:50%;
+  background:none;border:1px solid var(--border);
+  color:var(--text-light);font-size:11px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;transition:all 0.1s;
+}
+.rm-btn:hover{background:#FEE;border-color:#F99;color:#C33;}
+
+/* ── MERGE ── */
+.merge-slots{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:18px;}
+.merge-slot{
+  background:var(--white);border:2px dashed var(--border);
+  border-radius:12px;padding:18px;min-height:130px;
+  display:flex;flex-direction:column;
+  cursor:pointer;transition:all 0.15s;
+}
+.merge-slot:hover{border-color:var(--olive-light);background:var(--olive-bg);}
+.merge-slot.filled{border-style:solid;border-color:var(--olive);cursor:default;}
+.merge-slot-label{font-size:10px;font-weight:700;color:var(--olive);letter-spacing:1px;text-transform:uppercase;margin-bottom:7px;}
+.merge-slot-title{font-size:14px;font-weight:600;color:var(--text);line-height:1.4;}
+.merge-slot-hint{font-size:12px;color:var(--text-light);}
+
+.section-label{font-size:11px;font-weight:700;color:var(--text-light);letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;}
+
+.merge-opts{display:flex;gap:8px;margin-bottom:18px;}
+.merge-opt{
+  flex:1;border:2px solid var(--border);border-radius:10px;
+  padding:12px;cursor:pointer;transition:all 0.15s;text-align:center;
+}
+.merge-opt:hover{border-color:var(--olive-light);}
+.merge-opt.sel{border-color:var(--olive);background:var(--olive-bg);}
+.merge-opt-icon{font-size:22px;margin-bottom:5px;}
+.merge-opt-label{font-size:12px;font-weight:500;color:var(--text-muted);}
+
+/* ── KAKAO ── */
+.kakao-rooms{display:flex;flex-direction:column;gap:8px;margin-bottom:20px;}
+.kakao-room{
+  display:flex;align-items:center;gap:12px;
+  padding:12px 16px;background:var(--white);
+  border:1px solid var(--border);border-radius:10px;
+  cursor:pointer;transition:all 0.13s;
+}
+.kakao-room:hover{background:var(--olive-bg);}
+.kakao-room.sel{border-color:var(--olive);background:var(--olive-bg);}
+.kakao-icon{
+  width:38px;height:38px;border-radius:9px;
+  background:#FEE500;display:flex;align-items:center;
+  justify-content:center;font-size:18px;flex-shrink:0;
+}
+.kakao-info{flex:1;}
+.kakao-name{font-size:13px;font-weight:500;color:var(--text);}
+.kakao-count{font-size:11px;color:var(--text-light);}
+.kakao-check{color:var(--olive);font-weight:700;font-size:13px;}
+
+.kakao-preview{
+  background:#FDF8E8;border-radius:10px;
+  padding:16px 18px;margin-bottom:16px;
+  font-size:13px;line-height:1.85;color:var(--text);
+  white-space:pre-line;border:1px solid rgba(254,229,0,0.4);
+}
+
+.info-note{
+  padding:13px 16px;background:var(--olive-bg);
+  border-radius:8px;font-size:12px;
+  color:var(--text-muted);line-height:1.7;
+}
+
+/* ── MODAL ── */
+.modal-bg{
+  position:fixed;inset:0;
+  background:rgba(0,0,0,0.52);
+  z-index:1000;display:none;
+  align-items:center;justify-content:center;
+  padding:20px;
+}
+.modal-bg.open{display:flex;}
+.modal-box{
+  background:var(--white);border-radius:16px;
+  width:100%;max-width:580px;
+  max-height:90vh;overflow-y:auto;
+  padding:26px;
+}
+.modal-header{
+  display:flex;align-items:flex-start;
+  justify-content:space-between;margin-bottom:16px;gap:12px;
+}
+.modal-title{font-family:'Noto Serif KR',serif;font-size:19px;font-weight:700;color:var(--text);line-height:1.3;}
+.modal-close{
+  width:32px;height:32px;border-radius:50%;
+  border:1px solid var(--border);background:none;
+  cursor:pointer;font-size:16px;
+  display:flex;align-items:center;justify-content:center;
+  color:var(--text-muted);flex-shrink:0;transition:all 0.1s;
+}
+.modal-close:hover{background:var(--olive-bg);}
+.modal-info-grid{
+  display:grid;grid-template-columns:auto 1fr;
+  gap:7px 18px;font-size:12.5px;margin-bottom:16px;
+}
+.mi-label{color:var(--text-light);font-size:12px;}
+.mi-value{color:var(--text);font-weight:500;}
+.modal-score-img{width:100%;border-radius:8px;border:1px solid var(--border);margin-bottom:12px;}
+.modal-links{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px;}
+.modal-note{font-size:11px;color:var(--text-light);line-height:1.6;}
+
+/* animate */
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:none;}}
+.page.active .ann-banner{animation:fadeIn 0.3s ease both;}
+.page.active .dash-grid{animation:fadeIn 0.35s 0.05s ease both;}
 </style>
 </head>
 <body>
 
-<!-- SIDEBAR -->
-<nav id="sidebar">
-  <div class="sidebar-logo">
-    <h1>함께하는교회</h1>
-    <p>악보 / 콘티 매니저</p>
-  </div>
-  <div class="sidebar-nav">
-    <div class="nav-section-label">메인</div>
-    <div class="nav-item active" data-page="dashboard" onclick="navigate('dashboard')">
-      <span class="icon">🏠</span> 대시보드
-    </div>
-    <div class="nav-item" data-page="weekly" onclick="navigate('weekly')">
-      <span class="icon">📅</span> 주차별 찬양
-    </div>
-    <div class="nav-item" data-page="archive" onclick="navigate('archive')">
-      <span class="icon">🎵</span> 악보 창고
-    </div>
-    <div class="nav-item" data-page="collections" onclick="navigate('collections')">
-      <span class="icon">📂</span> 모음집
-    </div>
-    <div class="nav-item" data-page="mypage" onclick="navigate('mypage')">
-      <span class="icon">👤</span> 마이 페이지
-    </div>
-    <div class="nav-section-label" style="margin-top:8px;">워크플로우</div>
-    <div class="nav-item" data-page="conti" onclick="navigate('conti')">
-      <span class="icon">✍️</span> 콘티 짜기
-    </div>
-    <div class="nav-item" data-page="merge" onclick="navigate('merge')">
-      <span class="icon">📋</span> 악보 합치기
-    </div>
-    <div class="nav-item" data-page="message" onclick="navigate('message')">
-      <span class="icon">💬</span> 메시지 생성기
-    </div>
-  </div>
-  <div class="sidebar-bottom">
-    <button class="theme-toggle" onclick="toggleTheme()">🌙 다크모드</button>
-    <span class="version-badge">v0.4</span>
-  </div>
-</nav>
-
-<!-- MOBILE NAV -->
-<div id="mobile-nav">
-  <div class="mobile-nav-items">
-    <div class="mobile-nav-item active" data-page="dashboard" onclick="navigate('dashboard')">
-      <span class="m-icon">🏠</span><span>홈</span>
-    </div>
-    <div class="mobile-nav-item" data-page="weekly" onclick="navigate('weekly')">
-      <span class="m-icon">📅</span><span>주차</span>
-    </div>
-    <div class="mobile-nav-item" data-page="archive" onclick="navigate('archive')">
-      <span class="m-icon">🎵</span><span>악보</span>
-    </div>
-    <div class="mobile-nav-item" data-page="conti" onclick="navigate('conti')">
-      <span class="m-icon">✍️</span><span>콘티</span>
-    </div>
-    <div class="mobile-nav-item" data-page="mypage" onclick="navigate('mypage')">
-      <span class="m-icon">👤</span><span>내정보</span>
-    </div>
-  </div>
-</div>
-
-<!-- MAIN -->
-<main id="main">
-
-<!-- ===== DASHBOARD ===== -->
-<div id="page-dashboard" class="page-section">
-  <div class="page-header">
-    <div>
-      <h2>대시보드</h2>
-      <p id="dash-week-label">2026년 5월 1주 · 주일 9시 예배</p>
-    </div>
-    <button class="btn btn-primary btn-sm" onclick="openModal('modal-conti-register')">＋ 새 콘티 등록</button>
-  </div>
-  <div class="page-content">
-    <div class="stats-grid">
-      <div class="stat-card">
-        <div class="stat-num" id="stat-songs">4</div>
-        <div class="stat-label">이번 주 곡수</div>
+<div class="app">
+  <!-- ── SIDEBAR ── -->
+  <aside class="sidebar">
+    <div class="logo-area">
+      <div class="logo-row">
+        <!-- tree icon -->
+        <svg class="logo-svg" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="22" cy="22" r="22" fill="#F0EFE8"/>
+          <path d="M22 8 C22 8,13 17,13 24 C13 29,17 33,22 35 C27 33,31 29,31 24 C31 17,22 8,22 8Z" fill="#8B8B5A" opacity="0.75"/>
+          <line x1="22" y1="35" x2="22" y2="42" stroke="#8B8B5A" stroke-width="2.2" stroke-linecap="round"/>
+          <line x1="17" y1="40" x2="22" y2="42" stroke="#8B8B5A" stroke-width="1.8" stroke-linecap="round"/>
+          <line x1="27" y1="40" x2="22" y2="42" stroke="#8B8B5A" stroke-width="1.8" stroke-linecap="round"/>
+          <circle cx="13" cy="22" r="2.5" fill="#B5B57A"/>
+          <circle cx="31" cy="22" r="2.5" fill="#B5B57A"/>
+          <circle cx="10" cy="29" r="2" fill="#B5B57A" opacity="0.6"/>
+          <circle cx="34" cy="29" r="2" fill="#B5B57A" opacity="0.6"/>
+        </svg>
+        <div class="logo-name">함께하는교회</div>
       </div>
-      <div class="stat-card">
-        <div class="stat-num" id="stat-total">23</div>
-        <div class="stat-label">총 악보수</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-num" id="stat-weeks">12</div>
-        <div class="stat-label">주차 기록</div>
-      </div>
+      <div class="logo-tagline">세상을 하나님의 사랑으로 품는 · 안성</div>
     </div>
 
-    <!-- 전달사항 -->
-    <div class="card mb-4">
-      <div class="flex items-center justify-between mb-4">
+    <div class="app-badge">악보 / 콘티 매니저</div>
+
+    <nav>
+      <button class="nav-item active" onclick="showPage('dashboard',this)">
+        <span class="nav-icon">🏠</span> 대시보드
+      </button>
+      <button class="nav-item" onclick="showPage('weekly',this)">
+        <span class="nav-icon">📅</span> 주차별 찬양
+      </button>
+      <button class="nav-item" onclick="showPage('library',this)">
+        <span class="nav-icon">🎵</span> 악보 창고
+      </button>
+      <div class="nav-section">워크플로우</div>
+      <button class="nav-item" onclick="showPage('conti',this)">
+        <span class="nav-icon">✍️</span> 콘티 짜기
+      </button>
+      <button class="nav-item" onclick="showPage('merge',this)">
+        <span class="nav-icon">📋</span> 악보 합치기
+      </button>
+      <button class="nav-item" onclick="showPage('kakao',this)">
+        <span class="nav-icon">💬</span> 카톡 발송
+      </button>
+    </nav>
+
+    <div class="sidebar-footer">
+      v0.1 · 함께하는교회 안성<br>악보/콘티 매니저 프로토타입
+    </div>
+  </aside>
+
+  <!-- ── MAIN ── -->
+  <main class="main">
+
+    <!-- ════ DASHBOARD ════ -->
+    <div id="page-dashboard" class="page active">
+      <div class="page-header">
         <div>
-          <h3 style="font-size:15px;font-weight:700;">📢 전도사님 전달사항</h3>
-          <p class="text-muted" style="margin-top:3px;">2026. 05. 04 · 주일 9시</p>
+          <div class="page-title">대시보드</div>
+          <div class="page-sub">2026년 5월 1주 · 주일 9시 예배</div>
         </div>
-        <div style="font-size:11px;color:var(--text-muted);">⏰ 연습: 8시 🙏 예배: 9시</div>
+        <button class="btn btn-primary">＋ 새 콘티 등록</button>
       </div>
-      <h4 style="font-size:14px;font-weight:700;color:var(--olive-dark);margin-bottom:8px;">
-        여호수아의 과업 — 평안함과 담대함으로 승리하는 믿음
-      </h4>
-      <p style="font-size:13.5px;line-height:1.75;color:var(--text);">
-        기나긴 전쟁에서 승리하고 가나안을 점령했지만, 또 다시 끝나지 않는 과업을 맞이하는 여호수아와 백성들. 예수님께서는 십자가에서 죽으심으로 승리하시고, '평안함'과 '담대함'으로 그 승리에 동참하라고 말씀하십니다.
-      </p>
-      <div class="reaction-bar">
-        <button class="reaction-btn" onclick="toggleReaction(this,'👍')"><span>👍</span><span class="count">5</span></button>
-        <button class="reaction-btn" onclick="toggleReaction(this,'🙏')"><span>🙏</span><span class="count">8</span></button>
-        <button class="reaction-btn" onclick="toggleReaction(this,'🔥')"><span>🔥</span><span class="count">3</span></button>
-        <button class="reaction-btn" onclick="toggleReaction(this,'❤️')"><span>❤️</span><span class="count">6</span></button>
-        <button class="reaction-btn" onclick="toggleReaction(this,'✅')"><span>✅</span><span class="count">4</span></button>
-      </div>
-    </div>
-
-    <!-- 이번 주 콘티 -->
-    <div class="card">
-      <h3 style="font-size:15px;font-weight:700;margin-bottom:14px;">🎵 이번 주 콘티 — 5월 1주</h3>
-      <div id="dash-conti-list"></div>
-    </div>
-  </div>
-</div>
-
-<!-- ===== WEEKLY ===== -->
-<div id="page-weekly" class="page-section hidden">
-  <div class="page-header">
-    <div><h2>주차별 찬양</h2><p>주차를 클릭하면 콘티를 확인할 수 있습니다</p></div>
-    <button class="btn btn-primary btn-sm" onclick="openModal('modal-conti-register')">＋ 새 주차 등록</button>
-  </div>
-  <div class="page-content">
-    <div id="weekly-list"></div>
-  </div>
-</div>
-
-<!-- ===== ARCHIVE ===== -->
-<div id="page-archive" class="page-section hidden">
-  <div class="page-header">
-    <div><h2>악보 창고</h2><p>전체 악보를 검색하고 관리합니다</p></div>
-    <button class="btn btn-primary btn-sm" onclick="openModal('modal-add-song')">＋ 악보 추가</button>
-  </div>
-  <div class="page-content">
-    <div class="search-bar">
-      <span class="search-icon">🔍</span>
-      <input type="text" id="archive-search" placeholder="곡명, 아티스트, 키 검색..." oninput="renderArchive()">
-    </div>
-    <div style="margin-bottom:12px;display:flex;gap:8px;flex-wrap:wrap;">
-      <select id="archive-filter-artist" class="form-select" style="width:auto;font-size:13px;" onchange="renderArchive()">
-        <option value="">전체 아티스트</option>
-        <option>아이자야씩스티원</option>
-        <option>FIA</option>
-        <option>박우정</option>
-      </select>
-      <select id="archive-filter-key" class="form-select" style="width:auto;font-size:13px;" onchange="renderArchive()">
-        <option value="">전체 키</option>
-        <option>C</option><option>D</option><option>E</option><option>F</option>
-        <option>G</option><option>A</option><option>Bb</option><option>Eb</option>
-      </select>
-    </div>
-    <div id="archive-list"></div>
-  </div>
-</div>
-
-<!-- ===== COLLECTIONS ===== -->
-<div id="page-collections" class="page-section hidden">
-  <div class="page-header">
-    <div><h2>모음집</h2><p>나만의 악보 폴더를 만들어 관리하세요</p></div>
-    <button class="btn btn-primary btn-sm" onclick="openModal('modal-add-folder')">＋ 폴더 추가</button>
-  </div>
-  <div class="page-content">
-    <div id="collections-list"></div>
-  </div>
-</div>
-
-<!-- ===== MYPAGE ===== -->
-<div id="page-mypage" class="page-section hidden">
-  <div class="page-header">
-    <div><h2>마이 페이지</h2><p>나의 세션 정보와 희망곡을 관리합니다</p></div>
-  </div>
-  <div class="page-content">
-    <!-- 프로필 -->
-    <div class="card mb-4">
-      <h3 style="font-size:14px;font-weight:700;margin-bottom:12px;">👤 프로필</h3>
-      <div class="form-row">
-        <div class="form-group">
-          <label class="form-label">이름</label>
-          <input type="text" class="form-input" id="my-name" placeholder="이름 입력" onchange="saveMyPage()">
-        </div>
-        <div class="form-group">
-          <label class="form-label">직책</label>
-          <select class="form-select" id="my-role" onchange="saveMyPage()">
-            <option>성도</option><option>청춘</option><option>학생</option>
-            <option>집사</option><option>장로</option><option>권사</option>
-            <option>전도사</option><option>목사</option>
-          </select>
-        </div>
-      </div>
-      <div class="form-group">
-        <label class="form-label">세션 / 파트</label>
-        <div class="session-badges" id="session-badges">
-          <div class="session-badge" onclick="toggleSession(this,'일렉기타')">🎸 일렉기타</div>
-          <div class="session-badge" onclick="toggleSession(this,'베이스')">🎸 베이스</div>
-          <div class="session-badge" onclick="toggleSession(this,'드럼')">🥁 드럼</div>
-          <div class="session-badge" onclick="toggleSession(this,'피아노')">🎹 피아노</div>
-          <div class="session-badge" onclick="toggleSession(this,'어쿠스틱')">🎵 어쿠스틱</div>
-          <div class="session-badge" onclick="toggleSession(this,'싱어')">🎤 싱어</div>
-          <div class="session-badge" onclick="toggleSession(this,'찬양인도')">🎤 찬양인도</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- 희망곡 -->
-    <div class="card mb-4">
-      <div class="flex items-center justify-between mb-4">
-        <h3 style="font-size:14px;font-weight:700;">🎵 희망곡 목록</h3>
-        <button class="btn btn-secondary btn-sm" onclick="openModal('modal-add-wish')">＋ 추가</button>
-      </div>
-      <div id="wish-list">
-        <div class="empty-state"><div class="icon">🎶</div><p>희망곡을 추가해보세요</p></div>
-      </div>
-    </div>
-
-    <!-- 악보 메모 -->
-    <div class="card">
-      <h3 style="font-size:14px;font-weight:700;margin-bottom:12px;">📝 악보별 세션 메모</h3>
-      <div id="song-memo-list">
-        <div id="song-memo-items"></div>
-        <button class="btn btn-secondary btn-sm mt-4" onclick="openModal('modal-add-memo')">＋ 메모 추가</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- ===== CONTI MAKER ===== -->
-<div id="page-conti" class="page-section hidden">
-  <div class="page-header">
-    <div><h2>콘티 짜기</h2><p>곡을 선택하여 콘티를 구성하세요</p></div>
-  </div>
-  <div class="page-content">
-    <div class="conti-maker-grid">
-      <!-- LEFT: 악보 목록 -->
-      <div>
-        <div class="card">
-          <h3 style="font-size:14px;font-weight:700;margin-bottom:12px;">🎵 악보 목록</h3>
-          <div class="search-bar" style="margin-bottom:10px;">
-            <span class="search-icon">🔍</span>
-            <input type="text" id="conti-search" placeholder="곡 검색..." oninput="renderContiPool()">
+      <div class="page-body">
+        <!-- 전달사항 -->
+        <div class="ann-banner">
+          <div class="ann-header">
+            <span class="ann-label">📢 전도사님 전달사항</span>
+            <span class="ann-badge">2026. 05. 04 · 주일 9시</span>
           </div>
-          <div id="conti-pool" style="max-height:400px;overflow-y:auto;"></div>
+          <div class="ann-theme">여호수아의 과업 — 평안함과 담대함으로 승리하는 믿음</div>
+          <div class="ann-body">기나긴 전쟁에서 승리하고 가나안을 점령했지만, 또 다시 끝나지 않는 과업을 맞이하는 여호수아와 백성들. 예수님께서는 십자가에서 죽으심으로 승리하시고, '평안함'과 '담대함'으로 그 승리에 동참하라고 말씀하십니다.
+
+그렇게 끝나도 끝나지 않는 믿음의 여정에서 평안함과 담대함으로 승리하는 믿음되기를 소망하며 콘티를 준비했습니다 🙏🏻</div>
+          <div class="ann-meta">
+            <span>⏰ 연습: 오전 8시</span>
+            <span>🙏 예배: 오전 9시</span>
+            <span>👍 공감/아멘으로 화답해주세요</span>
+          </div>
         </div>
 
-        <!-- 추천기 -->
-        <div class="card" style="margin-top:16px;">
-          <div class="flex items-center justify-between mb-4">
-            <h3 style="font-size:14px;font-weight:700;">✨ 찬양 추천기 <span style="font-size:11px;background:var(--olive);color:white;padding:1px 7px;border-radius:10px;margin-left:4px;">Beta</span></h3>
-          </div>
-          <p class="text-muted mb-4">말씀 구절을 선택하면 어울리는 찬양을 추천해드려요</p>
-          
-          <!-- 성경 드롭다운 -->
-          <div class="bible-selector">
-            <div class="bible-selector-row">
-              <select id="bible-testament" class="form-select" onchange="updateBibleBooks()">
-                <option value="">구약/신약</option>
-                <option value="구약">구약</option>
-                <option value="신약">신약</option>
-              </select>
-              <select id="bible-book" class="form-select" onchange="updateBibleChapters()" disabled>
-                <option value="">책 선택</option>
-              </select>
+        <div class="dash-grid">
+          <!-- 이번 주 콘티 -->
+          <div class="card">
+            <div class="card-title">🎵 이번 주 콘티 — 5월 1주</div>
+            <div class="song-row" onclick="openModal(0)">
+              <div class="song-num">1</div>
+              <div class="song-info">
+                <div class="song-name">주 예수보다 더 귀한 것은 없네</div>
+                <div class="song-meta"><span class="song-key">Bb</span> · 아이자야씩스티원</div>
+              </div>
+              <a href="https://www.youtube.com/watch?v=O66SLvLJWNY" target="_blank" class="yt-btn" onclick="event.stopPropagation()">YT</a>
             </div>
-            <div class="bible-selector-row">
-              <select id="bible-chapter" class="form-select" onchange="updateBibleVerses()" disabled>
-                <option value="">장 선택</option>
-              </select>
-              <select id="bible-verse" class="form-select" onchange="updateVerseDisplay()" disabled>
-                <option value="">절 선택</option>
-              </select>
+            <div class="song-row" onclick="openModal(1)">
+              <div class="song-num">2</div>
+              <div class="song-info">
+                <div class="song-name">나의 죄를 씻기는</div>
+                <div class="song-meta"><span class="song-key">G</span> · FIA ver. (박신형 Arr.)</div>
+              </div>
+              <a href="https://www.youtube.com/watch?v=6UqoAZwp6QY" target="_blank" class="yt-btn" onclick="event.stopPropagation()">YT</a>
             </div>
-            <div class="bible-verse-display" id="bible-verse-display">
-              구약/신약을 먼저 선택해주세요
+            <div class="song-row" onclick="openModal(2)">
+              <div class="song-num">3</div>
+              <div class="song-info">
+                <div class="song-name">예수 하나님의 공의</div>
+                <div class="song-meta"><span class="song-key">D</span> · This Kingdom (아이자야)</div>
+              </div>
+              <a href="https://www.youtube.com/watch?v=PNfbZIAiEuI" target="_blank" class="yt-btn" onclick="event.stopPropagation()">YT</a>
+            </div>
+            <div class="song-row" onclick="openModal(3)">
+              <div class="song-num">4</div>
+              <div class="song-info">
+                <div class="song-name">나의 하나님</div>
+                <div class="song-meta"><span class="song-key">D</span> · 박우정 (zozoanna)</div>
+              </div>
+              <span style="font-size:11px;color:var(--text-light);">악보</span>
             </div>
           </div>
 
-          <button class="btn btn-primary w-full" id="recommend-btn" onclick="getRecommendation()" disabled>
-            ✨ 찬양 추천받기
-          </button>
-          <div id="recommend-loading" class="hidden" style="text-align:center;padding:20px;color:var(--text-muted);">
-            <span class="loading-dots">AI가 어울리는 찬양을 찾는 중</span>
+          <!-- 오른쪽 -->
+          <div style="display:flex;flex-direction:column;gap:12px;">
+            <div class="stat-grid">
+              <div class="stat-card"><div class="stat-num">4</div><div class="stat-label">이번주 곡수</div></div>
+              <div class="stat-card"><div class="stat-num">23</div><div class="stat-label">총 악보수</div></div>
+              <div class="stat-card"><div class="stat-num">12</div><div class="stat-label">주차 기록</div></div>
+            </div>
+            <div class="card" style="flex:1;">
+              <div class="card-title">🔗 악보 바로보기</div>
+              <div style="display:flex;flex-direction:column;gap:7px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;padding:5px 0;border-bottom:1px solid var(--border);">
+                  <span>주 예수보다 더 귀한 것은 없네</span>
+                  <button class="link-btn score btn-sm" onclick="openModal(0)">악보 보기</button>
+                </div>
+                <div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;padding:5px 0;border-bottom:1px solid var(--border);">
+                  <span>나의 죄를 씻기는</span>
+                  <button class="link-btn score btn-sm" onclick="openModal(1)">악보 보기</button>
+                </div>
+                <div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;padding:5px 0;border-bottom:1px solid var(--border);">
+                  <span>예수 하나님의 공의</span>
+                  <button class="link-btn score btn-sm" onclick="openModal(2)">악보 보기</button>
+                </div>
+                <div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;padding:5px 0;">
+                  <span>나의 하나님</span>
+                  <button class="link-btn score btn-sm" onclick="openModal(3)">악보 보기</button>
+                </div>
+              </div>
+            </div>
           </div>
-          <div id="recommend-results" class="recommend-results"></div>
-        </div>
-      </div>
-
-      <!-- RIGHT: 콘티 구성 -->
-      <div>
-        <div class="card">
-          <div class="flex items-center justify-between mb-4">
-            <h3 style="font-size:14px;font-weight:700;">📋 구성된 콘티</h3>
-            <button class="btn btn-ghost btn-sm" onclick="clearConti()">초기화</button>
-          </div>
-          <div id="conti-built" style="min-height:100px;"></div>
-          <div id="conti-built-empty" class="empty-state" style="padding:24px;">
-            <div class="icon" style="font-size:28px;">🎶</div>
-            <p style="font-size:13px;">왼쪽에서 곡을 추가하세요</p>
-          </div>
-          <hr class="divider">
-          <button class="btn btn-primary w-full" onclick="saveContiToWeekly()">💾 이번 주 콘티로 저장</button>
         </div>
       </div>
     </div>
-  </div>
-</div>
 
-<!-- ===== MERGE ===== -->
-<div id="page-merge" class="page-section hidden">
-  <div class="page-header">
-    <div><h2>악보 합치기</h2><p>두 악보를 하나의 문서로 합칩니다</p></div>
-  </div>
-  <div class="page-content">
-    <div class="card">
-      <div class="form-row">
+    <!-- ════ WEEKLY ════ -->
+    <div id="page-weekly" class="page">
+      <div class="page-header">
         <div>
-          <label class="form-label">1번 악보</label>
-          <select class="form-select" id="merge-song-1">
-            <option value="">악보 선택...</option>
-          </select>
+          <div class="page-title">주차별 찬양</div>
+          <div class="page-sub">주차 카드를 클릭하면 콘티 상세를 확인할 수 있습니다</div>
         </div>
+        <button class="btn btn-primary">＋ 새 주차 등록</button>
+      </div>
+      <div class="page-body">
+        <!-- 5월 1주 -->
+        <div class="week-card">
+          <div class="week-header" onclick="toggleWeek(this)">
+            <div>
+              <div class="week-title">2026년 5월 1주 — 주일 9시 예배</div>
+              <div class="week-meta">찬양 4곡 · 연습 08:00 · 2026.05.04</div>
+            </div>
+            <span class="week-arrow open">▼</span>
+          </div>
+          <div class="week-body open">
+            <div style="padding:10px 0 8px;font-size:12px;color:var(--text-light);">
+              📖 말씀 배경: 여호수아 — 끝나도 끝나지 않는 믿음의 여정 (평안함과 담대함)
+            </div>
+            <div class="detail-row">
+              <div class="detail-num">1</div>
+              <div style="flex:1;">
+                <div class="detail-title">주 예수보다 더 귀한 것은 없네</div>
+                <div class="detail-tags">
+                  <span class="tag key">Bb</span>
+                  <span class="tag">아이자야씩스티원</span>
+                  <span class="tag">THE GOSPEL II</span>
+                  <span class="tag">♩=64</span>
+                </div>
+                <div class="detail-links">
+                  <a href="https://www.youtube.com/watch?v=O66SLvLJWNY" target="_blank" class="link-btn yt">▶ 유튜브</a>
+                  <button class="link-btn score" onclick="openModal(0)">악보 보기</button>
+                </div>
+              </div>
+            </div>
+            <div class="detail-row">
+              <div class="detail-num">2</div>
+              <div style="flex:1;">
+                <div class="detail-title">나의 죄를 씻기는</div>
+                <div class="detail-tags">
+                  <span class="tag key">G</span>
+                  <span class="tag">FIA ver.</span>
+                  <span class="tag">Arr. 박신형</span>
+                  <span class="tag">♩=105</span>
+                </div>
+                <div class="detail-links">
+                  <a href="https://www.youtube.com/watch?v=6UqoAZwp6QY" target="_blank" class="link-btn yt">▶ 유튜브</a>
+                  <button class="link-btn score" onclick="openModal(1)">악보 보기</button>
+                </div>
+              </div>
+            </div>
+            <div class="detail-row">
+              <div class="detail-num">3</div>
+              <div style="flex:1;">
+                <div class="detail-title">예수 하나님의 공의</div>
+                <div class="detail-tags">
+                  <span class="tag key">D</span>
+                  <span class="tag">This Kingdom</span>
+                  <span class="tag">아이자야씩스티원 ver.</span>
+                  <span class="tag">♩=66</span>
+                </div>
+                <div class="detail-links">
+                  <a href="https://www.youtube.com/watch?v=PNfbZIAiEuI" target="_blank" class="link-btn yt">▶ 유튜브</a>
+                  <button class="link-btn score" onclick="openModal(2)">악보 보기</button>
+                </div>
+              </div>
+            </div>
+            <div class="detail-row">
+              <div class="detail-num">4</div>
+              <div style="flex:1;">
+                <div class="detail-title">나의 하나님</div>
+                <div class="detail-tags">
+                  <span class="tag key">D</span>
+                  <span class="tag">박우정</span>
+                  <span class="tag">Scored by zozoanna</span>
+                </div>
+                <div class="detail-links">
+                  <button class="link-btn score" onclick="openModal(3)">악보 보기</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="week-card">
+          <div class="week-header" onclick="toggleWeek(this)">
+            <div>
+              <div class="week-title">2026년 4월 4주 — 주일 9시 예배</div>
+              <div class="week-meta">찬양 3곡</div>
+            </div>
+            <span class="week-arrow">▼</span>
+          </div>
+          <div class="week-body">
+            <div style="padding:16px 0;text-align:center;font-size:13px;color:var(--text-light);">데이터를 등록해주세요</div>
+          </div>
+        </div>
+
+        <div class="week-card">
+          <div class="week-header" onclick="toggleWeek(this)">
+            <div>
+              <div class="week-title">2026년 4월 3주 — 주일 9시 예배</div>
+              <div class="week-meta">찬양 4곡</div>
+            </div>
+            <span class="week-arrow">▼</span>
+          </div>
+          <div class="week-body">
+            <div style="padding:16px 0;text-align:center;font-size:13px;color:var(--text-light);">데이터를 등록해주세요</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════ LIBRARY ════ -->
+    <div id="page-library" class="page">
+      <div class="page-header">
         <div>
-          <label class="form-label">2번 악보</label>
-          <select class="form-select" id="merge-song-2">
-            <option value="">악보 선택...</option>
+          <div class="page-title">악보 창고</div>
+          <div class="page-sub">전체 악보를 검색하고 관리합니다</div>
+        </div>
+        <button class="btn btn-primary">＋ 악보 추가</button>
+      </div>
+      <div class="page-body">
+        <div class="search-bar">
+          <input class="search-input" type="text" placeholder="곡 제목, 아티스트, 키 검색..." id="searchInput" oninput="filterScores()"/>
+          <select class="search-select" onchange="filterScores()">
+            <option>전체 아티스트</option>
+            <option>아이자야씩스티원</option>
+            <option>FIA</option>
+            <option>박우정</option>
           </select>
         </div>
-      </div>
-      <div class="form-group mt-4">
-        <label class="form-label">배열 방식</label>
-        <div style="display:flex;gap:10px;">
-          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;">
-            <input type="radio" name="merge-layout" value="vertical" checked> ☰ 위아래
-          </label>
-          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;">
-            <input type="radio" name="merge-layout" value="horizontal"> ⊟ 좌우
-          </label>
-          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;">
-            <input type="radio" name="merge-layout" value="pages"> 📄 별도 페이지
-          </label>
+        <div class="score-grid" id="scoreGrid">
+          <div class="score-card" onclick="openModal(0)">
+            <div class="score-card-title">주 예수보다 더 귀한 것은 없네</div>
+            <div class="score-card-meta">
+              <span class="tag key">Bb</span>
+              <span class="tag">아이자야씩스티원</span>
+            </div>
+            <div class="score-card-links">
+              <a href="https://www.youtube.com/watch?v=O66SLvLJWNY" target="_blank" class="link-btn yt" onclick="event.stopPropagation()">YT</a>
+              <button class="link-btn score btn-sm">악보 보기</button>
+            </div>
+            <div class="score-edit">Last edit: 2026.04.28</div>
+          </div>
+          <div class="score-card" onclick="openModal(1)">
+            <div class="score-card-title">나의 죄를 씻기는</div>
+            <div class="score-card-meta">
+              <span class="tag key">G</span>
+              <span class="tag">FIA ver.</span>
+            </div>
+            <div class="score-card-links">
+              <a href="https://www.youtube.com/watch?v=6UqoAZwp6QY" target="_blank" class="link-btn yt" onclick="event.stopPropagation()">YT</a>
+              <button class="link-btn score btn-sm">악보 보기</button>
+            </div>
+            <div class="score-edit">Last edit: 2026.04.30</div>
+          </div>
+          <div class="score-card" onclick="openModal(2)">
+            <div class="score-card-title">예수 하나님의 공의</div>
+            <div class="score-card-meta">
+              <span class="tag key">D</span>
+              <span class="tag">This Kingdom</span>
+            </div>
+            <div class="score-card-links">
+              <a href="https://www.youtube.com/watch?v=PNfbZIAiEuI" target="_blank" class="link-btn yt" onclick="event.stopPropagation()">YT</a>
+              <button class="link-btn score btn-sm">악보 보기</button>
+            </div>
+            <div class="score-edit">Last edit: 2026.04.30</div>
+          </div>
+          <div class="score-card" onclick="openModal(3)">
+            <div class="score-card-title">나의 하나님</div>
+            <div class="score-card-meta">
+              <span class="tag key">D</span>
+              <span class="tag">박우정</span>
+            </div>
+            <div class="score-card-links">
+              <button class="link-btn score btn-sm">악보 보기</button>
+            </div>
+            <div class="score-edit">Last edit: 2026.05.04</div>
+          </div>
+          <div class="score-add-card">
+            <div style="font-size:24px;margin-bottom:8px;">＋</div>
+            <div style="font-size:12px;color:var(--text-muted);">악보 추가</div>
+          </div>
         </div>
-      </div>
-      <div style="display:flex;gap:10px;margin-top:16px;">
-        <button class="btn btn-secondary" onclick="mergePreview()">👁 미리보기</button>
-        <button class="btn btn-primary" onclick="mergePDF()">📥 PDF로 내보내기</button>
-      </div>
-      <div id="merge-preview" class="hidden" style="margin-top:16px;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;">
-        <canvas id="merge-canvas" style="width:100%;display:block;"></canvas>
       </div>
     </div>
-  </div>
-</div>
 
-<!-- ===== MESSAGE GENERATOR ===== -->
-<div id="page-message" class="page-section hidden">
-  <div class="page-header">
-    <div><h2>메시지 생성기</h2><p>AI가 이번 주 콘티 메시지를 자동으로 생성해드려요</p></div>
-  </div>
-  <div class="page-content">
-    <div class="card mb-4">
-      <h3 style="font-size:14px;font-weight:700;margin-bottom:12px;">⚙️ 설정</h3>
-      <div class="form-row">
-        <div class="form-group">
-          <label class="form-label">대화방</label>
-          <select class="form-select" id="msg-chatroom">
-            <option>찬양팀 단톡방</option>
-            <option>9시 예배팀</option>
-          </select>
+    <!-- ════ CONTI ════ -->
+    <div id="page-conti" class="page">
+      <div class="page-header">
+        <div>
+          <div class="page-title">콘티 짜기</div>
+          <div class="page-sub">곡을 클릭하여 콘티를 구성하세요</div>
         </div>
-        <div class="form-group">
-          <label class="form-label">톤/스타일</label>
-          <select class="form-select" id="msg-tone">
-            <option>친근하고 따뜻하게</option>
-            <option>공식적으로</option>
-            <option>짧고 간결하게</option>
-          </select>
-        </div>
-      </div>
-      <div class="form-group">
-        <label class="form-label">말씀 구절 / 메시지 힌트 (선택)</label>
-        <input type="text" class="form-input" id="msg-hint" placeholder="예: 여호수아 1:9 — 담대하라, 강하고 담대하라">
-      </div>
-      <div style="display:flex;gap:10px;">
-        <button class="btn btn-primary" onclick="generateMessage()">✨ AI 메시지 생성</button>
-        <button class="btn btn-secondary" onclick="generateMessageManual()">📝 직접 작성</button>
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="flex items-center justify-between mb-4">
-        <h3 style="font-size:14px;font-weight:700;">미리보기</h3>
         <div style="display:flex;gap:8px;">
-          <button class="btn btn-ghost btn-sm" onclick="editMessage()">✏️ 편집</button>
-          <button class="btn btn-primary btn-sm" onclick="copyMessage()">📋 복사</button>
+          <button class="btn" onclick="clearConti()">초기화</button>
+          <button class="btn btn-primary" onclick="showPage('kakao',null)">💬 카톡 발송</button>
         </div>
       </div>
-      <div id="message-loading" class="hidden" style="text-align:center;padding:30px;color:var(--text-muted);">
-        <span class="loading-dots">메시지를 생성하는 중</span>
-      </div>
-      <div class="message-preview" id="message-preview" contenteditable="false">아직 메시지가 생성되지 않았습니다. 위에서 생성 버튼을 누르거나 직접 작성해주세요.</div>
-    </div>
-  </div>
-</div>
-
-</main>
-
-<!-- ======== MODALS ======== -->
-
-<!-- 콘티 등록 모달 -->
-<div class="modal-overlay" id="modal-conti-register">
-  <div class="modal" style="max-width:600px;">
-    <div class="modal-header">
-      <h3>새 콘티 등록</h3>
-      <button class="modal-close" onclick="closeModal('modal-conti-register')">✕</button>
-    </div>
-    <div class="form-row">
-      <div class="form-group">
-        <label class="form-label">날짜</label>
-        <input type="date" class="form-input" id="reg-date">
-      </div>
-      <div class="form-group">
-        <label class="form-label">예배 구분</label>
-        <select class="form-select" id="reg-service">
-          <option>주일 9시 예배</option><option>주일 11시 예배</option>
-          <option>수요예배</option><option>금요기도회</option>
-        </select>
-      </div>
-    </div>
-    <div class="form-row">
-      <div class="form-group">
-        <label class="form-label">담당자</label>
-        <input type="text" class="form-input" id="reg-leader" placeholder="이름">
-      </div>
-      <div class="form-group">
-        <label class="form-label">직책</label>
-        <select class="form-select" id="reg-role">
-          <option>목사</option><option>전도사</option><option>집사</option>
-          <option>장로</option><option>권사</option><option>성도</option>
-          <option>청춘</option><option>학생</option>
-        </select>
-      </div>
-    </div>
-    <div class="form-group">
-      <label class="form-label">말씀 구절</label>
-      <input type="text" class="form-input" id="reg-verse" placeholder="예: 여호수아 1:9">
-    </div>
-    <div class="form-group">
-      <label class="form-label">메시지 / 설교 주제</label>
-      <textarea class="form-textarea" id="reg-message" placeholder="이번 주 전달사항, 주제 등..."></textarea>
-    </div>
-    <div class="form-group">
-      <label class="form-label">연습 시간</label>
-      <input type="time" class="form-input" id="reg-practice" value="08:00">
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-secondary" onclick="closeModal('modal-conti-register')">취소</button>
-      <button class="btn btn-primary" onclick="registerConti()">등록</button>
-    </div>
-  </div>
-</div>
-
-<!-- 악보 추가 모달 -->
-<div class="modal-overlay" id="modal-add-song">
-  <div class="modal">
-    <div class="modal-header">
-      <h3>악보 추가</h3>
-      <button class="modal-close" onclick="closeModal('modal-add-song')">✕</button>
-    </div>
-    <div class="tab-list">
-      <button class="tab-btn active" onclick="switchTab(this,'tab-single')">단일 추가</button>
-      <button class="tab-btn" onclick="switchTab(this,'tab-bulk')">일괄 임포트</button>
-    </div>
-    
-    <!-- 단일 추가 탭 -->
-    <div class="tab-pane active" id="tab-single">
-      <div class="form-group">
-        <label class="form-label">곡명 *</label>
-        <input type="text" class="form-input" id="add-title" placeholder="곡명 입력">
-      </div>
-      <div class="form-row">
-        <div class="form-group">
-          <label class="form-label">키 (Key)</label>
-          <select class="form-select" id="add-key">
-            <option>C</option><option>D</option><option>E</option><option>F</option>
-            <option>G</option><option>A</option><option>B</option><option>Bb</option>
-            <option>Eb</option><option>Ab</option><option>F#</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label class="form-label">아티스트</label>
-          <input type="text" class="form-input" id="add-artist" placeholder="아티스트명">
+      <div class="page-body" style="display:flex;flex-direction:column;">
+        <div class="conti-grid" style="flex:1;min-height:0;">
+          <div class="conti-panel">
+            <div class="panel-header">악보 목록 <span style="font-weight:400;color:var(--text-light);font-size:10.5px;">클릭하여 추가</span></div>
+            <div class="panel-body">
+              <div class="pool-song" onclick="addConti('주 예수보다 더 귀한 것은 없네','Bb')">
+                <span style="font-size:16px;">🎵</span>
+                <div style="flex:1;">
+                  <div style="font-weight:500;font-size:13px;">주 예수보다 더 귀한 것은 없네</div>
+                  <div style="font-size:11px;color:var(--text-light);">Key Bb · 아이자야씩스티원</div>
+                </div>
+                <span style="color:var(--text-light);font-size:20px;">＋</span>
+              </div>
+              <div class="pool-song" onclick="addConti('나의 죄를 씻기는','G')">
+                <span style="font-size:16px;">🎵</span>
+                <div style="flex:1;">
+                  <div style="font-weight:500;font-size:13px;">나의 죄를 씻기는</div>
+                  <div style="font-size:11px;color:var(--text-light);">Key G · FIA ver.</div>
+                </div>
+                <span style="color:var(--text-light);font-size:20px;">＋</span>
+              </div>
+              <div class="pool-song" onclick="addConti('예수 하나님의 공의','D')">
+                <span style="font-size:16px;">🎵</span>
+                <div style="flex:1;">
+                  <div style="font-weight:500;font-size:13px;">예수 하나님의 공의</div>
+                  <div style="font-size:11px;color:var(--text-light);">Key D · This Kingdom</div>
+                </div>
+                <span style="color:var(--text-light);font-size:20px;">＋</span>
+              </div>
+              <div class="pool-song" onclick="addConti('나의 하나님','D')">
+                <span style="font-size:16px;">🎵</span>
+                <div style="flex:1;">
+                  <div style="font-weight:500;font-size:13px;">나의 하나님</div>
+                  <div style="font-size:11px;color:var(--text-light);">Key D · 박우정</div>
+                </div>
+                <span style="color:var(--text-light);font-size:20px;">＋</span>
+              </div>
+            </div>
+          </div>
+          <div class="conti-panel">
+            <div class="panel-header">구성된 콘티 <span id="contiCount" style="font-weight:400;color:var(--text-light);font-size:10.5px;">0곡</span></div>
+            <div class="panel-body" id="contiList">
+              <div class="drop-hint">여기에 곡을 추가하세요</div>
+            </div>
+          </div>
         </div>
       </div>
-      <div class="form-group">
-        <label class="form-label">BPM</label>
-        <input type="number" class="form-input" id="add-bpm" placeholder="예: 76">
-      </div>
-      <div class="form-group">
-        <label class="form-label">유튜브 링크</label>
-        <input type="text" class="form-input" id="add-youtube" placeholder="https://youtube.com/watch?v=...">
-      </div>
-      <div class="form-group">
-        <label class="form-label">악보 파일 (이미지 / PDF)</label>
-        <!-- 파일 업로드: 클릭 방식 -->
-        <input type="file" id="add-file-input" accept="image/*,.pdf" multiple style="display:none;" onchange="handleFileSelect(this,'add-file-preview')">
-        <div class="file-upload-area" onclick="document.getElementById('add-file-input').click()">
-          <div class="icon">📁</div>
-          <p><strong>클릭하여 파일 선택</strong></p>
-          <p style="font-size:11px;margin-top:4px;">이미지(JPG, PNG) 또는 PDF</p>
+    </div>
+
+    <!-- ════ MERGE ════ -->
+    <div id="page-merge" class="page">
+      <div class="page-header">
+        <div>
+          <div class="page-title">악보 합치기</div>
+          <div class="page-sub">두 악보를 하나의 문서로 합칩니다</div>
         </div>
-        <div id="add-file-preview" style="margin-top:8px;font-size:13px;color:var(--olive);"></div>
+      </div>
+      <div class="page-body">
+        <div class="merge-slots">
+          <div class="merge-slot filled" id="ms1">
+            <div class="merge-slot-label">1악보</div>
+            <div class="merge-slot-title">주 예수보다 더 귀한 것은 없네</div>
+            <div style="display:flex;gap:5px;margin-top:8px;">
+              <span class="tag key">Bb</span><span class="tag">아이자야씩스티원</span>
+            </div>
+            <button class="link-btn btn-sm" style="margin-top:10px;" onclick="resetSlot(1)">변경</button>
+          </div>
+          <div class="merge-slot filled" id="ms2">
+            <div class="merge-slot-label">2악보</div>
+            <div class="merge-slot-title">나의 죄를 씻기는</div>
+            <div style="display:flex;gap:5px;margin-top:8px;">
+              <span class="tag key">G</span><span class="tag">FIA ver.</span>
+            </div>
+            <button class="link-btn btn-sm" style="margin-top:10px;" onclick="resetSlot(2)">변경</button>
+          </div>
+        </div>
+
+        <div class="section-label">배열 방식</div>
+        <div class="merge-opts">
+          <div class="merge-opt sel" onclick="selOpt(this)">
+            <div class="merge-opt-icon">☰</div>
+            <div class="merge-opt-label">위아래</div>
+          </div>
+          <div class="merge-opt" onclick="selOpt(this)">
+            <div class="merge-opt-icon">⊟</div>
+            <div class="merge-opt-label">좌우</div>
+          </div>
+          <div class="merge-opt" onclick="selOpt(this)">
+            <div class="merge-opt-icon">📄</div>
+            <div class="merge-opt-label">별도 페이지</div>
+          </div>
+        </div>
+
+        <div class="section-label">미리보기</div>
+        <div class="card">
+          <div style="background:var(--cream);border:1px solid var(--border);border-radius:8px;padding:16px;text-align:center;margin-bottom:14px;">
+            <div style="border-bottom:1px solid var(--border);padding-bottom:12px;margin-bottom:12px;">
+              <div style="font-size:13.5px;font-weight:600;color:var(--text);">주 예수보다 더 귀한 것은 없네</div>
+              <div style="font-size:11px;color:var(--text-light);margin-top:3px;">Key Bb · Intro &amp; Outro / Verse / Pre-Chorus / Chorus / Tag</div>
+            </div>
+            <div>
+              <div style="font-size:13.5px;font-weight:600;color:var(--text);">나의 죄를 씻기는</div>
+              <div style="font-size:11px;color:var(--text-light);margin-top:3px;">Key G · INTRO / VERSE / CHORUS / INTER&amp;OUTRO</div>
+            </div>
+          </div>
+          <div style="display:flex;justify-content:flex-end;">
+            <button class="btn btn-primary">📥 PDF로 내보내기</button>
+          </div>
+        </div>
       </div>
     </div>
-    
-    <!-- 일괄 임포트 탭 -->
-    <div class="tab-pane" id="tab-bulk">
-      <p class="text-muted mb-4">여러 악보 파일을 한번에 업로드합니다</p>
-      <input type="file" id="bulk-file-input" accept="image/*,.pdf" multiple style="display:none;" onchange="handleBulkFiles(this)">
-      <div class="file-upload-area" onclick="document.getElementById('bulk-file-input').click()">
-        <div class="icon">📁</div>
-        <p><strong>클릭하여 여러 파일 선택</strong></p>
-        <p style="font-size:11px;margin-top:4px;">Ctrl/Cmd + 클릭으로 여러 파일 동시 선택 가능</p>
+
+    <!-- ════ KAKAO ════ -->
+    <div id="page-kakao" class="page">
+      <div class="page-header">
+        <div>
+          <div class="page-title">카톡 발송</div>
+          <div class="page-sub">단톡방에 콘티 알림을 전송합니다</div>
+        </div>
       </div>
-      <div id="bulk-file-list" style="margin-top:12px;"></div>
-    </div>
+      <div class="page-body">
+        <div class="section-label" style="margin-bottom:8px;">단톡방 선택</div>
+        <div class="kakao-rooms">
+          <div class="kakao-room sel" onclick="selRoom(this)">
+            <div class="kakao-icon">💬</div>
+            <div class="kakao-info">
+              <div class="kakao-name">찬양팀 단톡방</div>
+              <div class="kakao-count">멤버 12명</div>
+            </div>
+            <span class="kakao-check">✓</span>
+          </div>
+          <div class="kakao-room" onclick="selRoom(this)">
+            <div class="kakao-icon">💬</div>
+            <div class="kakao-info">
+              <div class="kakao-name">9시 예배팀</div>
+              <div class="kakao-count">멤버 8명</div>
+            </div>
+          </div>
+        </div>
 
-    <div class="modal-footer">
-      <button class="btn btn-secondary" onclick="closeModal('modal-add-song')">취소</button>
-      <button class="btn btn-primary" onclick="addSong()">추가</button>
-    </div>
-  </div>
-</div>
+        <div class="section-label" style="margin-bottom:8px;">메시지 미리보기</div>
+        <div class="kakao-preview">할렐루야! 🙌
+2026년 5월 첫째주 주일 9시 예배 콘티입니다😁
 
-<!-- 폴더 추가 모달 -->
-<div class="modal-overlay" id="modal-add-folder">
-  <div class="modal" style="max-width:420px;">
-    <div class="modal-header">
-      <h3>새 폴더 만들기</h3>
-      <button class="modal-close" onclick="closeModal('modal-add-folder')">✕</button>
-    </div>
-    <div class="form-group">
-      <label class="form-label">폴더 이름</label>
-      <input type="text" class="form-input" id="folder-name" placeholder="예: FIA, 경배와찬양, 복음성가">
-    </div>
-    <div class="form-group">
-      <label class="form-label">아이콘</label>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;" id="folder-icon-picker">
-        <span onclick="selectFolderIcon(this)" class="folder-icon-opt" style="font-size:24px;cursor:pointer;padding:6px;border-radius:8px;border:2px solid transparent;">📂</span>
-        <span onclick="selectFolderIcon(this)" class="folder-icon-opt" style="font-size:24px;cursor:pointer;padding:6px;border-radius:8px;border:2px solid transparent;">🎵</span>
-        <span onclick="selectFolderIcon(this)" class="folder-icon-opt" style="font-size:24px;cursor:pointer;padding:6px;border-radius:8px;border:2px solid transparent;">🙏</span>
-        <span onclick="selectFolderIcon(this)" class="folder-icon-opt" style="font-size:24px;cursor:pointer;padding:6px;border-radius:8px;border:2px solid transparent;">✝️</span>
-        <span onclick="selectFolderIcon(this)" class="folder-icon-opt" style="font-size:24px;cursor:pointer;padding:6px;border-radius:8px;border:2px solid transparent;">⭐</span>
-        <span onclick="selectFolderIcon(this)" class="folder-icon-opt" style="font-size:24px;cursor:pointer;padding:6px;border-radius:8px;border:2px solid transparent;">🔥</span>
+1. 주 예수보다 더 귀한 것은 없네 (Bb)
+   ▶ https://youtu.be/O66SLvLJWNY
+
+2. 나의 죄를 씻기는 (G)
+   ▶ https://youtu.be/6UqoAZwp6QY
+
+3. 예수 하나님의 공의 + 나의 하나님 (D)
+   ▶ https://youtu.be/PNfbZIAiEuI
+
+📖 기나긴 전쟁에서 승리하고 가나안을 점령했지만, 또 다시 끝나지 않는 과업을 맞이하는 여호수아와 백성들. 예수님께서는 십자가에서 죽으심으로 승리하시고, '평안함'과 '담대함'으로 그 승리에 동참하라고 말씀하십니다.
+
+⏰ 8시에 연습이 시작될 수 있도록 힘써주시기 바랍니다😁
+공감표시나 아멘으로 화답하여 주시면 큰 힘이 될 것 같습니다👍🏻
+감사합니다</div>
+
+        <div style="display:flex;gap:8px;justify-content:flex-end;margin-bottom:16px;">
+          <button class="btn">✏️ 메시지 편집</button>
+          <button class="btn btn-primary" onclick="alert('카카오톡 API 연동 후 발송됩니다!\n카카오워크 봇 API 또는 카카오채널 연결이 필요합니다.')">💬 카톡 전송</button>
+        </div>
+
+        <div class="info-note">
+          💡 <strong>카카오 API 연동 안내</strong><br>
+          일반 카카오톡 단톡방 자동 발송은 카카오 정책상 제한이 있습니다.<br>
+          실제 연동 방법: <strong>카카오워크 봇 API</strong> 또는 <strong>카카오 채널(비즈니스)</strong> 방식을 권장합니다.
+        </div>
       </div>
     </div>
-    <div class="modal-footer">
-      <button class="btn btn-secondary" onclick="closeModal('modal-add-folder')">취소</button>
-      <button class="btn btn-primary" onclick="addFolder()">만들기</button>
-    </div>
-  </div>
+
+  </main>
 </div>
 
-<!-- 희망곡 추가 모달 -->
-<div class="modal-overlay" id="modal-add-wish">
-  <div class="modal" style="max-width:420px;">
+<!-- ════ MODAL ════ -->
+<div class="modal-bg" id="modalBg" onclick="closeModal(event)">
+  <div class="modal-box">
     <div class="modal-header">
-      <h3>희망곡 추가</h3>
-      <button class="modal-close" onclick="closeModal('modal-add-wish')">✕</button>
+      <div class="modal-title" id="mTitle"></div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
     </div>
-    <div class="form-group">
-      <label class="form-label">곡명</label>
-      <input type="text" class="form-input" id="wish-title" placeholder="희망곡 이름">
-    </div>
-    <div class="form-group">
-      <label class="form-label">파트 메모</label>
-      <input type="text" class="form-input" id="wish-part" placeholder="예: 드럼 - 4비트로 하면 좋겠어요">
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-secondary" onclick="closeModal('modal-add-wish')">취소</button>
-      <button class="btn btn-primary" onclick="addWish()">추가</button>
-    </div>
+    <div class="modal-info-grid" id="mInfo"></div>
+    <img id="mImg" class="modal-score-img" src="" alt="악보 이미지"/>
+    <div class="modal-links" id="mLinks"></div>
+    <div class="modal-note" id="mNote"></div>
   </div>
 </div>
-
-<!-- 악보 메모 추가 모달 -->
-<div class="modal-overlay" id="modal-add-memo">
-  <div class="modal" style="max-width:420px;">
-    <div class="modal-header">
-      <h3>악보 메모 추가</h3>
-      <button class="modal-close" onclick="closeModal('modal-add-memo')">✕</button>
-    </div>
-    <div class="form-group">
-      <label class="form-label">곡 선택</label>
-      <select class="form-select" id="memo-song"></select>
-    </div>
-    <div class="form-group">
-      <label class="form-label">인트로 방식</label>
-      <input type="text" class="form-input" id="memo-intro" placeholder="예: 피아노 솔로 → 밴드 인">
-    </div>
-    <div class="form-group">
-      <label class="form-label">세션 메모</label>
-      <textarea class="form-textarea" id="memo-content" placeholder="세션별 특이사항, 키 변경, 전주 방식 등..."></textarea>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-secondary" onclick="closeModal('modal-add-memo')">취소</button>
-      <button class="btn btn-primary" onclick="addMemo()">저장</button>
-    </div>
-  </div>
-</div>
-
-<!-- 폴더에 악보 추가 모달 -->
-<div class="modal-overlay" id="modal-add-to-folder">
-  <div class="modal" style="max-width:420px;">
-    <div class="modal-header">
-      <h3 id="add-to-folder-title">폴더에 악보 추가</h3>
-      <button class="modal-close" onclick="closeModal('modal-add-to-folder')">✕</button>
-    </div>
-    <div class="form-group">
-      <label class="form-label">악보 선택</label>
-      <select class="form-select" id="folder-song-select"></select>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-secondary" onclick="closeModal('modal-add-to-folder')">취소</button>
-      <button class="btn btn-primary" onclick="addSongToFolder()">추가</button>
-    </div>
-  </div>
-</div>
-
-<!-- TOAST -->
-<div id="toast"></div>
 
 <script>
-// ===== DATA STORE =====
-const DEFAULT_SONGS = [
-  { id: 1, title: '주 예수보다 더 귀한 것은 없네', key: 'Bb', artist: '아이자야씩스티원', bpm: 64, youtube: 'https://www.youtube.com/watch?v=O66SLvLJWNY', lastUsed: '2026.05.04' },
-  { id: 2, title: '나의 죄를 씻기는', key: 'G', artist: 'FIA ver.', bpm: 105, youtube: 'https://www.youtube.com/watch?v=6UqoAZwp6QY', lastUsed: '2026.04.30' },
-  { id: 3, title: '예수 하나님의 공의', key: 'D', artist: 'This Kingdom (아이자야)', bpm: 66, youtube: 'https://www.youtube.com/watch?v=PNfbZIAiEuI', lastUsed: '2026.04.30' },
-  { id: 4, title: '나의 하나님', key: 'D', artist: '박우정', bpm: null, youtube: '', lastUsed: '2026.05.04' },
-];
-
-const DEFAULT_WEEKLY = [
+const SONGS = [
   {
-    id: 1, year: 2026, month: 5, week: 1, service: '주일 9시 예배',
-    leader: '박전도사', role: '전도사', practiceTime: '08:00',
-    verse: '여호수아 1:9', message: '기나긴 전쟁에서 승리하고 가나안을 점령했지만, 또 다시 끝나지 않는 과업을 맞이하는 여호수아와 백성들.',
-    songs: [1,2,3,4]
+    title:'주 예수보다 더 귀한 것은 없네',
+    key:'Bb', artist:'아이자야씩스티원',
+    source:'THE GOSPEL II · R.F.Miller / G.B.Shea',
+    tempo:'♩=64',
+    form:'Intro & Outro / Verse / Pre-Chorus / Chorus / Tag',
+    yt:'https://www.youtube.com/watch?v=O66SLvLJWNY',
+    img:'KakaoTalk_Photo_2026-05-04-00-22-52_001.jpeg',
+    note:'Copyright © 2023 Isaiah 6tyOne Music · ARRANGED BY 아이자야씩스티원',
+    lastEdit:'2026.04.28'
+  },
+  {
+    title:'나의 죄를 씻기는',
+    key:'G', artist:'FIA ver.',
+    source:'Arr. 박신형',
+    tempo:'♩=105',
+    form:'INTRO / VERSE / CHORUS / INTER&OUTRO',
+    yt:'https://www.youtube.com/watch?v=6UqoAZwp6QY',
+    img:'KakaoTalk_Photo_2026-05-04-00-22-52_003.png',
+    note:'FIA_ver. Arr.박신형',
+    lastEdit:'2026.04.30'
+  },
+  {
+    title:'예수 하나님의 공의',
+    key:'D', artist:'아이자야씩스티원',
+    source:'This Kingdom · 아이자야씩스티원 ver.',
+    tempo:'♩=66',
+    form:'Verse 1&2 / Chorus / Outro',
+    yt:'https://www.youtube.com/watch?v=PNfbZIAiEuI',
+    img:'KakaoTalk_Photo_2026-05-04-00-22-52_002.png',
+    note:'Scored by zozoanna · https://blog.naver.com/zozoanna_',
+    lastEdit:'2026.04.30'
+  },
+  {
+    title:'나의 하나님',
+    key:'D', artist:'박우정',
+    source:'Scored by zozoanna',
+    tempo:'—',
+    form:'Verse / Chorus / Bridge',
+    yt:null,
+    img:'KakaoTalk_Photo_2026-05-04-00-22-52_004.png',
+    note:'Scored by zozoanna · https://blog.naver.com/zozoanna_',
+    lastEdit:'2026.05.04'
   }
 ];
 
-let songs = JSON.parse(localStorage.getItem('wm_songs') || 'null') || DEFAULT_SONGS;
-let weekly = JSON.parse(localStorage.getItem('wm_weekly') || 'null') || DEFAULT_WEEKLY;
-let collections = JSON.parse(localStorage.getItem('wm_collections') || '[]');
-let mypage = JSON.parse(localStorage.getItem('wm_mypage') || '{"name":"","role":"성도","sessions":[],"wishes":[],"memos":[]}');
-let contiBuilt = [];
-let currentFolderIdx = null;
-let selectedFolderIcon = '📂';
+let conti=[];
 
-function save() {
-  localStorage.setItem('wm_songs', JSON.stringify(songs));
-  localStorage.setItem('wm_weekly', JSON.stringify(weekly));
-  localStorage.setItem('wm_collections', JSON.stringify(collections));
-  localStorage.setItem('wm_mypage', JSON.stringify(mypage));
-}
-
-// ===== NAVIGATION =====
-function navigate(page) {
-  document.querySelectorAll('.page-section').forEach(p => p.classList.add('hidden'));
-  document.getElementById('page-' + page).classList.remove('hidden');
-  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-  document.querySelectorAll(`[data-page="${page}"]`).forEach(n => n.classList.add('active'));
-  renderPage(page);
-}
-
-function renderPage(page) {
-  if (page === 'dashboard') renderDashboard();
-  else if (page === 'weekly') renderWeekly();
-  else if (page === 'archive') renderArchive();
-  else if (page === 'collections') renderCollections();
-  else if (page === 'mypage') renderMyPage();
-  else if (page === 'conti') renderContiPage();
-  else if (page === 'merge') renderMerge();
-}
-
-// ===== DASHBOARD =====
-function renderDashboard() {
-  const latest = weekly[0];
-  if (!latest) return;
-  document.getElementById('stat-songs').textContent = latest.songs.length;
-  document.getElementById('stat-total').textContent = songs.length;
-  document.getElementById('stat-weeks').textContent = weekly.length;
-  
-  const list = document.getElementById('dash-conti-list');
-  list.innerHTML = latest.songs.map((sid, i) => {
-    const s = songs.find(x => x.id === sid);
-    if (!s) return '';
-    return `<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);">
-      <div style="width:28px;height:28px;background:var(--olive-pale);color:var(--olive-dark);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;">${i+1}</div>
-      <div style="flex:1;">
-        <div style="font-weight:600;font-size:14px;">${s.title}</div>
-        <div style="font-size:11.5px;color:var(--text-muted);">Key ${s.key} · ${s.artist}</div>
-      </div>
-      <div style="display:flex;gap:8px;">
-        ${s.youtube ? `<a href="${s.youtube}" target="_blank" class="btn btn-ghost btn-sm" style="font-size:12px;">▶ YT</a>` : ''}
-      </div>
-    </div>`;
-  }).join('');
-}
-
-// ===== WEEKLY =====
-function renderWeekly() {
-  const list = document.getElementById('weekly-list');
-  if (!weekly.length) { list.innerHTML = '<div class="empty-state"><div class="icon">📅</div><p>등록된 주차가 없습니다</p></div>'; return; }
-  list.innerHTML = weekly.map((w, wi) => `
-    <div class="week-card">
-      <div class="week-card-header" onclick="toggleWeekCard(${wi})">
-        <div>
-          <div class="week-card-title">${w.year}년 ${w.month}월 ${w.week}주 — ${w.service}</div>
-          <div class="week-card-subtitle">찬양 ${w.songs.length}곡 · 연습 ${w.practiceTime}</div>
-        </div>
-        <span class="week-card-arrow" id="week-arrow-${wi}">▼</span>
-      </div>
-      <div class="week-card-body" id="week-body-${wi}">
-        ${w.verse ? `<p style="font-size:13px;color:var(--olive-dark);font-weight:600;margin-bottom:10px;">📖 ${w.verse} — ${w.message||''}</p>` : ''}
-        ${w.songs.map((sid, i) => {
-          const s = songs.find(x => x.id === sid);
-          if (!s) return '';
-          return `<div class="song-row" style="margin-bottom:6px;">
-            <div class="song-row-header" style="cursor:default;">
-              <div class="song-row-num">${i+1}</div>
-              <div class="song-row-info">
-                <div class="song-row-title">${s.title}</div>
-                <div class="song-row-meta">Key ${s.key} · ${s.artist}${s.bpm?' · ♩='+s.bpm:''}</div>
-              </div>
-              <div class="song-row-actions">
-                ${s.youtube ? `<a href="${s.youtube}" target="_blank" class="btn btn-ghost btn-sm">▶ YT</a>` : ''}
-              </div>
-            </div>
-          </div>`;
-        }).join('')}
-      </div>
-    </div>
-  `).join('');
-}
-
-function toggleWeekCard(i) {
-  const body = document.getElementById(`week-body-${i}`);
-  const arrow = document.getElementById(`week-arrow-${i}`);
-  body.classList.toggle('open');
-  arrow.classList.toggle('open');
-}
-
-// ===== ARCHIVE =====
-function renderArchive() {
-  const q = (document.getElementById('archive-search')?.value || '').toLowerCase();
-  const fa = document.getElementById('archive-filter-artist')?.value || '';
-  const fk = document.getElementById('archive-filter-key')?.value || '';
-  
-  let filtered = songs.filter(s => {
-    const matchQ = !q || s.title.toLowerCase().includes(q) || s.artist.toLowerCase().includes(q) || s.key.toLowerCase().includes(q);
-    const matchA = !fa || s.artist.includes(fa);
-    const matchK = !fk || s.key === fk;
-    return matchQ && matchA && matchK;
-  });
-
-  const list = document.getElementById('archive-list');
-  if (!filtered.length) { list.innerHTML = '<div class="empty-state"><div class="icon">🎵</div><p>검색 결과가 없습니다</p></div>'; return; }
-  
-  list.innerHTML = filtered.map((s, i) => `
-    <div class="song-row">
-      <div class="song-row-header" onclick="toggleSongRow(this)">
-        <div class="song-row-num">${i+1}</div>
-        <div class="song-row-info">
-          <div class="song-row-title">${s.title}</div>
-          <div class="song-row-meta">
-            <span class="badge badge-key">${s.key}</span>
-            ${s.artist}
-            ${s.lastUsed ? `<span class="last-used-chip" style="margin-left:6px;">🕐 ${s.lastUsed}</span>` : ''}
-          </div>
-        </div>
-        <div class="song-row-actions">
-          ${s.youtube ? `<a href="${s.youtube}" target="_blank" class="btn btn-ghost btn-sm" onclick="event.stopPropagation()">▶ YT</a>` : ''}
-          <button class="song-row-expand">▼</button>
-        </div>
-      </div>
-      <div class="song-row-body" id="song-body-${s.id}">
-        <div class="song-row-body-grid">
-          <div>
-            <div class="text-muted">키 / BPM</div>
-            <div style="font-weight:600;">${s.key} / ${s.bpm ? '♩='+s.bpm : '-'}</div>
-          </div>
-          <div>
-            <div class="text-muted">아티스트</div>
-            <div style="font-weight:600;">${s.artist}</div>
-          </div>
-          <div>
-            <div class="text-muted">마지막 사용</div>
-            <div style="font-weight:600;">${s.lastUsed || '-'}</div>
-          </div>
-        </div>
-        <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">
-          ${s.youtube ? `<a href="${s.youtube}" target="_blank" class="btn btn-secondary btn-sm">▶ 유튜브</a>` : ''}
-          <button class="btn btn-ghost btn-sm" onclick="deleteSong(${s.id})">🗑 삭제</button>
-        </div>
-      </div>
-    </div>
-  `).join('');
-}
-
-function toggleSongRow(header) {
-  const expand = header.querySelector('.song-row-expand');
-  const sid = header.closest('.song-row').querySelector('[id^="song-body-"]')?.id?.replace('song-body-','');
-  if (!sid) return;
-  const body = document.getElementById(`song-body-${sid}`);
-  if (!body) return;
-  body.classList.toggle('open');
-  if (expand) expand.classList.toggle('open');
-}
-
-function deleteSong(id) {
-  if (!confirm('이 악보를 삭제하시겠습니까?')) return;
-  songs = songs.filter(s => s.id !== id);
-  save(); renderArchive(); showToast('악보가 삭제됐습니다');
-}
-
-// ===== COLLECTIONS =====
-function renderCollections() {
-  const list = document.getElementById('collections-list');
-  if (!collections.length) {
-    list.innerHTML = '<div class="empty-state"><div class="icon">📂</div><p>폴더가 없습니다<br><small>상단의 + 폴더 추가를 눌러 만들어보세요</small></p></div>';
-    return;
-  }
-  list.innerHTML = collections.map((folder, fi) => `
-    <div class="collection-folder">
-      <div class="folder-header" onclick="toggleFolder(${fi})">
-        <span class="folder-icon">${folder.icon}</span>
-        <span class="folder-name">${folder.name}</span>
-        <span class="folder-count">${(folder.songs||[]).length}곡</span>
-        <div style="display:flex;gap:6px;" onclick="event.stopPropagation()">
-          <button class="btn btn-ghost btn-sm" onclick="openAddToFolder(${fi})">+ 추가</button>
-          <button class="btn btn-ghost btn-sm" onclick="deleteFolder(${fi})" style="color:var(--danger);">🗑</button>
-        </div>
-        <span class="folder-arrow" id="folder-arrow-${fi}">▶</span>
-      </div>
-      <div class="folder-body" id="folder-body-${fi}">
-        ${!(folder.songs||[]).length ? '<p class="text-muted" style="padding:8px 6px;">악보를 추가해보세요</p>' :
-          folder.songs.map(sid => {
-            const s = songs.find(x => x.id === sid);
-            if (!s) return '';
-            return `<div class="folder-song-item">
-              <span>🎵</span>
-              <span style="flex:1;font-weight:500;">${s.title}</span>
-              <span class="badge badge-key">${s.key}</span>
-              <button class="folder-song-remove" onclick="removeSongFromFolder(${fi},${sid})">✕</button>
-            </div>`;
-          }).join('')
-        }
-      </div>
-    </div>
-  `).join('');
-}
-
-function toggleFolder(i) {
-  const body = document.getElementById(`folder-body-${i}`);
-  const arrow = document.getElementById(`folder-arrow-${i}`);
-  body.classList.toggle('open');
-  arrow.classList.toggle('open');
-}
-
-function openAddToFolder(fi) {
-  currentFolderIdx = fi;
-  document.getElementById('add-to-folder-title').textContent = `"${collections[fi].name}" 폴더에 악보 추가`;
-  const sel = document.getElementById('folder-song-select');
-  sel.innerHTML = songs.map(s => `<option value="${s.id}">${s.title} (${s.key})</option>`).join('');
-  openModal('modal-add-to-folder');
-}
-
-function addSongToFolder() {
-  const sid = parseInt(document.getElementById('folder-song-select').value);
-  if (currentFolderIdx === null) return;
-  if (!collections[currentFolderIdx].songs) collections[currentFolderIdx].songs = [];
-  if (!collections[currentFolderIdx].songs.includes(sid)) {
-    collections[currentFolderIdx].songs.push(sid);
-    save(); renderCollections(); showToast('악보가 추가됐습니다');
-  }
-  closeModal('modal-add-to-folder');
-}
-
-function removeSongFromFolder(fi, sid) {
-  collections[fi].songs = (collections[fi].songs || []).filter(s => s !== sid);
-  save(); renderCollections();
-}
-
-function deleteFolder(fi) {
-  if (!confirm(`"${collections[fi].name}" 폴더를 삭제하시겠습니까?`)) return;
-  collections.splice(fi, 1);
-  save(); renderCollections(); showToast('폴더가 삭제됐습니다');
-}
-
-function selectFolderIcon(el) {
-  document.querySelectorAll('.folder-icon-opt').forEach(e => e.style.border = '2px solid transparent');
-  el.style.border = '2px solid var(--olive)';
-  selectedFolderIcon = el.textContent;
-}
-
-function addFolder() {
-  const name = document.getElementById('folder-name').value.trim();
-  if (!name) { showToast('폴더 이름을 입력해주세요'); return; }
-  collections.push({ name, icon: selectedFolderIcon, songs: [] });
-  save(); closeModal('modal-add-folder');
-  document.getElementById('folder-name').value = '';
-  navigate('collections'); showToast('폴더가 생성됐습니다 🎉');
-}
-
-// ===== MYPAGE =====
-function renderMyPage() {
-  document.getElementById('my-name').value = mypage.name || '';
-  document.getElementById('my-role').value = mypage.role || '성도';
-  
-  // Sessions
-  document.querySelectorAll('.session-badge').forEach(b => {
-    const sess = b.textContent.trim().replace(/^[\S]+\s/, '');
-    if ((mypage.sessions||[]).some(s => b.textContent.includes(s))) b.classList.add('active');
-  });
-  
-  renderWishes();
-  renderMemos();
-  
-  // Populate memo song select
-  const memoSel = document.getElementById('memo-song');
-  if (memoSel) memoSel.innerHTML = songs.map(s => `<option value="${s.id}">${s.title}</option>`).join('');
-}
-
-function toggleSession(el, name) {
-  el.classList.toggle('active');
-  const idx = (mypage.sessions||[]).indexOf(name);
-  if (idx > -1) mypage.sessions.splice(idx, 1);
-  else { if (!mypage.sessions) mypage.sessions = []; mypage.sessions.push(name); }
-  save();
-}
-
-function saveMyPage() {
-  mypage.name = document.getElementById('my-name').value;
-  mypage.role = document.getElementById('my-role').value;
-  save();
-}
-
-function renderWishes() {
-  const list = document.getElementById('wish-list');
-  if (!(mypage.wishes||[]).length) {
-    list.innerHTML = '<div class="empty-state"><div class="icon">🎶</div><p>희망곡을 추가해보세요</p></div>';
-    return;
-  }
-  list.innerHTML = mypage.wishes.map((w, i) => `
-    <div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);">
-      <span style="font-size:16px;">🎵</span>
-      <div style="flex:1;">
-        <div style="font-weight:600;font-size:14px;">${w.title}</div>
-        ${w.part ? `<div class="text-muted">${w.part}</div>` : ''}
-      </div>
-      <button onclick="removeWish(${i})" style="background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:16px;">✕</button>
-    </div>
-  `).join('');
-}
-
-function addWish() {
-  const title = document.getElementById('wish-title').value.trim();
-  if (!title) return;
-  if (!mypage.wishes) mypage.wishes = [];
-  mypage.wishes.push({ title, part: document.getElementById('wish-part').value });
-  save(); closeModal('modal-add-wish'); renderWishes();
-  document.getElementById('wish-title').value = '';
-  document.getElementById('wish-part').value = '';
-  showToast('희망곡이 추가됐습니다 🎵');
-}
-
-function removeWish(i) {
-  mypage.wishes.splice(i, 1);
-  save(); renderWishes();
-}
-
-function renderMemos() {
-  const list = document.getElementById('song-memo-items');
-  if (!(mypage.memos||[]).length) { list.innerHTML = ''; return; }
-  list.innerHTML = mypage.memos.map((m, i) => {
-    const s = songs.find(x => x.id === m.songId);
-    return `<div class="card card-sm" style="margin-bottom:8px;">
-      <div style="font-weight:700;font-size:14px;margin-bottom:4px;">${s ? s.title : '삭제된 악보'}</div>
-      ${m.intro ? `<div class="text-muted">🎵 인트로: ${m.intro}</div>` : ''}
-      ${m.content ? `<div style="font-size:13px;margin-top:4px;">${m.content}</div>` : ''}
-      <button onclick="removeMemo(${i})" style="background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:12px;margin-top:6px;">삭제</button>
-    </div>`;
-  }).join('');
-}
-
-function addMemo() {
-  const songId = parseInt(document.getElementById('memo-song').value);
-  if (!mypage.memos) mypage.memos = [];
-  mypage.memos.push({
-    songId,
-    intro: document.getElementById('memo-intro').value,
-    content: document.getElementById('memo-content').value
-  });
-  save(); closeModal('modal-add-memo'); renderMemos();
-  document.getElementById('memo-intro').value = '';
-  document.getElementById('memo-content').value = '';
-  showToast('메모가 저장됐습니다 📝');
-}
-
-function removeMemo(i) {
-  mypage.memos.splice(i, 1);
-  save(); renderMemos();
-}
-
-// ===== CONTI MAKER =====
-function renderContiPage() {
-  renderContiPool();
-  renderContiBuilt();
-}
-
-function renderContiPool() {
-  const q = (document.getElementById('conti-search')?.value || '').toLowerCase();
-  const filtered = songs.filter(s => !q || s.title.toLowerCase().includes(q) || s.artist.toLowerCase().includes(q));
-  const pool = document.getElementById('conti-pool');
-  pool.innerHTML = filtered.map(s => {
-    const inConti = contiBuilt.includes(s.id);
-    return `<div style="display:flex;align-items:center;gap:10px;padding:9px 10px;border-bottom:1px solid var(--border);${inConti?'opacity:0.5;':''}">
-      <div style="flex:1;">
-        <div style="font-weight:600;font-size:13.5px;">${s.title}</div>
-        <div style="font-size:11px;color:var(--text-muted);">
-          Key ${s.key} · ${s.artist}
-          ${s.lastUsed ? `<span class="last-used-chip" style="margin-left:4px;">🕐 ${s.lastUsed}</span>` : ''}
-        </div>
-      </div>
-      <button class="btn btn-primary btn-sm" ${inConti?'disabled':''} onclick="addToConti(${s.id})">＋</button>
-    </div>`;
-  }).join('');
-}
-
-function addToConti(id) {
-  if (contiBuilt.includes(id)) return;
-  contiBuilt.push(id);
-  renderContiPool();
-  renderContiBuilt();
-}
-
-function removeFromConti(id) {
-  contiBuilt = contiBuilt.filter(x => x !== id);
-  renderContiPool();
-  renderContiBuilt();
-}
-
-function clearConti() {
-  contiBuilt = [];
-  renderContiPool();
-  renderContiBuilt();
-}
-
-function renderContiBuilt() {
-  const built = document.getElementById('conti-built');
-  const empty = document.getElementById('conti-built-empty');
-  if (!contiBuilt.length) {
-    built.innerHTML = '';
-    empty.style.display = '';
-    return;
-  }
-  empty.style.display = 'none';
-  built.innerHTML = contiBuilt.map((sid, i) => {
-    const s = songs.find(x => x.id === sid);
-    if (!s) return '';
-    return `<div class="conti-song-item">
-      <div class="conti-song-num">${i+1}</div>
-      <div class="conti-song-info">
-        <div class="conti-song-title">${s.title}</div>
-        <div class="conti-song-meta">Key ${s.key} · ${s.artist}</div>
-      </div>
-      <button class="conti-song-remove" onclick="removeFromConti(${sid})">✕</button>
-    </div>`;
-  }).join('');
-}
-
-function saveContiToWeekly() {
-  if (!contiBuilt.length) { showToast('곡을 먼저 추가해주세요'); return; }
-  const now = new Date();
-  weekly.unshift({
-    id: Date.now(),
-    year: now.getFullYear(),
-    month: now.getMonth()+1,
-    week: Math.ceil(now.getDate()/7),
-    service: '주일 9시 예배',
-    leader: mypage.name || '-',
-    role: mypage.role || '성도',
-    practiceTime: '08:00',
-    songs: [...contiBuilt]
-  });
-  // update lastUsed
-  contiBuilt.forEach(sid => {
-    const s = songs.find(x => x.id === sid);
-    if (s) s.lastUsed = now.toLocaleDateString('ko-KR').replace(/\. /g,'.').replace('.','');
-  });
-  save(); showToast('콘티가 저장됐습니다 🎉');
-}
-
-// ===== CONTI REGISTER MODAL =====
-function registerConti() {
-  const date = document.getElementById('reg-date').value;
-  const service = document.getElementById('reg-service').value;
-  const leader = document.getElementById('reg-leader').value;
-  const role = document.getElementById('reg-role').value;
-  const verse = document.getElementById('reg-verse').value;
-  const message = document.getElementById('reg-message').value;
-  const practiceTime = document.getElementById('reg-practice').value;
-  
-  const d = date ? new Date(date) : new Date();
-  weekly.unshift({
-    id: Date.now(),
-    year: d.getFullYear(), month: d.getMonth()+1,
-    week: Math.ceil(d.getDate()/7),
-    service, leader, role, verse, message, practiceTime,
-    songs: []
-  });
-  save(); closeModal('modal-conti-register');
-  showToast('콘티가 등록됐습니다 ✅');
-  renderDashboard();
-}
-
-// ===== ADD SONG =====
-function addSong() {
-  const title = document.getElementById('add-title').value.trim();
-  if (!title) { showToast('곡명을 입력해주세요'); return; }
-  const newSong = {
-    id: Date.now(),
-    title,
-    key: document.getElementById('add-key').value,
-    artist: document.getElementById('add-artist').value,
-    bpm: parseInt(document.getElementById('add-bpm').value) || null,
-    youtube: document.getElementById('add-youtube').value,
-    lastUsed: null
-  };
-  songs.unshift(newSong);
-  save(); closeModal('modal-add-song'); renderArchive();
-  ['add-title','add-artist','add-bpm','add-youtube'].forEach(id => document.getElementById(id).value = '');
-  showToast('악보가 추가됐습니다 🎵');
-}
-
-function handleFileSelect(input, previewId) {
-  const preview = document.getElementById(previewId);
-  if (input.files.length) {
-    preview.textContent = `✅ ${Array.from(input.files).map(f=>f.name).join(', ')}`;
-  }
-}
-
-function handleBulkFiles(input) {
-  const list = document.getElementById('bulk-file-list');
-  list.innerHTML = Array.from(input.files).map((f,i) => `
-    <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);">
-      <span>📄</span>
-      <span style="flex:1;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${f.name}</span>
-      <span style="font-size:11px;color:var(--text-muted);">${(f.size/1024).toFixed(1)}KB</span>
-    </div>
-  `).join('');
-}
-
-// ===== MERGE =====
-function renderMerge() {
-  ['merge-song-1','merge-song-2'].forEach(id => {
-    const sel = document.getElementById(id);
-    if (!sel) return;
-    sel.innerHTML = '<option value="">악보 선택...</option>' + songs.map(s => `<option value="${s.id}">${s.title} (${s.key})</option>`).join('');
-  });
-}
-
-function mergePreview() {
-  showToast('미리보기 기능은 업데이트 예정이에요');
-}
-function mergePDF() {
-  showToast('PDF 내보내기 기능은 업데이트 예정이에요');
-}
-
-// ===== BIBLE DROPDOWN =====
-const BIBLE_DATA = {
-  "구약": {
-    "창세기":50,"출애굽기":40,"레위기":27,"민수기":36,"신명기":34,"여호수아":24,"사사기":21,"룻기":4,
-    "사무엘상":31,"사무엘하":24,"열왕기상":22,"열왕기하":25,"역대상":29,"역대하":36,"에스라":10,
-    "느헤미야":13,"에스더":10,"욥기":42,"시편":150,"잠언":31,"전도서":12,"아가":8,"이사야":66,
-    "예레미야":52,"예레미야애가":5,"에스겔":48,"다니엘":12,"호세아":14,"요엘":3,"아모스":9,
-    "오바댜":1,"요나":4,"미가":7,"나훔":3,"하박국":3,"스바냐":3,"학개":2,"스가랴":14,"말라기":4
-  },
-  "신약": {
-    "마태복음":28,"마가복음":16,"누가복음":24,"요한복음":21,"사도행전":28,"로마서":16,"고린도전서":16,
-    "고린도후서":13,"갈라디아서":6,"에베소서":6,"빌립보서":4,"골로새서":4,"데살로니가전서":5,
-    "데살로니가후서":3,"디모데전서":6,"디모데후서":4,"디도서":3,"빌레몬서":1,"히브리서":13,
-    "야고보서":5,"베드로전서":5,"베드로후서":3,"요한일서":5,"요한이서":1,"요한삼서":1,
-    "유다서":1,"요한계시록":22
-  }
-};
-
-// 각 장의 절 수 (주요 장 샘플 - 실제로는 API 호출로 구절 텍스트 가져옴)
-const VERSE_COUNTS = {};
-// 대략적인 절 수 - 실제 성경 데이터 없이 장당 평균 절수 사용
-function getVerseCount(book, chapter) {
-  const avgVerses = { '시편': 22, '잠언': 20, '이사야': 18, '요한복음': 36 };
-  return avgVerses[book] || 25;
-}
-
-// 주요 성경 구절 샘플 (자주 쓰이는 찬양 관련 구절)
-const SAMPLE_VERSES = {
-  '여호수아_1_9': '강하고 담대하라 두려워하지 말며 놀라지 말라 네가 어디로 가든지 네 하나님 여호와가 너와 함께 하느니라',
-  '시편_100_1': '온 땅이여 여호와께 즐거운 소리를 낼지어다',
-  '시편_150_6': '호흡이 있는 자마다 여호와를 찬양할지어다 할렐루야',
-  '이사야_40_31': '오직 여호와를 앙망하는 자는 새 힘을 얻으리니 독수리가 날개치며 올라감 같을 것이요',
-  '요한복음_3_16': '하나님이 세상을 이처럼 사랑하사 독생자를 주셨으니 이는 그를 믿는 자마다 멸망하지 않고 영생을 얻게 하려 하심이라',
-  '빌립보서_4_13': '내게 능력 주시는 자 안에서 내가 모든 것을 할 수 있느니라',
-};
-
-function updateBibleBooks() {
-  const testament = document.getElementById('bible-testament').value;
-  const bookSel = document.getElementById('bible-book');
-  const chapterSel = document.getElementById('bible-chapter');
-  const verseSel = document.getElementById('bible-verse');
-  
-  bookSel.innerHTML = '<option value="">책 선택</option>';
-  chapterSel.innerHTML = '<option value="">장 선택</option>';
-  verseSel.innerHTML = '<option value="">절 선택</option>';
-  chapterSel.disabled = true;
-  verseSel.disabled = true;
-  document.getElementById('recommend-btn').disabled = true;
-  document.getElementById('bible-verse-display').textContent = '책을 선택해주세요';
-  
-  if (!testament) { bookSel.disabled = true; return; }
-  bookSel.disabled = false;
-  
-  Object.keys(BIBLE_DATA[testament]).forEach(book => {
-    const opt = document.createElement('option');
-    opt.value = book;
-    opt.textContent = book;
-    bookSel.appendChild(opt);
-  });
-}
-
-function updateBibleChapters() {
-  const testament = document.getElementById('bible-testament').value;
-  const book = document.getElementById('bible-book').value;
-  const chapterSel = document.getElementById('bible-chapter');
-  const verseSel = document.getElementById('bible-verse');
-  
-  chapterSel.innerHTML = '<option value="">장 선택</option>';
-  verseSel.innerHTML = '<option value="">절 선택</option>';
-  verseSel.disabled = true;
-  document.getElementById('recommend-btn').disabled = true;
-  document.getElementById('bible-verse-display').textContent = '장을 선택해주세요';
-  
-  if (!book) { chapterSel.disabled = true; return; }
-  chapterSel.disabled = false;
-  
-  const chapters = BIBLE_DATA[testament][book];
-  for (let i = 1; i <= chapters; i++) {
-    const opt = document.createElement('option');
-    opt.value = i;
-    opt.textContent = i + '장';
-    chapterSel.appendChild(opt);
-  }
-}
-
-function updateBibleVerses() {
-  const book = document.getElementById('bible-book').value;
-  const chapter = document.getElementById('bible-chapter').value;
-  const verseSel = document.getElementById('bible-verse');
-  
-  verseSel.innerHTML = '<option value="">절 선택</option>';
-  document.getElementById('recommend-btn').disabled = true;
-  document.getElementById('bible-verse-display').textContent = '절을 선택해주세요';
-  
-  if (!chapter) { verseSel.disabled = true; return; }
-  verseSel.disabled = false;
-  
-  const verseCount = getVerseCount(book, chapter);
-  for (let i = 1; i <= verseCount; i++) {
-    const opt = document.createElement('option');
-    opt.value = i;
-    opt.textContent = i + '절';
-    verseSel.appendChild(opt);
-  }
-}
-
-function updateVerseDisplay() {
-  const book = document.getElementById('bible-book').value;
-  const chapter = document.getElementById('bible-chapter').value;
-  const verse = document.getElementById('bible-verse').value;
-  const display = document.getElementById('bible-verse-display');
-  
-  if (!verse) { document.getElementById('recommend-btn').disabled = true; return; }
-  
-  const key = `${book}_${chapter}_${verse}`;
-  const text = SAMPLE_VERSES[key];
-  
-  if (text) {
-    display.textContent = `"${text}" — ${book} ${chapter}:${verse}`;
-  } else {
-    display.textContent = `${book} ${chapter}장 ${verse}절`;
-  }
-  document.getElementById('recommend-btn').disabled = false;
-}
-
-function getSelectedBibleRef() {
-  const book = document.getElementById('bible-book').value;
-  const chapter = document.getElementById('bible-chapter').value;
-  const verse = document.getElementById('bible-verse').value;
-  const key = `${book}_${chapter}_${verse}`;
-  const text = SAMPLE_VERSES[key];
-  return { ref: `${book} ${chapter}:${verse}`, text: text || '' };
-}
-
-// ===== RECOMMENDATION AI =====
-async function getRecommendation() {
-  const { ref, text } = getSelectedBibleRef();
-  const display = document.getElementById('bible-verse-display').textContent;
-  
-  document.getElementById('recommend-loading').classList.remove('hidden');
-  document.getElementById('recommend-results').innerHTML = '';
-
-  const prompt = `당신은 한국 교회 찬양 전문가입니다. 다음 성경 구절에 어울리는 한국 CCM 찬양을 3곡 추천해주세요.
-
-성경 구절: ${display}
-
-다음 JSON 형식으로만 응답해주세요. 다른 텍스트 없이 JSON만:
-[
-  {"title": "곡명", "artist": "아티스트", "key": "추천키", "reason": "이 구절과 어울리는 이유 (1-2문장)"},
-  {"title": "곡명", "artist": "아티스트", "key": "추천키", "reason": "이유"},
-  {"title": "곡명", "artist": "아티스트", "key": "추천키", "reason": "이유"}
-]
-
-한국 CCM, 특히 아이자야씩스티원, FIA, 마커스워십, 예수전도단, 소망의소리 등의 찬양을 중심으로 추천해주세요.`;
-
-  try {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 1000,
-        messages: [{ role: 'user', content: prompt }]
-      })
+function showPage(id,btn){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  if(btn) btn.classList.add('active');
+  else {
+    document.querySelectorAll('.nav-item').forEach(n=>{
+      if(n.getAttribute('onclick')&&n.getAttribute('onclick').includes("'"+id+"'")) n.classList.add('active');
     });
-    const data = await response.json();
-    const text2 = data.content?.[0]?.text || '[]';
-    const clean = text2.replace(/```json|```/g,'').trim();
-    const results = JSON.parse(clean);
-    renderRecommendations(results);
-  } catch (e) {
-    // Fallback recommendations
-    renderRecommendations([
-      { title: '주 예수보다 더 귀한 것은 없네', artist: '아이자야씩스티원', key: 'Bb', reason: '예수님의 귀함을 고백하는 이 곡은 말씀의 감격과 잘 어울립니다.' },
-      { title: '나의 죄를 씻기는', artist: 'FIA ver.', key: 'G', reason: '은혜로운 고백의 가사가 이번 말씀 주제와 연결됩니다.' },
-      { title: '예수 하나님의 공의', artist: '아이자야씩스티원', key: 'D', reason: '하나님의 공의와 사랑을 노래하며 말씀을 묵상하기에 적합합니다.' }
-    ]);
   }
-  document.getElementById('recommend-loading').classList.add('hidden');
 }
 
-function renderRecommendations(results) {
-  const container = document.getElementById('recommend-results');
-  container.innerHTML = results.map((r, i) => `
-    <div class="recommend-card">
-      <div class="recommend-num">${i+1}</div>
-      <div class="recommend-info">
-        <div class="recommend-title">${r.title}</div>
-        <div class="recommend-reason">${r.artist} · Key ${r.key}<br>${r.reason}</div>
+function toggleWeek(h){
+  const b=h.nextElementSibling, a=h.querySelector('.week-arrow');
+  b.classList.toggle('open'); a.classList.toggle('open');
+}
+
+function openModal(i){
+  const s=SONGS[i];
+  document.getElementById('mTitle').textContent=s.title;
+  document.getElementById('mInfo').innerHTML=`
+    <span class="mi-label">Key</span><span class="mi-value" style="color:var(--olive);font-weight:700;">${s.key}</span>
+    <span class="mi-label">아티스트</span><span class="mi-value">${s.artist}</span>
+    <span class="mi-label">출처</span><span class="mi-value">${s.source}</span>
+    <span class="mi-label">템포</span><span class="mi-value">${s.tempo}</span>
+    <span class="mi-label">송폼</span><span class="mi-value">${s.form}</span>
+    <span class="mi-label">최종수정</span><span class="mi-value">${s.lastEdit}</span>
+  `;
+  document.getElementById('mImg').src=s.img;
+  document.getElementById('mNote').textContent=s.note;
+  document.getElementById('mLinks').innerHTML=s.yt
+    ?`<a href="${s.yt}" target="_blank" class="link-btn yt">▶ 유튜브 레퍼런스</a>`:'';
+  document.getElementById('modalBg').classList.add('open');
+}
+
+function closeModal(e){
+  if(!e||e.target===document.getElementById('modalBg'))
+    document.getElementById('modalBg').classList.remove('open');
+}
+
+function addConti(title,key){
+  conti.push({title,key});
+  renderConti();
+}
+
+function removeConti(i){
+  conti.splice(i,1);
+  renderConti();
+}
+
+function clearConti(){
+  conti=[];
+  renderConti();
+}
+
+function renderConti(){
+  const el=document.getElementById('contiList');
+  document.getElementById('contiCount').textContent=conti.length+'곡';
+  if(!conti.length){el.innerHTML='<div class="drop-hint">여기에 곡을 추가하세요</div>';return;}
+  el.innerHTML=conti.map((c,i)=>`
+    <div class="conti-item">
+      <div class="conti-num">${i+1}</div>
+      <div style="flex:1;">
+        <div style="font-weight:500;font-size:13px;">${c.title}</div>
+        <div style="font-size:11px;color:var(--text-light);">Key ${c.key}</div>
       </div>
-      <button class="recommend-add" onclick="addRecommendedSong('${r.title}','${r.artist}','${r.key}')">+ 콘티</button>
+      <button class="rm-btn" onclick="removeConti(${i})">✕</button>
     </div>
   `).join('');
 }
 
-function addRecommendedSong(title, artist, key) {
-  // Check if song exists
-  let s = songs.find(x => x.title === title);
-  if (!s) {
-    s = { id: Date.now(), title, artist, key, bpm: null, youtube: '', lastUsed: null };
-    songs.unshift(s);
-    save();
-  }
-  if (!contiBuilt.includes(s.id)) {
-    contiBuilt.push(s.id);
-    renderContiBuilt();
-    showToast(`"${title}" 콘티에 추가됐습니다 🎵`);
-  }
+function selOpt(el){
+  document.querySelectorAll('.merge-opt').forEach(o=>o.classList.remove('sel'));
+  el.classList.add('sel');
 }
 
-// ===== MESSAGE GENERATOR =====
-async function generateMessage() {
-  const tone = document.getElementById('msg-tone').value;
-  const hint = document.getElementById('msg-hint').value;
-  const latest = weekly[0];
-  
-  document.getElementById('message-loading').classList.remove('hidden');
-  document.getElementById('message-preview').textContent = '';
-
-  const songList = latest ? latest.songs.map((sid,i) => {
-    const s = songs.find(x => x.id === sid);
-    return s ? `${i+1}. ${s.title} (${s.key})${s.youtube ? '\n   ▶ '+s.youtube : ''}` : '';
-  }).filter(Boolean).join('\n') : '(등록된 곡 없음)';
-
-  const prompt = `당신은 한국 교회 찬양팀 전도사님입니다. 단톡방에 보낼 이번 주 찬양 콘티 메시지를 작성해주세요.
-
-이번 주 정보:
-- 기간: ${latest ? `${latest.year}년 ${latest.month}월 ${latest.week}주` : '이번 주'}
-- 예배: ${latest ? latest.service : '주일 예배'}
-- 연습: ${latest ? latest.practiceTime : '08:00'}
-- 찬양 목록:
-${songList}
-${hint ? `- 말씀/힌트: ${hint}` : ''}
-
-스타일: ${tone}
-
-조건:
-- 카카오톡 단톡방 형식에 맞게 작성
-- 이모티콘 적절히 사용
-- 마지막에 연습 참석 독려 문구 포함
-- 인사말로 시작하여 공감/아멘 요청으로 마무리
-- 300자 내외로 간결하게`;
-
-  try {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 1000,
-        messages: [{ role: 'user', content: prompt }]
-      })
-    });
-    const data = await response.json();
-    const text = data.content?.[0]?.text || '';
-    document.getElementById('message-preview').textContent = text;
-  } catch (e) {
-    document.getElementById('message-preview').textContent = `할렐루야! 🙌\n이번 주 찬양 콘티를 안내드립니다 😊\n\n${songList}\n\n⏰ 연습은 ${latest?.practiceTime || '08:00'}에 시작됩니다\n함께 예배 준비에 힘써주세요! 🙏\n공감 또는 아멘으로 확인해주시면 감사하겠습니다 ✅`;
-  }
-  document.getElementById('message-loading').classList.add('hidden');
+function resetSlot(n){
+  const s=document.getElementById('ms'+n);
+  s.classList.remove('filled');
+  s.innerHTML=`<div class="merge-slot-label">${n}악보</div><div class="merge-slot-hint">클릭하여 악보 선택</div>`;
 }
 
-function generateMessageManual() {
-  const latest = weekly[0];
-  const songList = latest ? latest.songs.map((sid,i) => {
-    const s = songs.find(x => x.id === sid);
-    return s ? `${i+1}. ${s.title} (${s.key})${s.youtube?'\n   ▶ '+s.youtube:''}` : '';
-  }).filter(Boolean).join('\n') : '';
-  
-  document.getElementById('message-preview').textContent = `할렐루야! 🙌\n${latest?`${latest.year}년 ${latest.month}월 ${latest.week}주`:'이번 주'} 찬양 콘티입니다 😊\n\n${songList}\n\n⏰ 연습: ${latest?.practiceTime||'08:00'}\n🙏 예배: 09:00\n\n공감/아멘으로 화답해주시면 감사합니다 👍`;
-  document.getElementById('message-preview').contentEditable = 'true';
-}
-
-function editMessage() {
-  const preview = document.getElementById('message-preview');
-  preview.contentEditable = preview.contentEditable === 'true' ? 'false' : 'true';
-  if (preview.contentEditable === 'true') preview.focus();
-  showToast(preview.contentEditable === 'true' ? '편집 모드 ON ✏️' : '편집 완료');
-}
-
-function copyMessage() {
-  const text = document.getElementById('message-preview').textContent;
-  navigator.clipboard.writeText(text).then(() => showToast('메시지가 복사됐습니다 📋'));
-}
-
-// ===== REACTION =====
-function toggleReaction(btn, emoji) {
-  btn.classList.toggle('reacted');
-  const count = btn.querySelector('.count');
-  count.textContent = btn.classList.contains('reacted') ? parseInt(count.textContent)+1 : parseInt(count.textContent)-1;
-}
-
-// ===== MODAL HELPERS =====
-function openModal(id) {
-  document.getElementById(id).classList.add('open');
-  document.body.style.overflow = 'hidden';
-}
-function closeModal(id) {
-  document.getElementById(id).classList.remove('open');
-  document.body.style.overflow = '';
-}
-document.querySelectorAll('.modal-overlay').forEach(overlay => {
-  overlay.addEventListener('click', e => {
-    if (e.target === overlay) closeModal(overlay.id);
+function selRoom(el){
+  document.querySelectorAll('.kakao-room').forEach(r=>{
+    r.classList.remove('sel');
+    const c=r.querySelector('.kakao-check');
+    if(c) c.remove();
   });
-});
-
-// ===== TAB HELPERS =====
-function switchTab(btn, paneId) {
-  const parent = btn.closest('.modal') || btn.closest('.card') || document.body;
-  parent.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-  parent.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
-  btn.classList.add('active');
-  document.getElementById(paneId).classList.add('active');
+  el.classList.add('sel');
+  const chk=document.createElement('span');
+  chk.className='kakao-check'; chk.textContent='✓';
+  el.appendChild(chk);
 }
 
-// ===== THEME =====
-function toggleTheme() {
-  const html = document.documentElement;
-  const isDark = html.getAttribute('data-theme') === 'dark';
-  html.setAttribute('data-theme', isDark ? 'light' : 'dark');
-  document.querySelector('.theme-toggle').textContent = isDark ? '🌙 다크모드' : '☀️ 라이트모드';
-  localStorage.setItem('wm_theme', isDark ? 'light' : 'dark');
+function filterScores(){
+  const q=document.getElementById('searchInput').value.toLowerCase();
+  document.querySelectorAll('#scoreGrid .score-card').forEach(c=>{
+    c.style.display=c.textContent.toLowerCase().includes(q)?'':'none';
+  });
 }
-
-// ===== TOAST =====
-function showToast(msg) {
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), 2500);
-}
-
-// ===== INIT =====
-window.addEventListener('DOMContentLoaded', () => {
-  // Apply saved theme
-  const theme = localStorage.getItem('wm_theme') || 'light';
-  document.documentElement.setAttribute('data-theme', theme);
-  document.querySelector('.theme-toggle').textContent = theme === 'dark' ? '☀️ 라이트모드' : '🌙 다크모드';
-  
-  // Set today's date in register modal
-  const today = new Date().toISOString().split('T')[0];
-  document.getElementById('reg-date').value = today;
-  
-  // Initial render
-  renderDashboard();
-});
 </script>
 </body>
 </html>
