@@ -146,8 +146,41 @@ body {
   color: rgba(255,255,255,0.25);
 }
 
-/* ===== MAIN CONTENT ===== */
-#main {
+.sidebar-collapsed { transform: translateX(-220px) !important; }
+.sidebar-toggle-btn {
+  position: fixed;
+  left: 228px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 200;
+  width: 22px;
+  height: 44px;
+  background: var(--sidebar-bg);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 0 8px 8px 0;
+  cursor: pointer;
+  color: var(--sidebar-text);
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: left 0.3s;
+  box-shadow: 2px 0 8px rgba(0,0,0,0.15);
+}
+.sidebar-toggle-btn:hover { background: rgba(255,255,255,0.1); }
+
+/* Quick actions */
+.quick-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px,1fr)); gap: 10px; margin-bottom: 24px; }
+.quick-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 10px; text-align: center; cursor: pointer; transition: all 0.15s; }
+.quick-card:hover { border-color: var(--olive); transform: translateY(-2px); box-shadow: 0 4px 14px rgba(107,124,69,0.12); }
+.quick-card .qi { font-size: 24px; margin-bottom: 5px; }
+.quick-card .ql { font-size: 12px; font-weight: 600; color: var(--text-muted); }
+
+/* Activity feed */
+.activity-item { display: flex; align-items: flex-start; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); }
+.activity-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-top: 5px; }
+.activity-text { font-size: 12.5px; font-weight: 500; }
+.activity-time { font-size: 11px; color: var(--text-muted); margin-top: 1px; }
   margin-left: 220px;
   flex: 1;
   min-height: 100vh;
@@ -770,6 +803,9 @@ body {
 </head>
 <body>
 
+<!-- SIDEBAR TOGGLE -->
+<button class="sidebar-toggle-btn" id="sidebar-toggle-btn" onclick="toggleSidebar()" title="사이드바 숨기기">‹</button>
+
 <!-- SIDEBAR -->
 <nav id="sidebar">
   <div class="sidebar-logo">
@@ -884,9 +920,38 @@ body {
     </div>
 
     <!-- 이번 주 콘티 -->
-    <div class="card">
-      <h3 style="font-size:15px;font-weight:700;margin-bottom:14px;">🎵 이번 주 콘티 — 5월 1주</h3>
-      <div id="dash-conti-list"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:0;">
+      <div class="card">
+        <h3 style="font-size:15px;font-weight:700;margin-bottom:14px;">🎵 이번 주 콘티 — 5월 1주</h3>
+        <div id="dash-conti-list"></div>
+      </div>
+      <!-- 오른쪽 패널 -->
+      <div style="display:flex;flex-direction:column;gap:14px;">
+        <!-- 빠른 메뉴 -->
+        <div class="card" style="padding:14px;">
+          <div style="font-size:13px;font-weight:700;margin-bottom:10px;">⚡ 빠른 메뉴</div>
+          <div class="quick-grid">
+            <div class="quick-card" onclick="openModal('modal-conti-register')"><div class="qi">✏️</div><div class="ql">콘티 등록</div></div>
+            <div class="quick-card" onclick="navigate('conti')"><div class="qi">🎵</div><div class="ql">콘티 짜기</div></div>
+            <div class="quick-card" onclick="navigate('archive')"><div class="qi">📁</div><div class="ql">악보 추가</div></div>
+            <div class="quick-card" onclick="navigate('message')"><div class="qi">💬</div><div class="ql">카톡 발송</div></div>
+            <div class="quick-card" onclick="navigate('mypage')"><div class="qi">👤</div><div class="ql">마이페이지</div></div>
+            <div class="quick-card" onclick="navigate('collections')"><div class="qi">📂</div><div class="ql">모음집</div></div>
+          </div>
+        </div>
+        <!-- D-day + 활동 -->
+        <div class="card" style="padding:14px;">
+          <div style="background:var(--olive);color:white;border-radius:8px;padding:12px;text-align:center;margin-bottom:12px;">
+            <div style="font-size:11px;opacity:0.8;margin-bottom:3px;">다음 예배까지</div>
+            <div style="font-size:28px;font-weight:700;" id="dash-dday">D-5</div>
+            <div style="font-size:11px;opacity:0.7;margin-top:2px;">2026년 5월 10일 주일</div>
+          </div>
+          <div style="font-size:13px;font-weight:700;margin-bottom:8px;">📌 최근 활동</div>
+          <div class="activity-item"><span class="activity-dot" style="background:#27ae60;"></span><div><div class="activity-text">나의 하나님 악보 등록</div><div class="activity-time">2026.05.04</div></div></div>
+          <div class="activity-item"><span class="activity-dot" style="background:var(--olive);"></span><div><div class="activity-text">5월 1주 콘티 등록 완료</div><div class="activity-time">2026.05.04</div></div></div>
+          <div class="activity-item"><span class="activity-dot" style="background:#2980b9;"></span><div><div class="activity-text">전달사항 업데이트</div><div class="activity-time">2026.05.03</div></div></div>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -1443,7 +1508,22 @@ function navigate(page) {
   document.getElementById('page-' + page).classList.remove('hidden');
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   document.querySelectorAll(`[data-page="${page}"]`).forEach(n => n.classList.add('active'));
+  // 탭 유지 — 새로고침해도 현재 페이지 기억
+  location.hash = page;
   renderPage(page);
+}
+
+// ===== SIDEBAR TOGGLE =====
+function toggleSidebar() {
+  const sidebar = document.getElementById('sidebar');
+  const main = document.getElementById('main');
+  const btn = document.getElementById('sidebar-toggle-btn');
+  const collapsed = sidebar.classList.toggle('sidebar-collapsed');
+  main.style.marginLeft = collapsed ? '0px' : '220px';
+  btn.style.left = collapsed ? '8px' : '228px';
+  btn.textContent = collapsed ? '›' : '‹';
+  btn.title = collapsed ? '사이드바 열기' : '사이드바 숨기기';
+  localStorage.setItem('wm_sidebar_collapsed', collapsed);
 }
 
 function renderPage(page) {
@@ -1895,7 +1975,7 @@ function registerConti() {
   });
   save(); closeModal('modal-conti-register');
   showToast('콘티가 등록됐습니다 ✅');
-  renderDashboard();
+  setTimeout(() => navigate('dashboard'), 300);
 }
 
 // ===== ADD SONG =====
@@ -2290,13 +2370,33 @@ window.addEventListener('DOMContentLoaded', () => {
   const theme = localStorage.getItem('wm_theme') || 'light';
   document.documentElement.setAttribute('data-theme', theme);
   document.querySelector('.theme-toggle').textContent = theme === 'dark' ? '☀️ 라이트모드' : '🌙 다크모드';
-  
+
   // Set today's date in register modal
   const today = new Date().toISOString().split('T')[0];
   document.getElementById('reg-date').value = today;
-  
-  // Initial render
-  renderDashboard();
+
+  // 사이드바 상태 복원
+  const sidebarCollapsed = localStorage.getItem('wm_sidebar_collapsed') === 'true';
+  if (sidebarCollapsed) {
+    document.getElementById('sidebar').classList.add('sidebar-collapsed');
+    document.getElementById('main').style.marginLeft = '0px';
+    const btn = document.getElementById('sidebar-toggle-btn');
+    if (btn) { btn.style.left = '8px'; btn.textContent = '›'; }
+  }
+
+  // 탭 복원 — 새로고침해도 마지막 탭 유지
+  const validPages = ['dashboard','weekly','archive','collections','mypage','conti','merge','message'];
+  const lastPage = location.hash.replace('#','');
+  navigate(validPages.includes(lastPage) ? lastPage : 'dashboard');
+
+  // D-day 계산
+  const ddayEl = document.getElementById('dash-dday');
+  if (ddayEl) {
+    const next = new Date('2026-05-10');
+    const todayD = new Date(); todayD.setHours(0,0,0,0);
+    const diff = Math.ceil((next - todayD) / 86400000);
+    ddayEl.textContent = diff > 0 ? 'D-' + diff : diff === 0 ? 'D-Day!' : 'D+' + Math.abs(diff);
+  }
 });
 </script>
 </body>
