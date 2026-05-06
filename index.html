@@ -46,14 +46,72 @@
 
 /* ===== RESET ===== */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-html { font-size: 15px; }
+html { font-size: 15px; height: 100%; }
 body {
   font-family: 'Noto Sans KR', sans-serif;
   background: var(--cream);
   color: var(--text);
   display: flex;
+  height: 100%;
   min-height: 100vh;
+  overflow: hidden;
   transition: background 0.3s, color 0.3s;
+}
+
+/* ===== LOGIN SCREEN ===== */
+#login-screen {
+  position: fixed; inset: 0; z-index: 9999;
+  background: linear-gradient(135deg, #2c3a1e 0%, #4a5730 50%, #6b7c45 100%);
+  display: flex; align-items: center; justify-content: center;
+  padding: 20px;
+}
+#login-screen.hidden { display: none; }
+.login-box {
+  background: white; border-radius: 20px; padding: 40px 36px;
+  width: 100%; max-width: 400px; box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+}
+.login-logo { text-align: center; margin-bottom: 28px; }
+.login-logo .logo-circle {
+  width: 64px; height: 64px; border-radius: 50%;
+  background: var(--olive); color: white; font-size: 28px;
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 12px;
+}
+.login-logo h1 { font-size: 20px; font-weight: 700; color: var(--text); }
+.login-logo p { font-size: 12px; color: var(--text-muted); margin-top: 3px; }
+.login-tabs { display: flex; gap: 0; border-bottom: 2px solid var(--border); margin-bottom: 24px; }
+.login-tab { flex: 1; padding: 10px; text-align: center; font-size: 14px; font-weight: 500; cursor: pointer; color: var(--text-muted); border-bottom: 2px solid transparent; margin-bottom: -2px; }
+.login-tab.active { color: var(--olive-dark); border-bottom-color: var(--olive); font-weight: 700; }
+.login-form { display: flex; flex-direction: column; gap: 14px; }
+.login-form.hidden { display: none; }
+.login-input {
+  width: 100%; padding: 11px 14px; border: 1px solid var(--border);
+  border-radius: 8px; font-size: 14px; font-family: inherit;
+  background: var(--cream); color: var(--text); outline: none;
+  transition: border-color 0.15s;
+}
+.login-input:focus { border-color: var(--olive); }
+.login-btn {
+  width: 100%; padding: 12px; background: var(--olive); color: white;
+  border: none; border-radius: 8px; font-size: 14px; font-weight: 700;
+  cursor: pointer; font-family: inherit; transition: background 0.15s;
+}
+.login-btn:hover { background: var(--olive-dark); }
+.login-error { font-size: 12px; color: #e74c3c; text-align: center; min-height: 18px; }
+.login-divider { text-align: center; font-size: 12px; color: var(--text-muted); }
+.user-chip {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 10px; border-radius: 8px;
+  background: rgba(255,255,255,0.1); cursor: pointer;
+  color: var(--sidebar-text); font-size: 13px;
+  border: none; font-family: inherit;
+}
+.user-chip:hover { background: rgba(255,255,255,0.18); }
+.user-avatar {
+  width: 26px; height: 26px; border-radius: 50%;
+  background: var(--olive-light); color: white;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 700; flex-shrink: 0;
 }
 
 /* ===== SCROLLBAR ===== */
@@ -169,6 +227,10 @@ body {
 }
 .sidebar-toggle-btn:hover { background: rgba(255,255,255,0.1); }
 
+/* YT icon button */
+.yt-icon-btn { display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:6px;background:rgba(204,0,0,0.08);transition:background 0.15s;text-decoration:none; }
+.yt-icon-btn:hover { background:rgba(204,0,0,0.18); }
+
 /* Quick actions */
 .quick-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px,1fr)); gap: 10px; margin-bottom: 24px; }
 .quick-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 10px; text-align: center; cursor: pointer; transition: all 0.15s; }
@@ -183,9 +245,10 @@ body {
 .activity-time { font-size: 11px; color: var(--text-muted); margin-top: 1px; }
   margin-left: 220px;
   flex: 1;
-  min-height: 100vh;
+  height: 100vh;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 .page-header {
   background: var(--card-bg);
@@ -200,7 +263,8 @@ body {
 }
 .page-header h2 { font-size: 18px; font-weight: 700; }
 .page-header p { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
-.page-content { padding: 24px 28px; flex: 1; max-width: 1100px; }
+.page-content { padding: 24px 28px; flex: 1; max-width: 1100px; overflow-y: auto; height: 100%; }
+.page-section { display: flex; flex-direction: column; flex: 1; overflow: hidden; height: 100%; }
 
 /* ===== CARDS ===== */
 .card {
@@ -803,6 +867,39 @@ body {
 </head>
 <body>
 
+<!-- ===== LOGIN SCREEN ===== -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">
+      <div class="logo-circle">🕊</div>
+      <h1>함께하는교회</h1>
+      <p>악보 / 콘티 매니저</p>
+    </div>
+    <div class="login-tabs">
+      <div class="login-tab active" onclick="switchLoginTab('signin')">로그인</div>
+      <div class="login-tab" onclick="switchLoginTab('signup')">회원가입</div>
+    </div>
+    <!-- 로그인 폼 -->
+    <div class="login-form" id="form-signin">
+      <input class="login-input" type="text" id="signin-id" placeholder="아이디" autocomplete="username">
+      <input class="login-input" type="password" id="signin-pw" placeholder="비밀번호" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
+      <div class="login-error" id="signin-error"></div>
+      <button class="login-btn" onclick="doLogin()">로그인</button>
+      <div class="login-divider">— 또는 —</div>
+      <button class="login-btn" style="background:var(--cream-dark);color:var(--text);font-weight:500;" onclick="doGuestLogin()">👀 게스트로 둘러보기</button>
+    </div>
+    <!-- 회원가입 폼 -->
+    <div class="login-form hidden" id="form-signup">
+      <input class="login-input" type="text" id="signup-name" placeholder="이름">
+      <input class="login-input" type="text" id="signup-id" placeholder="아이디 (영문/숫자)">
+      <input class="login-input" type="password" id="signup-pw" placeholder="비밀번호 (6자 이상)">
+      <input class="login-input" type="password" id="signup-pw2" placeholder="비밀번호 확인" onkeydown="if(event.key==='Enter')doSignup()">
+      <div class="login-error" id="signup-error"></div>
+      <button class="login-btn" onclick="doSignup()">회원가입</button>
+    </div>
+  </div>
+</div>
+
 <!-- SIDEBAR TOGGLE -->
 <button class="sidebar-toggle-btn" id="sidebar-toggle-btn" onclick="toggleSidebar()" title="사이드바 숨기기">‹</button>
 
@@ -841,7 +938,11 @@ body {
     </div>
   </div>
   <div class="sidebar-bottom">
-    <button class="theme-toggle" onclick="toggleTheme()">🌙 다크모드</button>
+    <button class="user-chip" onclick="showUserMenu()" id="user-chip">
+      <div class="user-avatar" id="user-avatar">?</div>
+      <span id="user-chip-name">로그인</span>
+    </button>
+    <button class="theme-toggle" onclick="toggleTheme()">🌙</button>
     <span class="version-badge">v0.4</span>
   </div>
 </nav>
@@ -1009,37 +1110,15 @@ body {
 <!-- ===== MYPAGE ===== -->
 <div id="page-mypage" class="page-section hidden">
   <div class="page-header">
-    <div><h2>마이 페이지</h2><p>나의 세션 정보와 희망곡을 관리합니다</p></div>
+    <div><h2>마이 페이지</h2><p>나의 희망곡과 악보 메모를 관리합니다</p></div>
   </div>
   <div class="page-content">
     <!-- 프로필 -->
     <div class="card mb-4">
       <h3 style="font-size:14px;font-weight:700;margin-bottom:12px;">👤 프로필</h3>
-      <div class="form-row">
-        <div class="form-group">
-          <label class="form-label">이름</label>
-          <input type="text" class="form-input" id="my-name" placeholder="이름 입력" onchange="saveMyPage()">
-        </div>
-        <div class="form-group">
-          <label class="form-label">직책</label>
-          <select class="form-select" id="my-role" onchange="saveMyPage()">
-            <option>성도</option><option>청춘</option><option>학생</option>
-            <option>집사</option><option>장로</option><option>권사</option>
-            <option>전도사</option><option>목사</option>
-          </select>
-        </div>
-      </div>
-      <div class="form-group">
-        <label class="form-label">세션 / 파트</label>
-        <div class="session-badges" id="session-badges">
-          <div class="session-badge" onclick="toggleSession(this,'일렉기타')">🎸 일렉기타</div>
-          <div class="session-badge" onclick="toggleSession(this,'베이스')">🎸 베이스</div>
-          <div class="session-badge" onclick="toggleSession(this,'드럼')">🥁 드럼</div>
-          <div class="session-badge" onclick="toggleSession(this,'피아노')">🎹 피아노</div>
-          <div class="session-badge" onclick="toggleSession(this,'어쿠스틱')">🎵 어쿠스틱</div>
-          <div class="session-badge" onclick="toggleSession(this,'싱어')">🎤 싱어</div>
-          <div class="session-badge" onclick="toggleSession(this,'찬양인도')">🎤 찬양인도</div>
-        </div>
+      <div class="form-group" style="max-width:280px;">
+        <label class="form-label">이름</label>
+        <input type="text" class="form-input" id="my-name" placeholder="이름 입력" onchange="saveMyPage()">
       </div>
     </div>
 
@@ -1300,6 +1379,17 @@ body {
 </div>
 
 <!-- 악보 추가 모달 -->
+<!-- Score Viewer Modal -->
+<div class="modal-overlay" id="modal-score-viewer">
+  <div class="modal" style="max-width:780px;width:95%;">
+    <div class="modal-header">
+      <h3 id="score-viewer-title">악보 보기</h3>
+      <button class="modal-close" onclick="closeModal('modal-score-viewer')">✕</button>
+    </div>
+    <div id="score-viewer-body" style="max-height:75vh;overflow-y:auto;"></div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="modal-add-song">
   <div class="modal">
     <div class="modal-header">
@@ -1508,10 +1598,25 @@ function navigate(page) {
   document.getElementById('page-' + page).classList.remove('hidden');
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   document.querySelectorAll(`[data-page="${page}"]`).forEach(n => n.classList.add('active'));
-  // 탭 유지 — 새로고침해도 현재 페이지 기억
-  location.hash = page;
+  // 탭 유지 + 뒤로가기 지원
+  if (location.hash.replace('#','') !== page) {
+    history.pushState({ page }, '', '#' + page);
+  }
   renderPage(page);
 }
+
+// 뒤로가기/앞으로가기 버튼 지원
+window.addEventListener('popstate', (e) => {
+  const page = (e.state && e.state.page) || 'dashboard';
+  const validPages = ['dashboard','weekly','archive','collections','mypage','conti','merge','message'];
+  if (validPages.includes(page)) {
+    document.querySelectorAll('.page-section').forEach(p => p.classList.add('hidden'));
+    document.getElementById('page-' + page).classList.remove('hidden');
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    document.querySelectorAll(`[data-page="${page}"]`).forEach(n => n.classList.add('active'));
+    renderPage(page);
+  }
+});
 
 // ===== SIDEBAR TOGGLE =====
 function toggleSidebar() {
@@ -1570,12 +1675,12 @@ function renderWeekly() {
       <div class="week-card-header" onclick="toggleWeekCard(${wi})">
         <div>
           <div class="week-card-title">${w.year}년 ${w.month}월 ${w.week}주 — ${w.service}</div>
-          <div class="week-card-subtitle">찬양 ${w.songs.length}곡 · 연습 ${w.practiceTime}</div>
+          <div class="week-card-subtitle">찬양 ${w.songs.length}곡 · 연습 ${w.practiceTime} · 담당: ${w.leader||'미정'} ${w.role||''}</div>
         </div>
         <span class="week-card-arrow" id="week-arrow-${wi}">▼</span>
       </div>
       <div class="week-card-body" id="week-body-${wi}">
-        ${w.verse ? `<p style="font-size:13px;color:var(--olive-dark);font-weight:600;margin-bottom:10px;">📖 ${w.verse} — ${w.message||''}</p>` : ''}
+        ${w.verse ? `<p style="font-size:13px;color:var(--olive-dark);font-weight:600;margin-bottom:10px;">📖 ${w.verse}${w.message ? ' — ' + w.message : ''}</p>` : ''}
         ${w.songs.map((sid, i) => {
           const s = songs.find(x => x.id === sid);
           if (!s) return '';
@@ -1587,14 +1692,48 @@ function renderWeekly() {
                 <div class="song-row-meta">Key ${s.key} · ${s.artist}${s.bpm?' · ♩='+s.bpm:''}</div>
               </div>
               <div class="song-row-actions">
-                ${s.youtube ? `<a href="${s.youtube}" target="_blank" class="btn btn-ghost btn-sm">▶ YT</a>` : ''}
+                ${s.youtube ? `<a href="${s.youtube}" target="_blank" class="yt-icon-btn" title="유튜브 보기"><svg width="18" height="18" viewBox="0 0 24 24" fill="#cc0000"><path d="M23.5 6.2s-.2-1.6-.9-2.3c-.9-1-1.9-1-2.3-1.1C17.2 2.6 12 2.6 12 2.6s-5.2 0-8.3.2c-.5.1-1.4.1-2.3 1.1-.7.7-.9 2.3-.9 2.3S.3 8 .3 9.8v1.7c0 1.8.2 3.5.2 3.5s.2 1.6.9 2.3c.9 1 2 .9 2.6 1 1.8.2 7.9.2 7.9.2s5.2 0 8.3-.2c.5-.1 1.4-.1 2.3-1.1.7-.7.9-2.3.9-2.3s.2-1.8.2-3.5V9.8c0-1.8-.2-3.6-.2-3.6zM9.7 15.5V8.1l6.3 3.7-6.3 3.7z"/></svg></a>` : ''}
               </div>
             </div>
           </div>`;
         }).join('')}
+        <!-- 피드백 -->
+        <div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border);">
+          <div style="font-size:12px;font-weight:600;color:var(--text-muted);margin-bottom:6px;">💬 찬양 피드백</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">
+            <button class="reaction-btn" onclick="toggleWeekReaction(${wi},this,'🙌')"><span>🙌</span><span class="count">0</span></button>
+            <button class="reaction-btn" onclick="toggleWeekReaction(${wi},this,'🔥')"><span>🔥</span><span class="count">0</span></button>
+            <button class="reaction-btn" onclick="toggleWeekReaction(${wi},this,'🙏')"><span>🙏</span><span class="count">0</span></button>
+            <button class="reaction-btn" onclick="toggleWeekReaction(${wi},this,'💪')"><span>💪</span><span class="count">0</span></button>
+          </div>
+          <div style="display:flex;gap:6px;">
+            <input type="text" id="feedback-input-${wi}" class="form-input" style="font-size:12px;padding:6px 10px;" placeholder="피드백 남기기...">
+            <button class="btn btn-secondary btn-sm" onclick="submitFeedback(${wi})">등록</button>
+          </div>
+          <div id="feedback-list-${wi}" style="margin-top:8px;display:flex;flex-direction:column;gap:4px;"></div>
+        </div>
       </div>
     </div>
   `).join('');
+}
+
+function toggleWeekReaction(wi, btn, emoji) {
+  btn.classList.toggle('active');
+  const c = btn.querySelector('.count');
+  c.textContent = btn.classList.contains('active') ? parseInt(c.textContent)+1 : parseInt(c.textContent)-1;
+}
+
+function submitFeedback(wi) {
+  const input = document.getElementById(`feedback-input-${wi}`);
+  const text = input.value.trim();
+  if (!text) return;
+  const list = document.getElementById(`feedback-list-${wi}`);
+  const name = (mypage && mypage.name) ? mypage.name : '익명';
+  const item = document.createElement('div');
+  item.style.cssText = 'font-size:12px;padding:5px 8px;background:var(--cream-dark);border-radius:6px;';
+  item.innerHTML = `<b>${name}</b>: ${text}`;
+  list.appendChild(item);
+  input.value = '';
 }
 
 function toggleWeekCard(i) {
@@ -1633,7 +1772,8 @@ function renderArchive() {
           </div>
         </div>
         <div class="song-row-actions">
-          ${s.youtube ? `<a href="${s.youtube}" target="_blank" class="btn btn-ghost btn-sm" onclick="event.stopPropagation()">▶ YT</a>` : ''}
+          ${s.youtube ? `<a href="${s.youtube}" target="_blank" class="yt-icon-btn" onclick="event.stopPropagation()" title="유튜브"><svg width="18" height="18" viewBox="0 0 24 24" fill="#cc0000"><path d="M23.5 6.2s-.2-1.6-.9-2.3c-.9-1-1.9-1-2.3-1.1C17.2 2.6 12 2.6 12 2.6s-5.2 0-8.3.2c-.5.1-1.4.1-2.3 1.1-.7.7-.9 2.3-.9 2.3S.3 8 .3 9.8v1.7c0 1.8.2 3.5.2 3.5s.2 1.6.9 2.3c.9 1 2 .9 2.6 1 1.8.2 7.9.2 7.9.2s5.2 0 8.3-.2c.5-.1 1.4-.1 2.3-1.1.7-.7.9-2.3.9-2.3s.2-1.8.2-3.5V9.8c0-1.8-.2-3.6-.2-3.6zM9.7 15.5V8.1l6.3 3.7-6.3 3.7z"/></svg></a>` : ''}
+          ${s.fileData ? `<button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();viewScore(${s.id})" title="악보 보기">🎼</button>` : ''}
           <button class="song-row-expand">▼</button>
         </div>
       </div>
@@ -1653,7 +1793,8 @@ function renderArchive() {
           </div>
         </div>
         <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">
-          ${s.youtube ? `<a href="${s.youtube}" target="_blank" class="btn btn-secondary btn-sm">▶ 유튜브</a>` : ''}
+          ${s.youtube ? `<a href="${s.youtube}" target="_blank" class="yt-icon-btn" title="유튜브"><svg width="18" height="18" viewBox="0 0 24 24" fill="#cc0000"><path d="M23.5 6.2s-.2-1.6-.9-2.3c-.9-1-1.9-1-2.3-1.1C17.2 2.6 12 2.6 12 2.6s-5.2 0-8.3.2c-.5.1-1.4.1-2.3 1.1-.7.7-.9 2.3-.9 2.3S.3 8 .3 9.8v1.7c0 1.8.2 3.5.2 3.5s.2 1.6.9 2.3c.9 1 2 .9 2.6 1 1.8.2 7.9.2 7.9.2s5.2 0 8.3-.2c.5-.1 1.4-.1 2.3-1.1.7-.7.9-2.3.9-2.3s.2-1.8.2-3.5V9.8c0-1.8-.2-3.6-.2-3.6zM9.7 15.5V8.1l6.3 3.7-6.3 3.7z"/></svg></a>` : ''}
+          ${s.fileData ? `<button class="btn btn-secondary btn-sm" onclick="viewScore(${s.id})">🎼 악보 보기</button>` : '<span style="font-size:12px;color:var(--text-muted);">첨부 파일 없음</span>'}
           <button class="btn btn-ghost btn-sm" onclick="deleteSong(${s.id})">🗑 삭제</button>
         </div>
       </div>
@@ -1982,26 +2123,63 @@ function registerConti() {
 function addSong() {
   const title = document.getElementById('add-title').value.trim();
   if (!title) { showToast('곡명을 입력해주세요'); return; }
-  const newSong = {
-    id: Date.now(),
-    title,
-    key: document.getElementById('add-key').value,
-    artist: document.getElementById('add-artist').value,
-    bpm: parseInt(document.getElementById('add-bpm').value) || null,
-    youtube: document.getElementById('add-youtube').value,
-    lastUsed: null
+  const fileInput = document.getElementById('add-file-input');
+  const file = fileInput.files[0];
+
+  const finalize = (fileData, fileType) => {
+    const newSong = {
+      id: Date.now(),
+      title,
+      key: document.getElementById('add-key').value,
+      artist: document.getElementById('add-artist').value,
+      bpm: parseInt(document.getElementById('add-bpm').value) || null,
+      youtube: document.getElementById('add-youtube').value,
+      fileData: fileData || null,
+      fileType: fileType || null,
+      lastUsed: null
+    };
+    songs.unshift(newSong);
+    save(); closeModal('modal-add-song'); renderArchive();
+    ['add-title','add-artist','add-bpm','add-youtube'].forEach(id => document.getElementById(id).value = '');
+    fileInput.value = '';
+    document.getElementById('add-file-preview').textContent = '파일을 선택하려면 클릭하세요';
+    showToast('악보가 추가됐습니다 🎵');
   };
-  songs.unshift(newSong);
-  save(); closeModal('modal-add-song'); renderArchive();
-  ['add-title','add-artist','add-bpm','add-youtube'].forEach(id => document.getElementById(id).value = '');
-  showToast('악보가 추가됐습니다 🎵');
+
+  if (file) {
+    const reader = new FileReader();
+    reader.onload = e => finalize(e.target.result, file.type);
+    reader.readAsDataURL(file);
+  } else {
+    finalize(null, null);
+  }
 }
 
 function handleFileSelect(input, previewId) {
   const preview = document.getElementById(previewId);
   if (input.files.length) {
-    preview.textContent = `✅ ${Array.from(input.files).map(f=>f.name).join(', ')}`;
+    const f = input.files[0];
+    preview.innerHTML = `✅ <b>${f.name}</b> (${(f.size/1024).toFixed(1)}KB)`;
   }
+}
+
+// 악보 뷰어 — 이미지 or PDF
+function viewScore(songId) {
+  const s = songs.find(x => x.id === songId);
+  if (!s) return;
+  const modal = document.getElementById('modal-score-viewer');
+  const title = document.getElementById('score-viewer-title');
+  const body = document.getElementById('score-viewer-body');
+  if (!modal) return;
+  title.textContent = `${s.title} · Key ${s.key}`;
+  if (!s.fileData) {
+    body.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-muted);"><div style="font-size:48px;margin-bottom:12px;">🎵</div><p>등록된 악보 파일이 없습니다</p></div>';
+  } else if (s.fileType && s.fileType.includes('pdf')) {
+    body.innerHTML = `<iframe src="${s.fileData}" style="width:100%;height:70vh;border:none;border-radius:8px;"></iframe>`;
+  } else {
+    body.innerHTML = `<img src="${s.fileData}" style="width:100%;border-radius:8px;display:block;">`;
+  }
+  openModal('modal-score-viewer');
 }
 
 function handleBulkFiles(input) {
@@ -2365,7 +2543,122 @@ function showToast(msg) {
 }
 
 // ===== INIT =====
+// ===== AUTH SYSTEM =====
+// 현재: localStorage 기반 (v0.5에서 Supabase Auth로 교체 예정)
+// 구조는 Supabase 호환으로 설계
+
+let currentUser = null;
+
+function getUsers() {
+  return JSON.parse(localStorage.getItem('wm_users') || '[]');
+}
+
+function saveUsers(users) {
+  localStorage.setItem('wm_users', JSON.stringify(users));
+}
+
+function switchLoginTab(tab) {
+  document.querySelectorAll('.login-tab').forEach((t,i) => {
+    t.classList.toggle('active', (i===0&&tab==='signin')||(i===1&&tab==='signup'));
+  });
+  document.getElementById('form-signin').classList.toggle('hidden', tab !== 'signin');
+  document.getElementById('form-signup').classList.toggle('hidden', tab !== 'signup');
+  document.getElementById('signin-error').textContent = '';
+  document.getElementById('signup-error').textContent = '';
+}
+
+function doLogin() {
+  const id = document.getElementById('signin-id').value.trim();
+  const pw = document.getElementById('signin-pw').value;
+  const errEl = document.getElementById('signin-error');
+  if (!id || !pw) { errEl.textContent = '아이디와 비밀번호를 입력해주세요'; return; }
+  const users = getUsers();
+  const user = users.find(u => u.id === id && u.pw === btoa(pw));
+  if (!user) { errEl.textContent = '아이디 또는 비밀번호가 올바르지 않습니다'; return; }
+  loginSuccess(user);
+}
+
+function doGuestLogin() {
+  loginSuccess({ id: 'guest', name: '게스트', isGuest: true });
+}
+
+function doSignup() {
+  const name = document.getElementById('signup-name').value.trim();
+  const id = document.getElementById('signup-id').value.trim();
+  const pw = document.getElementById('signup-pw').value;
+  const pw2 = document.getElementById('signup-pw2').value;
+  const errEl = document.getElementById('signup-error');
+  if (!name || !id || !pw) { errEl.textContent = '모든 항목을 입력해주세요'; return; }
+  if (!/^[a-zA-Z0-9_]+$/.test(id)) { errEl.textContent = '아이디는 영문/숫자/_만 사용 가능합니다'; return; }
+  if (pw.length < 6) { errEl.textContent = '비밀번호는 6자 이상이어야 합니다'; return; }
+  if (pw !== pw2) { errEl.textContent = '비밀번호가 일치하지 않습니다'; return; }
+  const users = getUsers();
+  if (users.find(u => u.id === id)) { errEl.textContent = '이미 사용중인 아이디입니다'; return; }
+  const newUser = { id, name, pw: btoa(pw), createdAt: new Date().toISOString() };
+  users.push(newUser);
+  saveUsers(users);
+  loginSuccess(newUser);
+  showToast(`환영해요, ${name}님! 🎉`);
+}
+
+function loginSuccess(user) {
+  currentUser = user;
+  localStorage.setItem('wm_session', JSON.stringify({ id: user.id, name: user.name, isGuest: user.isGuest || false }));
+  document.getElementById('login-screen').classList.add('hidden');
+  updateUserChip();
+  // 마이페이지 이름 자동 설정
+  if (mypage && !mypage.name && user.name !== '게스트') {
+    mypage.name = user.name;
+    const nameEl = document.getElementById('my-name');
+    if (nameEl) nameEl.value = user.name;
+  }
+}
+
+function updateUserChip() {
+  if (!currentUser) return;
+  const avatar = document.getElementById('user-avatar');
+  const chipName = document.getElementById('user-chip-name');
+  if (avatar) avatar.textContent = currentUser.name.charAt(0).toUpperCase();
+  if (chipName) chipName.textContent = currentUser.isGuest ? '게스트' : currentUser.name;
+}
+
+function showUserMenu() {
+  if (!currentUser) return;
+  const isGuest = currentUser.isGuest;
+  const msg = isGuest
+    ? '게스트 모드입니다.\n로그인하시겠습니까?'
+    : `${currentUser.name}님으로 로그인 중입니다.\n로그아웃하시겠습니까?`;
+  if (confirm(msg)) {
+    if (isGuest) {
+      document.getElementById('login-screen').classList.remove('hidden');
+    } else {
+      doLogout();
+    }
+  }
+}
+
+function doLogout() {
+  currentUser = null;
+  localStorage.removeItem('wm_session');
+  document.getElementById('login-screen').classList.remove('hidden');
+  document.getElementById('signin-id').value = '';
+  document.getElementById('signin-pw').value = '';
+  document.getElementById('signin-error').textContent = '';
+  showToast('로그아웃됐습니다');
+}
+
 window.addEventListener('DOMContentLoaded', () => {
+  // 세션 복원 — 로그인 상태 유지
+  const session = localStorage.getItem('wm_session');
+  if (session) {
+    try {
+      currentUser = JSON.parse(session);
+      document.getElementById('login-screen').classList.add('hidden');
+      updateUserChip();
+    } catch(e) {
+      localStorage.removeItem('wm_session');
+    }
+  }
   // Apply saved theme
   const theme = localStorage.getItem('wm_theme') || 'light';
   document.documentElement.setAttribute('data-theme', theme);
