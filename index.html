@@ -317,7 +317,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--cream);color:var(--t
     <div><h2>대시보드</h2><p id="dash-subtitle">함께하는교회 찬양팀</p></div>
     <div style="display:flex;gap:8px;align-items:center;">
       <button class="btn btn-secondary btn-sm admin-only" onclick="openDashboardEdit()" title="대시보드 편집">⚙️ 편집</button>
-      <button class="btn btn-primary btn-sm admin-only" onclick="openModal('modal-conti-register')">＋ 새 콘티 등록</button>
+      <button class="btn btn-primary btn-sm admin-only" onclick="openContiRegister()">⚡ 빠른 콘티 등록</button>
     </div>
   </div>
   <div class="page-content">
@@ -462,7 +462,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--cream);color:var(--t
 <div id="page-weekly" class="page-section hidden">
   <div class="page-header">
     <div><h2>주차별 찬양</h2><p>주차를 클릭하면 콘티를 확인할 수 있습니다</p></div>
-    <button class="btn btn-primary btn-sm admin-only" onclick="openModal('modal-conti-register')">＋ 새 주차 등록</button>
+    <button class="btn btn-primary btn-sm admin-only" onclick="openContiRegister()">＋ 새 주차 등록</button>
   </div>
   <div class="page-content"><div id="weekly-list"></div></div>
 </div>
@@ -677,8 +677,8 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--cream);color:var(--t
 
 <!-- 콘티 등록 모달 -->
 <div class="modal-overlay" id="modal-conti-register">
-  <div class="modal" style="max-width:600px;">
-    <div class="modal-header"><h3>새 콘티 등록</h3><button class="modal-close" onclick="closeModal('modal-conti-register')">✕</button></div>
+  <div class="modal" style="max-width:640px;">
+    <div class="modal-header"><h3>⚡ 빠른 콘티 등록</h3><button class="modal-close" onclick="closeModal('modal-conti-register')">✕</button></div>
     <div class="form-row">
       <div class="form-group"><label class="form-label">날짜</label><input type="date" class="form-input" id="reg-date"></div>
       <div class="form-group"><label class="form-label">예배 구분</label><select class="form-select" id="reg-service"><option>주일 9시 예배</option><option>주일 11시 예배</option><option>수요예배</option><option>금요기도회</option></select></div>
@@ -689,7 +689,25 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--cream);color:var(--t
     </div>
     <div class="form-group"><label class="form-label">말씀 구절</label><input type="text" class="form-input" id="reg-verse" placeholder="예: 여호수아 1:9"></div>
     <div class="form-group"><label class="form-label">메시지 / 주제</label><textarea class="form-textarea" id="reg-message" placeholder="전달사항, 설교 주제 등..."></textarea></div>
-    <div class="form-group"><label class="form-label">연습 시간</label><input type="time" class="form-input" id="reg-practice" value="08:00"></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">연습 시간</label><input type="time" class="form-input" id="reg-practice" value="08:00"></div>
+    </div>
+
+    <!-- 곡 추가 섹션 -->
+    <div class="form-group" style="margin-top:4px;">
+      <label class="form-label">찬양 목록</label>
+      <!-- 검색창 -->
+      <div style="position:relative;margin-bottom:8px;">
+        <input type="text" class="form-input" id="reg-song-search" placeholder="곡명 또는 아티스트 검색..." oninput="searchRegSong(this.value)" autocomplete="off">
+        <div id="reg-song-results" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--card-bg);border:1px solid var(--border);border-radius:var(--radius-sm);box-shadow:0 4px 12px rgba(0,0,0,0.1);z-index:100;max-height:180px;overflow-y:auto;"></div>
+      </div>
+      <!-- 추가된 곡 목록 -->
+      <div id="reg-song-list" style="display:flex;flex-direction:column;gap:6px;min-height:40px;">
+        <div style="font-size:12px;color:var(--text-muted);padding:8px;text-align:center;" id="reg-song-empty">위 검색창에서 곡을 추가하세요</div>
+      </div>
+      <button class="btn btn-secondary btn-sm" style="margin-top:8px;" onclick="addRegSongManual()">＋ 직접 입력</button>
+    </div>
+
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModal('modal-conti-register')">취소</button>
       <button class="btn btn-primary" onclick="registerConti()">등록</button>
@@ -1318,9 +1336,94 @@ async function saveContiToWeekly() {
 }
 
 // ===== REGISTER CONTI =====
+// ===== 빠른 콘티 등록 곡 검색 =====
+let regSongIds = []; // 등록 모달에서 추가된 곡 id 목록
+
+function openContiRegister() {
+  regSongIds = [];
+  renderRegSongList();
+  document.getElementById('reg-song-search').value = '';
+  document.getElementById('reg-song-results').style.display = 'none';
+  openModal('modal-conti-register');
+}
+
+function searchRegSong(q) {
+  const results = document.getElementById('reg-song-results');
+  if (!q.trim()) { results.style.display = 'none'; return; }
+  const matches = songs.filter(s =>
+    s.title.includes(q) || (s.artist||'').includes(q) || (s.key||'').includes(q)
+  ).slice(0, 8);
+  if (!matches.length) { results.style.display = 'none'; return; }
+  results.style.display = 'block';
+  results.innerHTML = matches.map(s => `
+    <div onclick="addRegSong(${s.id})"
+      style="padding:9px 12px;cursor:pointer;font-size:13px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border);"
+      onmouseover="this.style.background='var(--cream)'" onmouseout="this.style.background=''">
+      <span class="badge badge-key" style="font-size:10px;">${s.key}</span>
+      <span style="flex:1;font-weight:500;">${s.title}</span>
+      <span style="font-size:11px;color:var(--text-muted);">${s.artist||''}</span>
+    </div>`).join('');
+}
+
+function addRegSong(id) {
+  if (regSongIds.includes(id)) { showToast('이미 추가된 곡입니다'); return; }
+  regSongIds.push(id);
+  renderRegSongList();
+  document.getElementById('reg-song-search').value = '';
+  document.getElementById('reg-song-results').style.display = 'none';
+}
+
+function addRegSongManual() {
+  const title = prompt('곡 제목을 입력하세요:');
+  if (!title) return;
+  // 임시 id로 추가 (악보 창고에 없는 곡)
+  const tempId = 'manual_' + Date.now();
+  regSongIds.push(tempId);
+  // 임시 곡 정보 저장
+  window._manualSongs = window._manualSongs || {};
+  window._manualSongs[tempId] = { id: tempId, title, key: '-', artist: '직접입력' };
+  renderRegSongList();
+}
+
+function removeRegSong(id) {
+  regSongIds = regSongIds.filter(x => x != id);
+  renderRegSongList();
+}
+
+function renderRegSongList() {
+  const container = document.getElementById('reg-song-list');
+  const empty = document.getElementById('reg-song-empty');
+  if (!regSongIds.length) {
+    container.innerHTML = '<div style="font-size:12px;color:var(--text-muted);padding:8px;text-align:center;" id="reg-song-empty">위 검색창에서 곡을 추가하세요</div>';
+    return;
+  }
+  container.innerHTML = regSongIds.map((id, i) => {
+    const s = songs.find(x => x.id == id) || (window._manualSongs||{})[id];
+    if (!s) return '';
+    return `<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--cream);border:1px solid var(--border);border-radius:var(--radius-sm);">
+      <div style="width:22px;height:22px;background:var(--olive);color:white;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;">${i+1}</div>
+      <div style="flex:1;">
+        <div style="font-weight:600;font-size:13px;">${s.title}</div>
+        <div style="font-size:11px;color:var(--text-muted);">Key ${s.key} · ${s.artist||''}</div>
+      </div>
+      <button onclick="removeRegSong('${id}')" style="background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:16px;">✕</button>
+    </div>`;
+  }).join('');
+}
+
+// 모달 외부 클릭시 검색결과 닫기
+document.addEventListener('click', e => {
+  if (!e.target.closest('#reg-song-search') && !e.target.closest('#reg-song-results')) {
+    const r = document.getElementById('reg-song-results');
+    if (r) r.style.display = 'none';
+  }
+});
+
 async function registerConti() {
   const date = document.getElementById('reg-date').value;
   const d = date ? new Date(date) : new Date();
+  // manual song ids 제외하고 실제 숫자 id만
+  const realIds = regSongIds.filter(id => !String(id).startsWith('manual_'));
   await sb.from('weekly_contis').insert({
     year: d.getFullYear(), month: d.getMonth()+1, week: Math.ceil(d.getDate()/7),
     service: document.getElementById('reg-service').value,
@@ -1328,9 +1431,10 @@ async function registerConti() {
     verse: document.getElementById('reg-verse').value,
     message: document.getElementById('reg-message').value,
     practice_time: document.getElementById('reg-practice').value,
-    song_ids: [], created_by: currentUser.id
+    song_ids: realIds, created_by: currentUser.id
   });
-  await loadWeekly(); closeModal('modal-conti-register'); showToast('콘티가 등록됐습니다 ✅');
+  await loadWeekly(); closeModal('modal-conti-register');
+  showToast(`콘티가 등록됐습니다 ✅ (${realIds.length}곡)`);
   renderDashboard();
 }
 
