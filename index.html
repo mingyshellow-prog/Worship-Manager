@@ -4,865 +4,224 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>악보/콘티 매니저 — 함께하는교회 안성</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+<!-- Supabase SDK -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-/* ===== CSS VARIABLES ===== */
 :root {
-  --olive: #6b7c45;
-  --olive-dark: #4a5730;
-  --olive-light: #8a9d5a;
-  --olive-pale: #d4dfc0;
-  --cream: #f5f2eb;
-  --cream-dark: #ede8dd;
-  --cream-darker: #e0d8ca;
-  --text: #2c2c2c;
-  --text-muted: #6b6b6b;
-  --border: #d8d0c0;
-  --white: #ffffff;
-  --card-bg: #ffffff;
-  --sidebar-bg: #2c2f24;
-  --sidebar-text: #d4d9c8;
-  --sidebar-active: #6b7c45;
-  --danger: #c0392b;
-  --warning: #e67e22;
-  --success: #27ae60;
-  --shadow: 0 2px 12px rgba(0,0,0,0.08);
-  --shadow-lg: 0 8px 30px rgba(0,0,0,0.12);
-  --radius: 12px;
-  --radius-sm: 8px;
+  --olive:#6b7c45;--olive-dark:#4a5730;--olive-light:#8a9d5a;--olive-pale:#d4dfc0;
+  --cream:#f5f2eb;--cream-dark:#ede8dd;--cream-darker:#e0d8ca;
+  --text:#2c2c2c;--text-muted:#6b6b6b;--border:#d8d0c0;
+  --card-bg:#ffffff;--sidebar-bg:#2c2f24;--sidebar-text:#d4d9c8;
+  --danger:#c0392b;--success:#27ae60;
+  --shadow:0 2px 12px rgba(0,0,0,0.08);--shadow-lg:0 8px 30px rgba(0,0,0,0.12);
+  --radius:12px;--radius-sm:8px;
 }
-[data-theme="dark"] {
-  --cream: #1a1d15;
-  --cream-dark: #232618;
-  --cream-darker: #2a2e1e;
-  --text: #e8e4da;
-  --text-muted: #9a9a8a;
-  --border: #3a3f2a;
-  --card-bg: #252818;
-  --white: #1e211a;
-  --shadow: 0 2px 12px rgba(0,0,0,0.3);
+[data-theme="dark"]{
+  --cream:#1a1d15;--cream-dark:#232618;--cream-darker:#2a2e1e;
+  --text:#e8e4da;--text-muted:#9a9a8a;--border:#3a3f2a;
+  --card-bg:#252818;--shadow:0 2px 12px rgba(0,0,0,0.3);
 }
-
-/* ===== RESET ===== */
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-html { font-size: 15px; height: 100%; }
-body {
-  font-family: 'Noto Sans KR', sans-serif;
-  background: var(--cream);
-  color: var(--text);
-  display: flex;
-  height: 100%;
-  min-height: 100vh;
-  overflow: hidden;
-  transition: background 0.3s, color 0.3s;
-}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html{font-size:15px;}
+body{font-family:'Noto Sans KR',sans-serif;background:var(--cream);color:var(--text);min-height:100vh;transition:background .3s,color .3s;}
+::-webkit-scrollbar{width:5px;}
+::-webkit-scrollbar-thumb{background:var(--olive-pale);border-radius:4px;}
 
 /* ===== LOGIN SCREEN ===== */
 #login-screen {
-  position: fixed; inset: 0; z-index: 9999;
-  background: linear-gradient(135deg, #2c3a1e 0%, #4a5730 50%, #6b7c45 100%);
-  display: flex; align-items: center; justify-content: center;
-  padding: 20px;
+  position:fixed;inset:0;background:var(--cream);display:flex;align-items:center;justify-content:center;z-index:9999;
 }
-#login-screen.hidden { display: none; }
 .login-box {
-  background: white; border-radius: 20px; padding: 40px 36px;
-  width: 100%; max-width: 400px; box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+  background:var(--card-bg);border:1px solid var(--border);border-radius:20px;
+  padding:40px;width:100%;max-width:420px;box-shadow:var(--shadow-lg);
+  text-align:center;
 }
-.login-logo { text-align: center; margin-bottom: 28px; }
-.login-logo .logo-circle {
-  width: 64px; height: 64px; border-radius: 50%;
-  background: var(--olive); color: white; font-size: 28px;
-  display: flex; align-items: center; justify-content: center;
-  margin: 0 auto 12px;
+.login-logo {
+  width:72px;height:72px;background:var(--olive);border-radius:50%;
+  display:flex;align-items:center;justify-content:center;margin:0 auto 20px;
+  font-size:32px;
 }
-.login-logo h1 { font-size: 20px; font-weight: 700; color: var(--text); }
-.login-logo p { font-size: 12px; color: var(--text-muted); margin-top: 3px; }
-.login-tabs { display: flex; gap: 0; border-bottom: 2px solid var(--border); margin-bottom: 24px; }
-.login-tab { flex: 1; padding: 10px; text-align: center; font-size: 14px; font-weight: 500; cursor: pointer; color: var(--text-muted); border-bottom: 2px solid transparent; margin-bottom: -2px; }
-.login-tab.active { color: var(--olive-dark); border-bottom-color: var(--olive); font-weight: 700; }
-.login-form { display: flex; flex-direction: column; gap: 14px; }
-.login-form.hidden { display: none; }
-.login-input {
-  width: 100%; padding: 11px 14px; border: 1px solid var(--border);
-  border-radius: 8px; font-size: 14px; font-family: inherit;
-  background: var(--cream); color: var(--text); outline: none;
-  transition: border-color 0.15s;
-}
-.login-input:focus { border-color: var(--olive); }
-.login-btn {
-  width: 100%; padding: 12px; background: var(--olive); color: white;
-  border: none; border-radius: 8px; font-size: 14px; font-weight: 700;
-  cursor: pointer; font-family: inherit; transition: background 0.15s;
-}
-.login-btn:hover { background: var(--olive-dark); }
-.login-error { font-size: 12px; color: #e74c3c; text-align: center; min-height: 18px; }
-.login-divider { text-align: center; font-size: 12px; color: var(--text-muted); }
-.user-chip {
-  display: flex; align-items: center; gap: 8px;
-  padding: 6px 10px; border-radius: 8px;
-  background: rgba(255,255,255,0.1); cursor: pointer;
-  color: var(--sidebar-text); font-size: 13px;
-  border: none; font-family: inherit;
-}
-.user-chip:hover { background: rgba(255,255,255,0.18); }
-.user-avatar {
-  width: 26px; height: 26px; border-radius: 50%;
-  background: var(--olive-light); color: white;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 12px; font-weight: 700; flex-shrink: 0;
-}
+.login-title {font-size:20px;font-weight:700;margin-bottom:4px;}
+.login-sub {font-size:13px;color:var(--text-muted);margin-bottom:28px;}
+.login-tabs {display:flex;gap:0;border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:20px;}
+.login-tab {flex:1;padding:9px;background:none;border:none;cursor:pointer;font-size:13.5px;font-weight:500;color:var(--text-muted);font-family:inherit;transition:all .15s;}
+.login-tab.active{background:var(--olive);color:#fff;}
+.login-form-group{margin-bottom:12px;text-align:left;}
+.login-label{display:block;font-size:12px;font-weight:600;color:var(--text-muted);margin-bottom:5px;}
+.login-input{width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--cream);color:var(--text);font-family:inherit;font-size:14px;}
+.login-input:focus{outline:none;border-color:var(--olive);}
+.login-btn{width:100%;padding:12px;background:var(--olive);color:#fff;border:none;border-radius:var(--radius-sm);font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;margin-top:8px;transition:background .15s;}
+.login-btn:hover{background:var(--olive-dark);}
+.login-error{color:var(--danger);font-size:12.5px;margin-top:8px;display:none;}
+.login-loading{display:none;color:var(--text-muted);font-size:13px;margin-top:8px;}
 
-/* ===== SCROLLBAR ===== */
-::-webkit-scrollbar { width: 5px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--olive-pale); border-radius: 4px; }
+/* ===== APP LAYOUT ===== */
+#app {display:none;}
+.app-wrap {display:flex;min-height:100vh;}
 
 /* ===== SIDEBAR ===== */
 #sidebar {
-  width: 220px;
-  min-height: 100vh;
-  background: var(--sidebar-bg);
-  display: flex;
-  flex-direction: column;
-  position: fixed;
-  top: 0; left: 0; bottom: 0;
-  z-index: 100;
-  transition: transform 0.3s;
+  width:220px;min-height:100vh;background:var(--sidebar-bg);
+  display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:100;
+  transition:transform .3s;
 }
-.sidebar-logo {
-  padding: 24px 20px 16px;
-  border-bottom: 1px solid rgba(255,255,255,0.07);
-}
-.sidebar-logo h1 {
-  color: #fff;
-  font-size: 15px;
-  font-weight: 700;
-  line-height: 1.3;
-}
-.sidebar-logo p {
-  color: var(--sidebar-text);
-  font-size: 11px;
-  margin-top: 2px;
-  opacity: 0.6;
-}
-.sidebar-nav {
-  flex: 1;
-  padding: 12px 0;
-  overflow-y: auto;
-}
-.nav-section-label {
-  color: rgba(255,255,255,0.3);
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 1.2px;
-  text-transform: uppercase;
-  padding: 12px 20px 4px;
-}
-.nav-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 9px 20px;
-  color: var(--sidebar-text);
-  cursor: pointer;
-  font-size: 13.5px;
-  border-left: 3px solid transparent;
-  transition: all 0.15s;
-  user-select: none;
-}
-.nav-item:hover { background: rgba(255,255,255,0.05); color: #fff; }
-.nav-item.active {
-  background: rgba(107,124,69,0.2);
-  color: #b8c98a;
-  border-left-color: var(--olive-light);
-  font-weight: 600;
-}
-.nav-item .icon { font-size: 16px; width: 20px; text-align: center; }
-.sidebar-bottom {
-  padding: 16px 20px;
-  border-top: 1px solid rgba(255,255,255,0.07);
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
-.theme-toggle {
-  background: rgba(255,255,255,0.1);
-  border: none;
-  color: var(--sidebar-text);
-  padding: 6px 10px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 13px;
-  transition: background 0.15s;
-  flex: 1;
-}
-.theme-toggle:hover { background: rgba(255,255,255,0.15); }
-.version-badge {
-  font-size: 10px;
-  color: rgba(255,255,255,0.25);
-}
+.sidebar-logo{padding:24px 20px 16px;border-bottom:1px solid rgba(255,255,255,0.07);}
+.sidebar-logo h1{color:#fff;font-size:15px;font-weight:700;line-height:1.3;}
+.sidebar-logo p{color:var(--sidebar-text);font-size:11px;margin-top:2px;opacity:.6;}
+.sidebar-nav{flex:1;padding:12px 0;overflow-y:auto;}
+.nav-label{color:rgba(255,255,255,.3);font-size:10px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;padding:12px 20px 4px;}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 20px;color:var(--sidebar-text);cursor:pointer;font-size:13.5px;border-left:3px solid transparent;transition:all .15s;user-select:none;}
+.nav-item:hover{background:rgba(255,255,255,.05);color:#fff;}
+.nav-item.active{background:rgba(107,124,69,.2);color:#b8c98a;border-left-color:var(--olive-light);font-weight:600;}
+.nav-item .icon{font-size:16px;width:20px;text-align:center;}
+.sidebar-bottom{padding:16px 20px;border-top:1px solid rgba(255,255,255,.07);}
+.user-chip{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;background:rgba(255,255,255,.07);cursor:pointer;transition:background .15s;}
+.user-chip:hover{background:rgba(255,255,255,.12);}
+.user-avatar{width:32px;height:32px;border-radius:50%;background:var(--olive);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;flex-shrink:0;}
+.user-info{flex:1;min-width:0;}
+.user-name{color:#fff;font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.user-role{color:rgba(255,255,255,.4);font-size:10px;}
+.sidebar-actions{display:flex;gap:6px;margin-top:10px;}
+.sidebar-btn{flex:1;background:rgba(255,255,255,.08);border:none;color:var(--sidebar-text);padding:6px 8px;border-radius:6px;cursor:pointer;font-size:12px;transition:background .15s;font-family:inherit;}
+.sidebar-btn:hover{background:rgba(255,255,255,.14);}
 
-.sidebar-collapsed { transform: translateX(-220px) !important; }
-.sidebar-toggle-btn {
-  position: fixed;
-  left: 228px;
-  top: 50%;
-  transform: translateY(-50%);
-  z-index: 200;
-  width: 22px;
-  height: 44px;
-  background: var(--sidebar-bg);
-  border: 1px solid rgba(255,255,255,0.1);
-  border-radius: 0 8px 8px 0;
-  cursor: pointer;
-  color: var(--sidebar-text);
-  font-size: 13px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: left 0.3s;
-  box-shadow: 2px 0 8px rgba(0,0,0,0.15);
-}
-.sidebar-toggle-btn:hover { background: rgba(255,255,255,0.1); }
-
-/* YT icon button */
-.yt-icon-btn { display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:6px;background:rgba(204,0,0,0.08);transition:background 0.15s;text-decoration:none; }
-.yt-icon-btn:hover { background:rgba(204,0,0,0.18); }
-
-/* Quick actions */
-.quick-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px,1fr)); gap: 10px; margin-bottom: 24px; }
-.quick-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 10px; text-align: center; cursor: pointer; transition: all 0.15s; }
-.quick-card:hover { border-color: var(--olive); transform: translateY(-2px); box-shadow: 0 4px 14px rgba(107,124,69,0.12); }
-.quick-card .qi { font-size: 24px; margin-bottom: 5px; }
-.quick-card .ql { font-size: 12px; font-weight: 600; color: var(--text-muted); }
-
-/* Activity feed */
-.activity-item { display: flex; align-items: flex-start; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); }
-.activity-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-top: 5px; }
-.activity-text { font-size: 12.5px; font-weight: 500; }
-.activity-time { font-size: 11px; color: var(--text-muted); margin-top: 1px; }
-  margin-left: 220px;
-  flex: 1;
-  height: 100vh;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-.page-header {
-  background: var(--card-bg);
-  border-bottom: 1px solid var(--border);
-  padding: 20px 28px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  position: sticky;
-  top: 0;
-  z-index: 50;
-}
-.page-header h2 { font-size: 18px; font-weight: 700; }
-.page-header p { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
-.page-content { padding: 24px 28px; flex: 1; max-width: 1100px; overflow-y: auto; height: 100%; }
-.page-section { display: flex; flex-direction: column; flex: 1; overflow: hidden; height: 100%; }
+/* ===== MAIN ===== */
+#main{margin-left:220px;flex:1;min-height:100vh;display:flex;flex-direction:column;}
+.page-header{background:var(--card-bg);border-bottom:1px solid var(--border);padding:20px 28px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;}
+.page-header h2{font-size:18px;font-weight:700;}
+.page-header p{font-size:12px;color:var(--text-muted);margin-top:2px;}
+.page-content{padding:24px 28px;flex:1;max-width:1100px;}
 
 /* ===== CARDS ===== */
-.card {
-  background: var(--card-bg);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 20px;
-  box-shadow: var(--shadow);
-  transition: background 0.3s, border 0.3s;
-}
-.card-sm { padding: 14px 16px; }
+.card{background:var(--card-bg);border:1px solid var(--border);border-radius:var(--radius);padding:20px;box-shadow:var(--shadow);}
+.card-sm{padding:14px 16px;}
 
 /* ===== BUTTONS ===== */
-.btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 16px;
-  border-radius: var(--radius-sm);
-  border: none;
-  cursor: pointer;
-  font-family: inherit;
-  font-size: 13.5px;
-  font-weight: 500;
-  transition: all 0.15s;
-}
-.btn-primary { background: var(--olive); color: #fff; }
-.btn-primary:hover { background: var(--olive-dark); }
-.btn-secondary { background: var(--cream-dark); color: var(--text); border: 1px solid var(--border); }
-.btn-secondary:hover { background: var(--cream-darker); }
-.btn-ghost { background: transparent; color: var(--text-muted); border: 1px solid var(--border); }
-.btn-ghost:hover { background: var(--cream-dark); }
-.btn-sm { padding: 5px 10px; font-size: 12px; }
-.btn-danger { background: var(--danger); color: #fff; }
-
-/* ===== BADGES ===== */
-.badge {
-  display: inline-block;
-  padding: 2px 8px;
-  border-radius: 20px;
-  font-size: 11px;
-  font-weight: 600;
-}
-.badge-olive { background: var(--olive-pale); color: var(--olive-dark); }
-.badge-key { background: #e8f4e8; color: #2d6a2d; }
-[data-theme="dark"] .badge-key { background: #1e3a1e; color: #7ec87e; }
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:var(--radius-sm);border:none;cursor:pointer;font-family:inherit;font-size:13.5px;font-weight:500;transition:all .15s;}
+.btn-primary{background:var(--olive);color:#fff;}
+.btn-primary:hover{background:var(--olive-dark);}
+.btn-secondary{background:var(--cream-dark);color:var(--text);border:1px solid var(--border);}
+.btn-secondary:hover{background:var(--cream-darker);}
+.btn-ghost{background:transparent;color:var(--text-muted);border:1px solid var(--border);}
+.btn-ghost:hover{background:var(--cream-dark);}
+.btn-sm{padding:5px 10px;font-size:12px;}
+.btn-danger{background:var(--danger);color:#fff;}
 
 /* ===== FORMS ===== */
-.form-group { margin-bottom: 14px; }
-.form-label { display: block; font-size: 12px; font-weight: 600; color: var(--text-muted); margin-bottom: 5px; }
-.form-input, .form-select, .form-textarea {
-  width: 100%;
-  padding: 9px 12px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  background: var(--cream);
-  color: var(--text);
-  font-family: inherit;
-  font-size: 13.5px;
-  transition: border-color 0.15s, background 0.3s;
-}
-.form-input:focus, .form-select:focus, .form-textarea:focus {
-  outline: none;
-  border-color: var(--olive);
-  background: var(--card-bg);
-}
-.form-textarea { resize: vertical; min-height: 80px; }
-.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-.form-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+.form-group{margin-bottom:14px;}
+.form-label{display:block;font-size:12px;font-weight:600;color:var(--text-muted);margin-bottom:5px;}
+.form-input,.form-select,.form-textarea{width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--cream);color:var(--text);font-family:inherit;font-size:13.5px;transition:border-color .15s,background .3s;}
+.form-input:focus,.form-select:focus,.form-textarea:focus{outline:none;border-color:var(--olive);background:var(--card-bg);}
+.form-textarea{resize:vertical;min-height:80px;}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
 
 /* ===== MODAL ===== */
-.modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  padding: 20px;
-  opacity: 0;
-  visibility: hidden;
-  transition: all 0.2s;
-}
-.modal-overlay.open { opacity: 1; visibility: visible; }
-.modal {
-  background: var(--card-bg);
-  border-radius: var(--radius);
-  padding: 24px;
-  width: 100%;
-  max-width: 540px;
-  max-height: 85vh;
-  overflow-y: auto;
-  transform: translateY(20px);
-  transition: transform 0.2s;
-  box-shadow: var(--shadow-lg);
-}
-.modal-overlay.open .modal { transform: translateY(0); }
-.modal-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 20px;
-}
-.modal-header h3 { font-size: 17px; font-weight: 700; }
-.modal-close {
-  background: none;
-  border: none;
-  font-size: 20px;
-  cursor: pointer;
-  color: var(--text-muted);
-  line-height: 1;
-  padding: 4px;
-}
-.modal-close:hover { color: var(--text); }
-.modal-footer {
-  display: flex;
-  gap: 10px;
-  justify-content: flex-end;
-  margin-top: 20px;
-  padding-top: 16px;
-  border-top: 1px solid var(--border);
-}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:1000;padding:20px;opacity:0;visibility:hidden;transition:all .2s;}
+.modal-overlay.open{opacity:1;visibility:visible;}
+.modal{background:var(--card-bg);border-radius:var(--radius);padding:24px;width:100%;max-width:540px;max-height:85vh;overflow-y:auto;transform:translateY(20px);transition:transform .2s;box-shadow:var(--shadow-lg);}
+.modal-overlay.open .modal{transform:translateY(0);}
+.modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;}
+.modal-header h3{font-size:17px;font-weight:700;}
+.modal-close{background:none;border:none;font-size:20px;cursor:pointer;color:var(--text-muted);padding:4px;}
+.modal-footer{display:flex;gap:10px;justify-content:flex-end;margin-top:20px;padding-top:16px;border-top:1px solid var(--border);}
 
-/* ===== FILE UPLOAD ===== */
-.file-upload-area {
-  border: 2px dashed var(--olive-pale);
-  border-radius: var(--radius);
-  padding: 32px;
-  text-align: center;
-  cursor: pointer;
-  transition: all 0.2s;
-  background: var(--cream);
-}
-.file-upload-area:hover {
-  border-color: var(--olive);
-  background: var(--cream-dark);
-}
-.file-upload-area .icon { font-size: 36px; margin-bottom: 8px; }
-.file-upload-area p { color: var(--text-muted); font-size: 13px; }
-.file-upload-area strong { color: var(--olive); cursor: pointer; }
+/* ===== MISC ===== */
+.badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600;}
+.badge-olive{background:var(--olive-pale);color:var(--olive-dark);}
+.badge-key{background:#e8f4e8;color:#2d6a2d;}
+[data-theme="dark"] .badge-key{background:#1e3a1e;color:#7ec87e;}
+.reaction-bar{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;}
+.reaction-btn{display:flex;align-items:center;gap:4px;padding:5px 10px;border:1px solid var(--border);border-radius:20px;background:var(--cream);cursor:pointer;font-size:13px;transition:all .15s;user-select:none;}
+.reaction-btn:hover,.reaction-btn.reacted{background:var(--olive-pale);border-color:var(--olive);}
+.reaction-btn .count{font-size:11px;font-weight:600;color:var(--text-muted);}
+.reaction-btn.reacted .count{color:var(--olive-dark);}
+.song-row{background:var(--card-bg);border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:8px;overflow:hidden;}
+.song-row:hover{box-shadow:var(--shadow);}
+.song-row-header{display:flex;align-items:center;padding:12px 16px;cursor:pointer;gap:12px;}
+.song-row-num{width:24px;height:24px;background:var(--olive-pale);color:var(--olive-dark);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;}
+.song-row-info{flex:1;min-width:0;}
+.song-row-title{font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.song-row-meta{font-size:11.5px;color:var(--text-muted);margin-top:2px;}
+.song-row-body{display:none;padding:12px 16px 14px;border-top:1px solid var(--border);background:var(--cream);}
+.song-row-body.open{display:block;}
+.expand-btn{background:none;border:none;cursor:pointer;font-size:14px;color:var(--text-muted);transition:transform .2s;}
+.expand-btn.open{transform:rotate(180deg);}
+.week-card{background:var(--card-bg);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:12px;overflow:hidden;}
+.week-card-header{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;cursor:pointer;transition:background .15s;}
+.week-card-header:hover{background:var(--cream);}
+.week-card-body{display:none;padding:16px 20px;border-top:1px solid var(--border);background:var(--cream);}
+.week-card-body.open{display:block;}
+.conti-song-item{display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--cream);border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:8px;}
+.conti-song-num{width:28px;height:28px;background:var(--olive);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;}
+.last-used-chip{display:inline-flex;align-items:center;gap:3px;font-size:10px;background:var(--cream-dark);border:1px solid var(--border);border-radius:10px;padding:1px 7px;color:var(--text-muted);}
+.file-upload-area{border:2px dashed var(--olive-pale);border-radius:var(--radius);padding:28px;text-align:center;cursor:pointer;transition:all .2s;background:var(--cream);}
+.file-upload-area:hover{border-color:var(--olive);background:var(--cream-dark);}
+.tab-list{display:flex;gap:4px;border-bottom:2px solid var(--border);margin-bottom:20px;}
+.tab-btn{padding:8px 16px;background:none;border:none;cursor:pointer;font-family:inherit;font-size:13.5px;color:var(--text-muted);border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .15s;font-weight:500;}
+.tab-btn.active{color:var(--olive);border-bottom-color:var(--olive);font-weight:700;}
+.tab-pane{display:none;}.tab-pane.active{display:block;}
+.search-bar{position:relative;margin-bottom:16px;}
+.search-bar input{width:100%;padding:10px 16px 10px 38px;border:1px solid var(--border);border-radius:24px;background:var(--card-bg);color:var(--text);font-family:inherit;font-size:13.5px;}
+.search-bar input:focus{outline:none;border-color:var(--olive);}
+.search-icon{position:absolute;left:13px;top:50%;transform:translateY(-50%);color:var(--text-muted);}
+.stats-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px;}
+.stat-card{background:var(--card-bg);border:1px solid var(--border);border-radius:var(--radius);padding:16px;text-align:center;}
+.stat-num{font-size:28px;font-weight:700;color:var(--olive);}
+.stat-label{font-size:11.5px;color:var(--text-muted);margin-top:3px;}
+.collection-folder{background:var(--card-bg);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:12px;overflow:hidden;}
+.folder-header{display:flex;align-items:center;gap:10px;padding:14px 18px;cursor:pointer;user-select:none;}
+.folder-header:hover{background:var(--cream);}
+.folder-body{display:none;padding:8px 12px 12px;border-top:1px solid var(--border);}
+.folder-body.open{display:block;}
+.folder-song-item{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:var(--radius-sm);font-size:13.5px;cursor:pointer;}
+.folder-song-item:hover{background:var(--cream);}
+.recommend-card{background:var(--cream-dark);border:1px solid var(--olive-pale);border-radius:var(--radius-sm);padding:12px 14px;display:flex;align-items:flex-start;gap:12px;margin-bottom:10px;}
+.recommend-num{width:28px;height:28px;background:var(--olive);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;}
+.bible-selector{background:var(--cream-dark);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:14px;}
+.bible-selector-row{display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;}
+.bible-selector-row select{flex:1;min-width:100px;padding:8px 10px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--card-bg);color:var(--text);font-family:inherit;font-size:13px;}
+.bible-verse-display{padding:10px 14px;background:var(--card-bg);border-radius:var(--radius-sm);font-size:13.5px;line-height:1.6;border-left:3px solid var(--olive);min-height:44px;font-style:italic;}
+.message-preview{background:var(--card-bg);border:1px solid var(--border);border-radius:var(--radius);padding:16px;font-size:14px;line-height:1.7;white-space:pre-wrap;min-height:120px;}
+.divider{border:none;border-top:1px solid var(--border);margin:16px 0;}
+.mt-4{margin-top:16px;}.mb-4{margin-bottom:16px;}
+.flex{display:flex;}.items-center{align-items:center;}.justify-between{justify-content:space-between;}
+.gap-2{gap:8px;}.gap-3{gap:12px;}
+.text-muted{color:var(--text-muted);font-size:12px;}.text-sm{font-size:13px;}.font-bold{font-weight:700;}.w-full{width:100%;}
+.hidden{display:none!important;}
+.empty-state{text-align:center;padding:40px 20px;color:var(--text-muted);}
+.empty-state .icon{font-size:40px;margin-bottom:10px;}
+.conti-maker-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+@media(max-width:900px){.conti-maker-grid{grid-template-columns:1fr;}}
+.loading-spinner{display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
 
-/* ===== TABS ===== */
-.tab-list {
-  display: flex;
-  gap: 4px;
-  border-bottom: 2px solid var(--border);
-  margin-bottom: 20px;
-}
-.tab-btn {
-  padding: 8px 16px;
-  background: none;
-  border: none;
-  cursor: pointer;
-  font-family: inherit;
-  font-size: 13.5px;
-  color: var(--text-muted);
-  border-bottom: 2px solid transparent;
-  margin-bottom: -2px;
-  transition: all 0.15s;
-  font-weight: 500;
-}
-.tab-btn.active { color: var(--olive); border-bottom-color: var(--olive); font-weight: 700; }
-.tab-pane { display: none; }
-.tab-pane.active { display: block; }
-
-/* ===== SEARCH BAR ===== */
-.search-bar {
-  position: relative;
-  margin-bottom: 16px;
-}
-.search-bar input {
-  width: 100%;
-  padding: 10px 16px 10px 38px;
-  border: 1px solid var(--border);
-  border-radius: 24px;
-  background: var(--card-bg);
-  color: var(--text);
-  font-family: inherit;
-  font-size: 13.5px;
-}
-.search-bar input:focus { outline: none; border-color: var(--olive); }
-.search-bar .search-icon {
-  position: absolute;
-  left: 13px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: var(--text-muted);
-  font-size: 15px;
-}
-
-/* ===== REACTION BAR ===== */
-.reaction-bar {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-  margin-top: 14px;
-}
-.reaction-btn {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 5px 10px;
-  border: 1px solid var(--border);
-  border-radius: 20px;
-  background: var(--cream);
-  cursor: pointer;
-  font-size: 13px;
-  transition: all 0.15s;
-  user-select: none;
-}
-.reaction-btn:hover { background: var(--olive-pale); border-color: var(--olive); }
-.reaction-btn.reacted { background: var(--olive-pale); border-color: var(--olive); color: var(--olive-dark); }
-.reaction-btn .count { font-size: 11px; font-weight: 600; color: var(--text-muted); }
-.reaction-btn.reacted .count { color: var(--olive-dark); }
-
-/* ===== SONG ROW (악보창고 리스트형) ===== */
-.song-row {
-  background: var(--card-bg);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  margin-bottom: 8px;
-  overflow: hidden;
-  transition: box-shadow 0.15s;
-}
-.song-row:hover { box-shadow: var(--shadow); }
-.song-row-header {
-  display: flex;
-  align-items: center;
-  padding: 12px 16px;
-  cursor: pointer;
-  gap: 12px;
-}
-.song-row-num {
-  width: 24px;
-  height: 24px;
-  background: var(--olive-pale);
-  color: var(--olive-dark);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 11px;
-  font-weight: 700;
-  flex-shrink: 0;
-}
-.song-row-info { flex: 1; min-width: 0; }
-.song-row-title { font-weight: 600; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.song-row-meta { font-size: 11.5px; color: var(--text-muted); margin-top: 2px; }
-.song-row-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
-.song-row-expand {
-  background: none;
-  border: none;
-  cursor: pointer;
-  font-size: 14px;
-  color: var(--text-muted);
-  padding: 4px;
-  transition: transform 0.2s;
-}
-.song-row-expand.open { transform: rotate(180deg); }
-.song-row-body {
-  display: none;
-  padding: 0 16px 14px;
-  border-top: 1px solid var(--border);
-  background: var(--cream);
-}
-.song-row-body.open { display: block; padding-top: 12px; }
-.song-row-body-grid { display: flex; gap: 10px; flex-wrap: wrap; }
-
-/* ===== CONTI LIST ===== */
-.conti-song-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 10px 14px;
-  background: var(--cream);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  margin-bottom: 8px;
-  cursor: grab;
-}
-.conti-song-num {
-  width: 28px;
-  height: 28px;
-  background: var(--olive);
-  color: white;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 12px;
-  font-weight: 700;
-  flex-shrink: 0;
-}
-.conti-song-info { flex: 1; }
-.conti-song-title { font-weight: 600; font-size: 13.5px; }
-.conti-song-meta { font-size: 11px; color: var(--text-muted); }
-.conti-song-remove { background: none; border: none; cursor: pointer; color: var(--text-muted); font-size: 16px; padding: 4px; }
-.conti-song-remove:hover { color: var(--danger); }
-
-/* ===== WEEK CARD ===== */
-.week-card {
-  background: var(--card-bg);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  margin-bottom: 12px;
-  overflow: hidden;
-}
-.week-card-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 14px 20px;
-  cursor: pointer;
-  transition: background 0.15s;
-}
-.week-card-header:hover { background: var(--cream); }
-.week-card-title { font-weight: 700; font-size: 15px; }
-.week-card-subtitle { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
-.week-card-body { display: none; padding: 16px 20px; border-top: 1px solid var(--border); background: var(--cream); }
-.week-card-body.open { display: block; }
-.week-card-arrow { transition: transform 0.2s; color: var(--text-muted); }
-.week-card-arrow.open { transform: rotate(180deg); }
-
-/* ===== COLLECTIONS ===== */
-.collection-folder {
-  background: var(--card-bg);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  margin-bottom: 12px;
-  overflow: hidden;
-}
-.folder-header {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 14px 18px;
-  cursor: pointer;
-  transition: background 0.15s;
-  user-select: none;
-}
-.folder-header:hover { background: var(--cream); }
-.folder-icon { font-size: 20px; }
-.folder-name { font-weight: 700; flex: 1; }
-.folder-count { font-size: 11px; color: var(--text-muted); }
-.folder-arrow { transition: transform 0.2s; color: var(--text-muted); }
-.folder-arrow.open { transform: rotate(90deg); }
-.folder-body { display: none; padding: 8px 12px 12px; border-top: 1px solid var(--border); }
-.folder-body.open { display: block; }
-.folder-song-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 8px 10px;
-  border-radius: var(--radius-sm);
-  font-size: 13.5px;
-  cursor: pointer;
-  transition: background 0.1s;
-}
-.folder-song-item:hover { background: var(--cream); }
-.folder-song-remove {
-  background: none; border: none; cursor: pointer;
-  color: var(--text-muted); font-size: 14px; padding: 2px; margin-left: auto;
-}
-.folder-song-remove:hover { color: var(--danger); }
-
-/* ===== MYPAGE SECTIONS ===== */
-.session-badges { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
-.session-badge {
-  padding: 6px 14px;
-  border-radius: 20px;
-  border: 2px solid var(--border);
-  background: var(--cream);
-  cursor: pointer;
-  font-size: 13px;
-  font-weight: 600;
-  transition: all 0.15s;
-}
-.session-badge.active { background: var(--olive); color: white; border-color: var(--olive); }
-
-/* ===== STATS GRID ===== */
-.stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px; }
-.stat-card {
-  background: var(--card-bg);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 16px;
-  text-align: center;
-}
-.stat-num { font-size: 28px; font-weight: 700; color: var(--olive); }
-.stat-label { font-size: 11.5px; color: var(--text-muted); margin-top: 3px; }
-
-/* ===== MOBILE NAV ===== */
-#mobile-nav {
-  display: none;
-  position: fixed;
-  bottom: 0; left: 0; right: 0;
-  background: var(--sidebar-bg);
-  z-index: 200;
-  padding: 8px 0 max(8px, env(safe-area-inset-bottom));
-  border-top: 1px solid rgba(255,255,255,0.1);
-}
-.mobile-nav-items { display: flex; justify-content: space-around; }
-.mobile-nav-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-  padding: 6px 10px;
-  cursor: pointer;
-  color: rgba(255,255,255,0.4);
-  font-size: 10px;
-  border-radius: 8px;
-  transition: color 0.15s;
-  user-select: none;
-}
-.mobile-nav-item.active { color: #b8c98a; }
-.mobile-nav-item .m-icon { font-size: 20px; }
-
-/* ===== BIBLE DROPDOWN ===== */
-.bible-selector {
-  background: var(--cream-dark);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 14px;
-  margin-bottom: 14px;
-}
-.bible-selector-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
-.bible-selector-row select {
-  flex: 1;
-  min-width: 100px;
-  padding: 8px 10px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  background: var(--card-bg);
-  color: var(--text);
-  font-family: inherit;
-  font-size: 13px;
-}
-.bible-verse-display {
-  padding: 10px 14px;
-  background: var(--card-bg);
-  border-radius: var(--radius-sm);
-  font-size: 13.5px;
-  line-height: 1.6;
-  border-left: 3px solid var(--olive);
-  color: var(--text);
-  min-height: 44px;
-  font-style: italic;
-}
-
-/* ===== AI RECOMMENDER ===== */
-.recommend-results {
-  display: grid;
-  gap: 10px;
-  margin-top: 14px;
-}
-.recommend-card {
-  background: var(--cream-dark);
-  border: 1px solid var(--olive-pale);
-  border-radius: var(--radius-sm);
-  padding: 12px 14px;
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-}
-.recommend-num {
-  width: 28px;
-  height: 28px;
-  background: var(--olive);
-  color: white;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 12px;
-  font-weight: 700;
-  flex-shrink: 0;
-}
-.recommend-info { flex: 1; }
-.recommend-title { font-weight: 700; font-size: 14px; }
-.recommend-reason { font-size: 12px; color: var(--text-muted); margin-top: 3px; line-height: 1.5; }
-.recommend-add {
-  background: var(--olive-pale);
-  border: none;
-  color: var(--olive-dark);
-  padding: 4px 10px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 12px;
-  font-weight: 600;
-  white-space: nowrap;
-  transition: background 0.15s;
-}
-.recommend-add:hover { background: var(--olive); color: white; }
-
-/* ===== MESSAGE GENERATOR ===== */
-.message-preview {
-  background: #fff;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 16px;
-  font-size: 14px;
-  line-height: 1.7;
-  white-space: pre-wrap;
-  min-height: 120px;
-  color: #1a1a1a;
-  position: relative;
-}
-[data-theme="dark"] .message-preview { background: #1a1d15; color: var(--text); }
-.loading-dots::after {
-  content: '...';
-  animation: dots 1.2s infinite;
-}
-@keyframes dots {
-  0%, 20% { content: '.'; }
-  40% { content: '..'; }
-  60%, 100% { content: '...'; }
-}
-
-/* ===== UTILS ===== */
-.divider { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
-.mt-4 { margin-top: 16px; }
-.mb-4 { margin-bottom: 16px; }
-.flex { display: flex; }
-.items-center { align-items: center; }
-.justify-between { justify-content: space-between; }
-.gap-2 { gap: 8px; }
-.gap-3 { gap: 12px; }
-.text-muted { color: var(--text-muted); font-size: 12px; }
-.text-sm { font-size: 13px; }
-.font-bold { font-weight: 700; }
-.w-full { width: 100%; }
-.hidden { display: none !important; }
-.empty-state {
-  text-align: center;
-  padding: 40px 20px;
-  color: var(--text-muted);
-}
-.empty-state .icon { font-size: 40px; margin-bottom: 10px; }
-.empty-state p { font-size: 14px; }
-
-/* ===== RESPONSIVE ===== */
-@media (max-width: 768px) {
-  #sidebar { transform: translateX(-100%); }
-  #sidebar.mobile-open { transform: translateX(0); }
-  #main { margin-left: 0; padding-bottom: 70px; }
-  .page-content { padding: 16px; }
-  .page-header { padding: 14px 16px; }
-  #mobile-nav { display: block; }
-  .stats-grid { grid-template-columns: repeat(3, 1fr); gap: 8px; }
-  .stat-num { font-size: 22px; }
-  .form-row, .form-row-3 { grid-template-columns: 1fr; }
-  .modal { max-width: 100%; }
-}
-
-/* ===== CONTI MAKER LAYOUT ===== */
-.conti-maker-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 20px;
-}
-@media (max-width: 900px) {
-  .conti-maker-grid { grid-template-columns: 1fr; }
-}
-
-/* ===== LAST USED CHIP ===== */
-.last-used-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  font-size: 10px;
-  background: var(--cream-dark);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 1px 7px;
-  color: var(--text-muted);
-}
+/* ===== MOBILE ===== */
+#mobile-nav{display:none;position:fixed;bottom:0;left:0;right:0;background:var(--sidebar-bg);z-index:200;padding:8px 0 max(8px,env(safe-area-inset-bottom));border-top:1px solid rgba(255,255,255,.1);}
+.mobile-nav-items{display:flex;justify-content:space-around;}
+.mobile-nav-item{display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 10px;cursor:pointer;color:rgba(255,255,255,.4);font-size:10px;user-select:none;}
+.mobile-nav-item.active{color:#b8c98a;}
+.mobile-nav-item .m-icon{font-size:20px;}
 
 /* ===== TOAST ===== */
-#toast {
-  position: fixed;
-  bottom: 80px;
-  left: 50%;
-  transform: translateX(-50%) translateY(20px);
-  background: var(--olive-dark);
-  color: white;
-  padding: 10px 20px;
-  border-radius: 24px;
-  font-size: 13.5px;
-  font-weight: 500;
-  opacity: 0;
-  transition: all 0.3s;
-  z-index: 9999;
-  white-space: nowrap;
-  pointer-events: none;
+#toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--olive-dark);color:#fff;padding:10px 20px;border-radius:24px;font-size:13.5px;font-weight:500;opacity:0;transition:all .3s;z-index:9999;pointer-events:none;}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+/* ===== DASHBOARD 2-COL ===== */
+.dash-grid{display:grid;grid-template-columns:1fr 300px;gap:16px;align-items:start;}
+@media(max-width:900px){.dash-grid{grid-template-columns:1fr;}}
+
+@media(max-width:768px){
+  #sidebar{transform:translateX(-100%);}
+  #sidebar.mobile-open{transform:translateX(0);}
+  #main{margin-left:0;padding-bottom:70px;}
+  .page-content{padding:16px;}
+  .page-header{padding:14px 16px;}
+  #mobile-nav{display:block;}
+  .stats-grid{grid-template-columns:repeat(3,1fr);gap:8px;}
+  .stat-num{font-size:22px;}
+  .form-row{grid-template-columns:1fr;}
 }
-#toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 </style>
 </head>
 <body>
@@ -870,38 +229,51 @@ body {
 <!-- ===== LOGIN SCREEN ===== -->
 <div id="login-screen">
   <div class="login-box">
-    <div class="login-logo">
-      <div class="logo-circle">🕊</div>
-      <h1>함께하는교회</h1>
-      <p>악보 / 콘티 매니저</p>
-    </div>
+    <div class="login-logo">🎵</div>
+    <div class="login-title">함께하는교회 안성</div>
+    <div class="login-sub">악보 / 콘티 매니저</div>
     <div class="login-tabs">
-      <div class="login-tab active" onclick="switchLoginTab('signin')">로그인</div>
-      <div class="login-tab" onclick="switchLoginTab('signup')">회원가입</div>
+      <button class="login-tab active" onclick="switchLoginTab('login')">로그인</button>
+      <button class="login-tab" onclick="switchLoginTab('signup')">회원가입</button>
     </div>
     <!-- 로그인 폼 -->
-    <div class="login-form" id="form-signin">
-      <input class="login-input" type="text" id="signin-id" placeholder="아이디" autocomplete="username">
-      <input class="login-input" type="password" id="signin-pw" placeholder="비밀번호" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
-      <div class="login-error" id="signin-error"></div>
-      <button class="login-btn" onclick="doLogin()">로그인</button>
-      <div class="login-divider">— 또는 —</div>
-      <button class="login-btn" style="background:var(--cream-dark);color:var(--text);font-weight:500;" onclick="doGuestLogin()">👀 게스트로 둘러보기</button>
+    <div id="login-form">
+      <div class="login-form-group">
+        <label class="login-label">이메일</label>
+        <input type="email" class="login-input" id="login-email" placeholder="이메일 입력">
+      </div>
+      <div class="login-form-group">
+        <label class="login-label">비밀번호</label>
+        <input type="password" class="login-input" id="login-pw" placeholder="비밀번호 입력" onkeydown="if(event.key==='Enter')doLogin()">
+      </div>
+      <button class="login-btn" onclick="doLogin()" id="login-btn">로그인</button>
+      <div class="login-error" id="login-error"></div>
+      <div class="login-loading" id="login-loading">로그인 중...</div>
     </div>
     <!-- 회원가입 폼 -->
-    <div class="login-form hidden" id="form-signup">
-      <input class="login-input" type="text" id="signup-name" placeholder="이름">
-      <input class="login-input" type="text" id="signup-id" placeholder="아이디 (영문/숫자)">
-      <input class="login-input" type="password" id="signup-pw" placeholder="비밀번호 (6자 이상)">
-      <input class="login-input" type="password" id="signup-pw2" placeholder="비밀번호 확인" onkeydown="if(event.key==='Enter')doSignup()">
+    <div id="signup-form" style="display:none;">
+      <div class="login-form-group">
+        <label class="login-label">이름</label>
+        <input type="text" class="login-input" id="signup-name" placeholder="이름 입력">
+      </div>
+      <div class="login-form-group">
+        <label class="login-label">이메일</label>
+        <input type="email" class="login-input" id="signup-email" placeholder="이메일 입력">
+      </div>
+      <div class="login-form-group">
+        <label class="login-label">비밀번호 (6자 이상)</label>
+        <input type="password" class="login-input" id="signup-pw" placeholder="비밀번호 입력" onkeydown="if(event.key==='Enter')doSignup()">
+      </div>
+      <button class="login-btn" onclick="doSignup()" id="signup-btn">가입하기</button>
       <div class="login-error" id="signup-error"></div>
-      <button class="login-btn" onclick="doSignup()">회원가입</button>
+      <div class="login-loading" id="signup-loading">가입 중...</div>
     </div>
   </div>
 </div>
 
-<!-- SIDEBAR TOGGLE -->
-<button class="sidebar-toggle-btn" id="sidebar-toggle-btn" onclick="toggleSidebar()" title="사이드바 숨기기">‹</button>
+<!-- ===== APP ===== -->
+<div id="app">
+<div class="app-wrap">
 
 <!-- SIDEBAR -->
 <nav id="sidebar">
@@ -910,312 +282,188 @@ body {
     <p>악보 / 콘티 매니저</p>
   </div>
   <div class="sidebar-nav">
-    <div class="nav-section-label">메인</div>
-    <div class="nav-item active" data-page="dashboard" onclick="navigate('dashboard')">
-      <span class="icon">🏠</span> 대시보드
-    </div>
-    <div class="nav-item" data-page="weekly" onclick="navigate('weekly')">
-      <span class="icon">📅</span> 주차별 찬양
-    </div>
-    <div class="nav-item" data-page="archive" onclick="navigate('archive')">
-      <span class="icon">🎵</span> 악보 창고
-    </div>
-    <div class="nav-item" data-page="collections" onclick="navigate('collections')">
-      <span class="icon">📂</span> 모음집
-    </div>
-    <div class="nav-item" data-page="mypage" onclick="navigate('mypage')">
-      <span class="icon">👤</span> 마이 페이지
-    </div>
-    <div class="nav-section-label" style="margin-top:8px;">워크플로우</div>
-    <div class="nav-item" data-page="conti" onclick="navigate('conti')">
-      <span class="icon">✍️</span> 콘티 짜기
-    </div>
-    <div class="nav-item" data-page="merge" onclick="navigate('merge')">
-      <span class="icon">📋</span> 악보 합치기
-    </div>
-    <div class="nav-item" data-page="message" onclick="navigate('message')">
-      <span class="icon">💬</span> 메시지 생성기
-    </div>
+    <div class="nav-label">메인</div>
+    <div class="nav-item active" data-page="dashboard" onclick="navigate('dashboard')"><span class="icon">🏠</span> 대시보드</div>
+    <div class="nav-item" data-page="weekly" onclick="navigate('weekly')"><span class="icon">📅</span> 주차별 찬양</div>
+    <div class="nav-item" data-page="archive" onclick="navigate('archive')"><span class="icon">🎵</span> 악보 창고</div>
+    <div class="nav-item" data-page="collections" onclick="navigate('collections')"><span class="icon">📂</span> 모음집</div>
+    <div class="nav-item" data-page="mypage" onclick="navigate('mypage')"><span class="icon">👤</span> 마이 페이지</div>
+    <div class="nav-label" style="margin-top:8px;">워크플로우</div>
+    <div class="nav-item" data-page="conti" onclick="navigate('conti')"><span class="icon">✍️</span> 콘티 짜기</div>
+    <div class="nav-item" data-page="merge" onclick="navigate('merge')"><span class="icon">📋</span> 악보 합치기</div>
+    <div class="nav-item" data-page="message" onclick="navigate('message')"><span class="icon">💬</span> 메시지 생성기</div>
   </div>
   <div class="sidebar-bottom">
-    <button class="user-chip" onclick="showUserMenu()" id="user-chip">
-      <div class="user-avatar" id="user-avatar">?</div>
-      <span id="user-chip-name">로그인</span>
-    </button>
-    <button class="theme-toggle" onclick="toggleTheme()">🌙</button>
-    <span class="version-badge">v0.4</span>
+    <div class="user-chip" onclick="openModal('modal-logout')">
+      <div class="user-avatar" id="sidebar-avatar">?</div>
+      <div class="user-info">
+        <div class="user-name" id="sidebar-name">로딩중...</div>
+        <div class="user-role" id="sidebar-email">-</div>
+      </div>
+    </div>
+    <div class="sidebar-actions">
+      <button class="sidebar-btn" onclick="toggleTheme()">🌙 테마</button>
+      <button class="sidebar-btn" onclick="openModal('modal-logout')" style="color:#ff8080;">로그아웃</button>
+    </div>
   </div>
 </nav>
 
 <!-- MOBILE NAV -->
 <div id="mobile-nav">
   <div class="mobile-nav-items">
-    <div class="mobile-nav-item active" data-page="dashboard" onclick="navigate('dashboard')">
-      <span class="m-icon">🏠</span><span>홈</span>
-    </div>
-    <div class="mobile-nav-item" data-page="weekly" onclick="navigate('weekly')">
-      <span class="m-icon">📅</span><span>주차</span>
-    </div>
-    <div class="mobile-nav-item" data-page="archive" onclick="navigate('archive')">
-      <span class="m-icon">🎵</span><span>악보</span>
-    </div>
-    <div class="mobile-nav-item" data-page="conti" onclick="navigate('conti')">
-      <span class="m-icon">✍️</span><span>콘티</span>
-    </div>
-    <div class="mobile-nav-item" data-page="mypage" onclick="navigate('mypage')">
-      <span class="m-icon">👤</span><span>내정보</span>
-    </div>
+    <div class="mobile-nav-item active" data-page="dashboard" onclick="navigate('dashboard')"><span class="m-icon">🏠</span><span>홈</span></div>
+    <div class="mobile-nav-item" data-page="weekly" onclick="navigate('weekly')"><span class="m-icon">📅</span><span>주차</span></div>
+    <div class="mobile-nav-item" data-page="archive" onclick="navigate('archive')"><span class="m-icon">🎵</span><span>악보</span></div>
+    <div class="mobile-nav-item" data-page="conti" onclick="navigate('conti')"><span class="m-icon">✍️</span><span>콘티</span></div>
+    <div class="mobile-nav-item" data-page="mypage" onclick="navigate('mypage')"><span class="m-icon">👤</span><span>내정보</span></div>
   </div>
 </div>
 
-<!-- MAIN -->
 <main id="main">
 
-<!-- ===== DASHBOARD ===== -->
+<!-- DASHBOARD -->
 <div id="page-dashboard" class="page-section">
   <div class="page-header">
-    <div>
-      <h2>대시보드</h2>
-      <p id="dash-week-label">2026년 5월 1주 · 주일 9시 예배</p>
-    </div>
+    <div><h2>대시보드</h2><p id="dash-subtitle">이번 주 찬양을 확인하세요</p></div>
     <button class="btn btn-primary btn-sm" onclick="openModal('modal-conti-register')">＋ 새 콘티 등록</button>
   </div>
   <div class="page-content">
     <div class="stats-grid">
-      <div class="stat-card">
-        <div class="stat-num" id="stat-songs">4</div>
-        <div class="stat-label">이번 주 곡수</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-num" id="stat-total">23</div>
-        <div class="stat-label">총 악보수</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-num" id="stat-weeks">12</div>
-        <div class="stat-label">주차 기록</div>
-      </div>
+      <div class="stat-card"><div class="stat-num" id="stat-songs">-</div><div class="stat-label">이번 주 곡수</div></div>
+      <div class="stat-card"><div class="stat-num" id="stat-total">-</div><div class="stat-label">총 악보수</div></div>
+      <div class="stat-card"><div class="stat-num" id="stat-weeks">-</div><div class="stat-label">주차 기록</div></div>
     </div>
-
-    <!-- 전달사항 -->
     <div class="card mb-4">
       <div class="flex items-center justify-between mb-4">
-        <div>
-          <h3 style="font-size:15px;font-weight:700;">📢 전도사님 전달사항</h3>
-          <p class="text-muted" style="margin-top:3px;">2026. 05. 04 · 주일 9시</p>
-        </div>
+        <div><h3 style="font-size:15px;font-weight:700;">📢 전도사님 전달사항</h3><p class="text-muted" style="margin-top:3px;" id="dash-notice-date">-</p></div>
         <div style="font-size:11px;color:var(--text-muted);">⏰ 연습: 8시 🙏 예배: 9시</div>
       </div>
-      <h4 style="font-size:14px;font-weight:700;color:var(--olive-dark);margin-bottom:8px;">
-        여호수아의 과업 — 평안함과 담대함으로 승리하는 믿음
-      </h4>
-      <p style="font-size:13.5px;line-height:1.75;color:var(--text);">
-        기나긴 전쟁에서 승리하고 가나안을 점령했지만, 또 다시 끝나지 않는 과업을 맞이하는 여호수아와 백성들. 예수님께서는 십자가에서 죽으심으로 승리하시고, '평안함'과 '담대함'으로 그 승리에 동참하라고 말씀하십니다.
-      </p>
+      <h4 style="font-size:14px;font-weight:700;color:var(--olive-dark);margin-bottom:8px;" id="dash-notice-title">여호수아의 과업 — 평안함과 담대함으로 승리하는 믿음</h4>
+      <p style="font-size:13.5px;line-height:1.75;" id="dash-notice-body">기나긴 전쟁에서 승리하고 가나안을 점령했지만, 또 다시 끝나지 않는 과업을 맞이하는 여호수아와 백성들. 예수님께서는 십자가에서 죽으심으로 승리하시고, '평안함'과 '담대함'으로 그 승리에 동참하라고 말씀하십니다.</p>
       <div class="reaction-bar">
-        <button class="reaction-btn" onclick="toggleReaction(this,'👍')"><span>👍</span><span class="count">5</span></button>
-        <button class="reaction-btn" onclick="toggleReaction(this,'🙏')"><span>🙏</span><span class="count">8</span></button>
-        <button class="reaction-btn" onclick="toggleReaction(this,'🔥')"><span>🔥</span><span class="count">3</span></button>
-        <button class="reaction-btn" onclick="toggleReaction(this,'❤️')"><span>❤️</span><span class="count">6</span></button>
-        <button class="reaction-btn" onclick="toggleReaction(this,'✅')"><span>✅</span><span class="count">4</span></button>
+        <button class="reaction-btn" onclick="toggleReaction(this)"><span>👍</span><span class="count">5</span></button>
+        <button class="reaction-btn" onclick="toggleReaction(this)"><span>🙏</span><span class="count">8</span></button>
+        <button class="reaction-btn" onclick="toggleReaction(this)"><span>🔥</span><span class="count">3</span></button>
+        <button class="reaction-btn" onclick="toggleReaction(this)"><span>❤️</span><span class="count">6</span></button>
+        <button class="reaction-btn" onclick="toggleReaction(this)"><span>✅</span><span class="count">4</span></button>
       </div>
     </div>
-
-    <!-- 이번 주 콘티 -->
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:0;">
+    <div class="dash-grid">
       <div class="card">
-        <h3 style="font-size:15px;font-weight:700;margin-bottom:14px;">🎵 이번 주 콘티 — 5월 1주</h3>
-        <div id="dash-conti-list"></div>
+        <h3 style="font-size:15px;font-weight:700;margin-bottom:14px;">🎵 이번 주 콘티</h3>
+        <div id="dash-conti-list"><div class="empty-state"><div class="icon">🎶</div><p>등록된 콘티가 없어요</p></div></div>
       </div>
-      <!-- 오른쪽 패널 -->
-      <div style="display:flex;flex-direction:column;gap:14px;">
-        <!-- 빠른 메뉴 -->
-        <div class="card" style="padding:14px;">
-          <div style="font-size:13px;font-weight:700;margin-bottom:10px;">⚡ 빠른 메뉴</div>
-          <div class="quick-grid">
-            <div class="quick-card" onclick="openModal('modal-conti-register')"><div class="qi">✏️</div><div class="ql">콘티 등록</div></div>
-            <div class="quick-card" onclick="navigate('conti')"><div class="qi">🎵</div><div class="ql">콘티 짜기</div></div>
-            <div class="quick-card" onclick="navigate('archive')"><div class="qi">📁</div><div class="ql">악보 추가</div></div>
-            <div class="quick-card" onclick="navigate('message')"><div class="qi">💬</div><div class="ql">카톡 발송</div></div>
-            <div class="quick-card" onclick="navigate('mypage')"><div class="qi">👤</div><div class="ql">마이페이지</div></div>
-            <div class="quick-card" onclick="navigate('collections')"><div class="qi">📂</div><div class="ql">모음집</div></div>
+      <div style="display:flex;flex-direction:column;gap:12px;">
+        <div class="card card-sm">
+          <h4 style="font-size:13px;font-weight:700;margin-bottom:10px;">⏰ 이번 주 일정</h4>
+          <div style="display:flex;flex-direction:column;gap:6px;">
+            <div style="display:flex;justify-content:space-between;font-size:13px;"><span style="color:var(--text-muted);">연습</span><span style="font-weight:600;">08:00</span></div>
+            <div style="display:flex;justify-content:space-between;font-size:13px;"><span style="color:var(--text-muted);">예배</span><span style="font-weight:600;">09:00</span></div>
           </div>
         </div>
-        <!-- D-day + 활동 -->
-        <div class="card" style="padding:14px;">
-          <div style="background:var(--olive);color:white;border-radius:8px;padding:12px;text-align:center;margin-bottom:12px;">
-            <div style="font-size:11px;opacity:0.8;margin-bottom:3px;">다음 예배까지</div>
-            <div style="font-size:28px;font-weight:700;" id="dash-dday">D-5</div>
-            <div style="font-size:11px;opacity:0.7;margin-top:2px;">2026년 5월 10일 주일</div>
-          </div>
-          <div style="font-size:13px;font-weight:700;margin-bottom:8px;">📌 최근 활동</div>
-          <div class="activity-item"><span class="activity-dot" style="background:#27ae60;"></span><div><div class="activity-text">나의 하나님 악보 등록</div><div class="activity-time">2026.05.04</div></div></div>
-          <div class="activity-item"><span class="activity-dot" style="background:var(--olive);"></span><div><div class="activity-text">5월 1주 콘티 등록 완료</div><div class="activity-time">2026.05.04</div></div></div>
-          <div class="activity-item"><span class="activity-dot" style="background:#2980b9;"></span><div><div class="activity-text">전달사항 업데이트</div><div class="activity-time">2026.05.03</div></div></div>
+        <div class="card card-sm">
+          <h4 style="font-size:13px;font-weight:700;margin-bottom:10px;">🎶 드림찬양단</h4>
+          <a href="https://www.youtube.com/@dreamworshipteam" target="_blank" style="display:flex;align-items:center;gap:8px;padding:7px 10px;background:var(--cream);border-radius:var(--radius-sm);font-size:12.5px;text-decoration:none;color:var(--text);border:1px solid var(--border);margin-bottom:6px;">
+            <span>▶</span><span>드림찬양단 YouTube</span>
+          </a>
+        </div>
+        <div class="card card-sm">
+          <h4 style="font-size:13px;font-weight:700;margin-bottom:10px;">📂 최근 악보</h4>
+          <div id="dash-recent-songs" style="display:flex;flex-direction:column;gap:4px;"></div>
         </div>
       </div>
     </div>
   </div>
 </div>
 
-<!-- ===== WEEKLY ===== -->
+<!-- WEEKLY -->
 <div id="page-weekly" class="page-section hidden">
   <div class="page-header">
     <div><h2>주차별 찬양</h2><p>주차를 클릭하면 콘티를 확인할 수 있습니다</p></div>
     <button class="btn btn-primary btn-sm" onclick="openModal('modal-conti-register')">＋ 새 주차 등록</button>
   </div>
-  <div class="page-content">
-    <div id="weekly-list"></div>
-  </div>
+  <div class="page-content"><div id="weekly-list"></div></div>
 </div>
 
-<!-- ===== ARCHIVE ===== -->
+<!-- ARCHIVE -->
 <div id="page-archive" class="page-section hidden">
   <div class="page-header">
     <div><h2>악보 창고</h2><p>전체 악보를 검색하고 관리합니다</p></div>
     <button class="btn btn-primary btn-sm" onclick="openModal('modal-add-song')">＋ 악보 추가</button>
   </div>
   <div class="page-content">
-    <div class="search-bar">
-      <span class="search-icon">🔍</span>
-      <input type="text" id="archive-search" placeholder="곡명, 아티스트, 키 검색..." oninput="renderArchive()">
-    </div>
-    <div style="margin-bottom:12px;display:flex;gap:8px;flex-wrap:wrap;">
-      <select id="archive-filter-artist" class="form-select" style="width:auto;font-size:13px;" onchange="renderArchive()">
-        <option value="">전체 아티스트</option>
-        <option>아이자야씩스티원</option>
-        <option>FIA</option>
-        <option>박우정</option>
-      </select>
-      <select id="archive-filter-key" class="form-select" style="width:auto;font-size:13px;" onchange="renderArchive()">
-        <option value="">전체 키</option>
-        <option>C</option><option>D</option><option>E</option><option>F</option>
-        <option>G</option><option>A</option><option>Bb</option><option>Eb</option>
-      </select>
-    </div>
+    <div class="search-bar"><span class="search-icon">🔍</span><input type="text" id="archive-search" placeholder="곡명, 아티스트, 키 검색..." oninput="renderArchive()"></div>
     <div id="archive-list"></div>
   </div>
 </div>
 
-<!-- ===== COLLECTIONS ===== -->
+<!-- COLLECTIONS -->
 <div id="page-collections" class="page-section hidden">
   <div class="page-header">
-    <div><h2>모음집</h2><p>나만의 악보 폴더를 만들어 관리하세요</p></div>
+    <div><h2>모음집</h2><p>나만의 폴더를 만들어 관리하세요</p></div>
     <button class="btn btn-primary btn-sm" onclick="openModal('modal-add-folder')">＋ 폴더 추가</button>
   </div>
-  <div class="page-content">
-    <div id="collections-list"></div>
-  </div>
+  <div class="page-content"><div id="collections-list"></div></div>
 </div>
 
-<!-- ===== MYPAGE ===== -->
+<!-- MYPAGE -->
 <div id="page-mypage" class="page-section hidden">
-  <div class="page-header">
-    <div><h2>마이 페이지</h2><p>나의 희망곡과 악보 메모를 관리합니다</p></div>
-  </div>
+  <div class="page-header"><div><h2>마이 페이지</h2><p>나의 정보와 희망곡을 관리합니다</p></div></div>
   <div class="page-content">
-    <!-- 프로필 -->
     <div class="card mb-4">
       <h3 style="font-size:14px;font-weight:700;margin-bottom:12px;">👤 프로필</h3>
-      <div class="form-group" style="max-width:280px;">
-        <label class="form-label">이름</label>
-        <input type="text" class="form-input" id="my-name" placeholder="이름 입력" onchange="saveMyPage()">
-      </div>
+      <div class="form-group"><label class="form-label">이름</label><input type="text" class="form-input" id="my-name" placeholder="이름" onchange="saveProfile()"></div>
+      <div id="my-email-display" style="font-size:13px;color:var(--text-muted);margin-top:4px;"></div>
     </div>
-
-    <!-- 희망곡 -->
     <div class="card mb-4">
       <div class="flex items-center justify-between mb-4">
         <h3 style="font-size:14px;font-weight:700;">🎵 희망곡 목록</h3>
         <button class="btn btn-secondary btn-sm" onclick="openModal('modal-add-wish')">＋ 추가</button>
       </div>
-      <div id="wish-list">
-        <div class="empty-state"><div class="icon">🎶</div><p>희망곡을 추가해보세요</p></div>
-      </div>
-    </div>
-
-    <!-- 악보 메모 -->
-    <div class="card">
-      <h3 style="font-size:14px;font-weight:700;margin-bottom:12px;">📝 악보별 세션 메모</h3>
-      <div id="song-memo-list">
-        <div id="song-memo-items"></div>
-        <button class="btn btn-secondary btn-sm mt-4" onclick="openModal('modal-add-memo')">＋ 메모 추가</button>
-      </div>
+      <div id="wish-list"><div class="empty-state"><div class="icon">🎶</div><p>희망곡을 추가해보세요</p></div></div>
     </div>
   </div>
 </div>
 
-<!-- ===== CONTI MAKER ===== -->
+<!-- CONTI MAKER -->
 <div id="page-conti" class="page-section hidden">
-  <div class="page-header">
-    <div><h2>콘티 짜기</h2><p>곡을 선택하여 콘티를 구성하세요</p></div>
-  </div>
+  <div class="page-header"><div><h2>콘티 짜기</h2><p>곡을 선택하여 콘티를 구성하세요</p></div></div>
   <div class="page-content">
     <div class="conti-maker-grid">
-      <!-- LEFT: 악보 목록 -->
       <div>
         <div class="card">
           <h3 style="font-size:14px;font-weight:700;margin-bottom:12px;">🎵 악보 목록</h3>
-          <div class="search-bar" style="margin-bottom:10px;">
-            <span class="search-icon">🔍</span>
-            <input type="text" id="conti-search" placeholder="곡 검색..." oninput="renderContiPool()">
-          </div>
+          <div class="search-bar" style="margin-bottom:10px;"><span class="search-icon">🔍</span><input type="text" id="conti-search" placeholder="곡 검색..." oninput="renderContiPool()"></div>
           <div id="conti-pool" style="max-height:400px;overflow-y:auto;"></div>
         </div>
-
-        <!-- 추천기 -->
         <div class="card" style="margin-top:16px;">
           <div class="flex items-center justify-between mb-4">
-            <h3 style="font-size:14px;font-weight:700;">✨ 찬양 추천기 <span style="font-size:11px;background:var(--olive);color:white;padding:1px 7px;border-radius:10px;margin-left:4px;">Beta</span></h3>
+            <h3 style="font-size:14px;font-weight:700;">✨ 찬양 추천기 <span style="font-size:11px;background:var(--olive);color:#fff;padding:1px 7px;border-radius:10px;margin-left:4px;">Beta</span></h3>
           </div>
-          <p class="text-muted mb-4">말씀 구절을 선택하면 어울리는 찬양을 추천해드려요</p>
-          
-          <!-- 성경 드롭다운 -->
           <div class="bible-selector">
             <div class="bible-selector-row">
-              <select id="bible-testament" class="form-select" onchange="updateBibleBooks()">
-                <option value="">구약/신약</option>
-                <option value="구약">구약</option>
-                <option value="신약">신약</option>
-              </select>
-              <select id="bible-book" class="form-select" onchange="updateBibleChapters()" disabled>
-                <option value="">책 선택</option>
-              </select>
+              <select id="bible-testament" onchange="updateBibleBooks()"><option value="">구약/신약</option><option value="구약">구약</option><option value="신약">신약</option></select>
+              <select id="bible-book" onchange="updateBibleChapters()" disabled><option value="">책 선택</option></select>
             </div>
             <div class="bible-selector-row">
-              <select id="bible-chapter" class="form-select" onchange="updateBibleVerses()" disabled>
-                <option value="">장 선택</option>
-              </select>
-              <select id="bible-verse" class="form-select" onchange="updateVerseDisplay()" disabled>
-                <option value="">절 선택</option>
-              </select>
+              <select id="bible-chapter" onchange="updateBibleVerses()" disabled><option value="">장 선택</option></select>
+              <select id="bible-verse" onchange="updateVerseDisplay()" disabled><option value="">절 선택</option></select>
             </div>
-            <div class="bible-verse-display" id="bible-verse-display">
-              구약/신약을 먼저 선택해주세요
-            </div>
+            <div class="bible-verse-display" id="bible-verse-display">구약/신약을 먼저 선택해주세요</div>
           </div>
-
-          <button class="btn btn-primary w-full" id="recommend-btn" onclick="getRecommendation()" disabled>
-            ✨ 찬양 추천받기
-          </button>
-          <div id="recommend-loading" class="hidden" style="text-align:center;padding:20px;color:var(--text-muted);">
-            <span class="loading-dots">AI가 어울리는 찬양을 찾는 중</span>
-          </div>
-          <div id="recommend-results" class="recommend-results"></div>
+          <button class="btn btn-primary w-full" id="recommend-btn" onclick="getRecommendation()" disabled>✨ 찬양 추천받기</button>
+          <div id="recommend-loading" class="hidden" style="text-align:center;padding:20px;color:var(--text-muted);">AI가 어울리는 찬양을 찾는 중...</div>
+          <div id="recommend-results" style="margin-top:14px;"></div>
         </div>
       </div>
-
-      <!-- RIGHT: 콘티 구성 -->
       <div>
         <div class="card">
           <div class="flex items-center justify-between mb-4">
             <h3 style="font-size:14px;font-weight:700;">📋 구성된 콘티</h3>
             <button class="btn btn-ghost btn-sm" onclick="clearConti()">초기화</button>
           </div>
-          <div id="conti-built" style="min-height:100px;"></div>
-          <div id="conti-built-empty" class="empty-state" style="padding:24px;">
-            <div class="icon" style="font-size:28px;">🎶</div>
-            <p style="font-size:13px;">왼쪽에서 곡을 추가하세요</p>
-          </div>
+          <div id="conti-built"></div>
+          <div id="conti-built-empty" class="empty-state" style="padding:24px;"><div class="icon" style="font-size:28px;">🎶</div><p style="font-size:13px;">왼쪽에서 곡을 추가하세요</p></div>
           <hr class="divider">
           <button class="btn btn-primary w-full" onclick="saveContiToWeekly()">💾 이번 주 콘티로 저장</button>
         </div>
@@ -1224,87 +472,41 @@ body {
   </div>
 </div>
 
-<!-- ===== MERGE ===== -->
+<!-- MERGE -->
 <div id="page-merge" class="page-section hidden">
-  <div class="page-header">
-    <div><h2>악보 합치기</h2><p>두 악보를 하나의 문서로 합칩니다</p></div>
-  </div>
+  <div class="page-header"><div><h2>악보 합치기</h2><p>두 악보를 하나의 문서로 합칩니다</p></div></div>
   <div class="page-content">
     <div class="card">
       <div class="form-row">
-        <div>
-          <label class="form-label">1번 악보</label>
-          <select class="form-select" id="merge-song-1">
-            <option value="">악보 선택...</option>
-          </select>
-        </div>
-        <div>
-          <label class="form-label">2번 악보</label>
-          <select class="form-select" id="merge-song-2">
-            <option value="">악보 선택...</option>
-          </select>
-        </div>
+        <div><label class="form-label">1번 악보</label><select class="form-select" id="merge-song-1"><option value="">악보 선택...</option></select></div>
+        <div><label class="form-label">2번 악보</label><select class="form-select" id="merge-song-2"><option value="">악보 선택...</option></select></div>
       </div>
       <div class="form-group mt-4">
         <label class="form-label">배열 방식</label>
         <div style="display:flex;gap:10px;">
-          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;">
-            <input type="radio" name="merge-layout" value="vertical" checked> ☰ 위아래
-          </label>
-          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;">
-            <input type="radio" name="merge-layout" value="horizontal"> ⊟ 좌우
-          </label>
-          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;">
-            <input type="radio" name="merge-layout" value="pages"> 📄 별도 페이지
-          </label>
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;"><input type="radio" name="merge-layout" value="vertical" checked> ☰ 위아래</label>
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;"><input type="radio" name="merge-layout" value="horizontal"> ⊟ 좌우</label>
         </div>
       </div>
       <div style="display:flex;gap:10px;margin-top:16px;">
-        <button class="btn btn-secondary" onclick="mergePreview()">👁 미리보기</button>
         <button class="btn btn-primary" onclick="mergePDF()">📥 PDF로 내보내기</button>
-      </div>
-      <div id="merge-preview" class="hidden" style="margin-top:16px;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;">
-        <canvas id="merge-canvas" style="width:100%;display:block;"></canvas>
       </div>
     </div>
   </div>
 </div>
 
-<!-- ===== MESSAGE GENERATOR ===== -->
+<!-- MESSAGE -->
 <div id="page-message" class="page-section hidden">
-  <div class="page-header">
-    <div><h2>메시지 생성기</h2><p>AI가 이번 주 콘티 메시지를 자동으로 생성해드려요</p></div>
-  </div>
+  <div class="page-header"><div><h2>메시지 생성기</h2><p>AI가 이번 주 콘티 메시지를 자동으로 생성해드려요</p></div></div>
   <div class="page-content">
     <div class="card mb-4">
       <h3 style="font-size:14px;font-weight:700;margin-bottom:12px;">⚙️ 설정</h3>
-      <div class="form-row">
-        <div class="form-group">
-          <label class="form-label">대화방</label>
-          <select class="form-select" id="msg-chatroom">
-            <option>찬양팀 단톡방</option>
-            <option>9시 예배팀</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label class="form-label">톤/스타일</label>
-          <select class="form-select" id="msg-tone">
-            <option>친근하고 따뜻하게</option>
-            <option>공식적으로</option>
-            <option>짧고 간결하게</option>
-          </select>
-        </div>
-      </div>
-      <div class="form-group">
-        <label class="form-label">말씀 구절 / 메시지 힌트 (선택)</label>
-        <input type="text" class="form-input" id="msg-hint" placeholder="예: 여호수아 1:9 — 담대하라, 강하고 담대하라">
-      </div>
+      <div class="form-group"><label class="form-label">말씀 구절 / 힌트</label><input type="text" class="form-input" id="msg-hint" placeholder="예: 여호수아 1:9 — 강하고 담대하라"></div>
       <div style="display:flex;gap:10px;">
         <button class="btn btn-primary" onclick="generateMessage()">✨ AI 메시지 생성</button>
         <button class="btn btn-secondary" onclick="generateMessageManual()">📝 직접 작성</button>
       </div>
     </div>
-
     <div class="card">
       <div class="flex items-center justify-between mb-4">
         <h3 style="font-size:14px;font-weight:700;">미리보기</h3>
@@ -1313,64 +515,46 @@ body {
           <button class="btn btn-primary btn-sm" onclick="copyMessage()">📋 복사</button>
         </div>
       </div>
-      <div id="message-loading" class="hidden" style="text-align:center;padding:30px;color:var(--text-muted);">
-        <span class="loading-dots">메시지를 생성하는 중</span>
-      </div>
-      <div class="message-preview" id="message-preview" contenteditable="false">아직 메시지가 생성되지 않았습니다. 위에서 생성 버튼을 누르거나 직접 작성해주세요.</div>
+      <div id="message-loading" class="hidden" style="text-align:center;padding:30px;color:var(--text-muted);">메시지를 생성하는 중...</div>
+      <div class="message-preview" id="message-preview" contenteditable="false">생성 버튼을 눌러주세요.</div>
     </div>
   </div>
 </div>
 
 </main>
+</div>
+</div>
 
-<!-- ======== MODALS ======== -->
+<!-- ===== MODALS ===== -->
+
+<!-- 로그아웃 모달 -->
+<div class="modal-overlay" id="modal-logout">
+  <div class="modal" style="max-width:380px;text-align:center;">
+    <div style="font-size:48px;margin-bottom:12px;">👋</div>
+    <h3 style="font-size:17px;font-weight:700;margin-bottom:6px;" id="logout-modal-name">이름</h3>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:24px;" id="logout-modal-email">이메일</p>
+    <div style="display:flex;gap:10px;">
+      <button class="btn btn-secondary w-full" onclick="closeModal('modal-logout')">취소</button>
+      <button class="btn btn-danger w-full" onclick="doLogout()">로그아웃</button>
+    </div>
+  </div>
+</div>
 
 <!-- 콘티 등록 모달 -->
 <div class="modal-overlay" id="modal-conti-register">
   <div class="modal" style="max-width:600px;">
-    <div class="modal-header">
-      <h3>새 콘티 등록</h3>
-      <button class="modal-close" onclick="closeModal('modal-conti-register')">✕</button>
+    <div class="modal-header"><h3>새 콘티 등록</h3><button class="modal-close" onclick="closeModal('modal-conti-register')">✕</button></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">날짜</label><input type="date" class="form-input" id="reg-date"></div>
+      <div class="form-group"><label class="form-label">예배 구분</label><select class="form-select" id="reg-service"><option>주일 9시 예배</option><option>주일 11시 예배</option><option>수요예배</option><option>금요기도회</option></select></div>
     </div>
     <div class="form-row">
-      <div class="form-group">
-        <label class="form-label">날짜</label>
-        <input type="date" class="form-input" id="reg-date">
-      </div>
-      <div class="form-group">
-        <label class="form-label">예배 구분</label>
-        <select class="form-select" id="reg-service">
-          <option>주일 9시 예배</option><option>주일 11시 예배</option>
-          <option>수요예배</option><option>금요기도회</option>
-        </select>
-      </div>
+      <div class="form-group"><label class="form-label">담당자</label><input type="text" class="form-input" id="reg-leader" placeholder="이름"></div>
+      <div class="form-group"><label class="form-label">직책</label><select class="form-select" id="reg-role"><option>목사</option><option>전도사</option><option>집사</option><option>장로</option><option>권사</option><option>성도</option><option>청춘</option><option>학생</option></select></div>
     </div>
-    <div class="form-row">
-      <div class="form-group">
-        <label class="form-label">담당자</label>
-        <input type="text" class="form-input" id="reg-leader" placeholder="이름">
-      </div>
-      <div class="form-group">
-        <label class="form-label">직책</label>
-        <select class="form-select" id="reg-role">
-          <option>목사</option><option>전도사</option><option>집사</option>
-          <option>장로</option><option>권사</option><option>성도</option>
-          <option>청춘</option><option>학생</option>
-        </select>
-      </div>
-    </div>
-    <div class="form-group">
-      <label class="form-label">말씀 구절</label>
-      <input type="text" class="form-input" id="reg-verse" placeholder="예: 여호수아 1:9">
-    </div>
-    <div class="form-group">
-      <label class="form-label">메시지 / 설교 주제</label>
-      <textarea class="form-textarea" id="reg-message" placeholder="이번 주 전달사항, 주제 등..."></textarea>
-    </div>
-    <div class="form-group">
-      <label class="form-label">연습 시간</label>
-      <input type="time" class="form-input" id="reg-practice" value="08:00">
-    </div>
+    <div class="form-group"><label class="form-label">말씀 구절</label><input type="text" class="form-input" id="reg-verse" placeholder="예: 여호수아 1:9"></div>
+    <div class="form-group"><label class="form-label">메시지 / 주제</label><textarea class="form-textarea" id="reg-message" placeholder="전달사항, 설교 주제 등..."></textarea></div>
+    <div class="form-group"><label class="form-label">연습 시간</label><input type="time" class="form-input" id="reg-practice" value="08:00"></div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModal('modal-conti-register')">취소</button>
       <button class="btn btn-primary" onclick="registerConti()">등록</button>
@@ -1379,81 +563,25 @@ body {
 </div>
 
 <!-- 악보 추가 모달 -->
-<!-- Score Viewer Modal -->
-<div class="modal-overlay" id="modal-score-viewer">
-  <div class="modal" style="max-width:780px;width:95%;">
-    <div class="modal-header">
-      <h3 id="score-viewer-title">악보 보기</h3>
-      <button class="modal-close" onclick="closeModal('modal-score-viewer')">✕</button>
-    </div>
-    <div id="score-viewer-body" style="max-height:75vh;overflow-y:auto;"></div>
-  </div>
-</div>
-
 <div class="modal-overlay" id="modal-add-song">
   <div class="modal">
-    <div class="modal-header">
-      <h3>악보 추가</h3>
-      <button class="modal-close" onclick="closeModal('modal-add-song')">✕</button>
+    <div class="modal-header"><h3>악보 추가</h3><button class="modal-close" onclick="closeModal('modal-add-song')">✕</button></div>
+    <div class="form-group"><label class="form-label">곡명 *</label><input type="text" class="form-input" id="add-title" placeholder="곡명 입력"></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">키 (Key)</label><select class="form-select" id="add-key"><option>C</option><option>D</option><option>E</option><option>F</option><option>G</option><option>A</option><option>B</option><option>Bb</option><option>Eb</option><option>Ab</option></select></div>
+      <div class="form-group"><label class="form-label">아티스트</label><input type="text" class="form-input" id="add-artist" placeholder="아티스트명"></div>
     </div>
-    <div class="tab-list">
-      <button class="tab-btn active" onclick="switchTab(this,'tab-single')">단일 추가</button>
-      <button class="tab-btn" onclick="switchTab(this,'tab-bulk')">일괄 임포트</button>
+    <div class="form-group"><label class="form-label">BPM</label><input type="number" class="form-input" id="add-bpm" placeholder="예: 76"></div>
+    <div class="form-group"><label class="form-label">유튜브 링크</label><input type="text" class="form-input" id="add-youtube" placeholder="https://youtube.com/..."></div>
+    <div class="form-group">
+      <label class="form-label">악보 파일</label>
+      <input type="file" id="add-file-input" accept="image/*,.pdf" multiple style="display:none;" onchange="handleFileSelect(this)">
+      <div class="file-upload-area" onclick="document.getElementById('add-file-input').click()">
+        <div style="font-size:32px;margin-bottom:8px;">📁</div>
+        <p style="font-size:13px;color:var(--text-muted);">클릭하여 파일 선택</p>
+      </div>
+      <div id="add-file-preview" style="margin-top:8px;font-size:13px;color:var(--olive);"></div>
     </div>
-    
-    <!-- 단일 추가 탭 -->
-    <div class="tab-pane active" id="tab-single">
-      <div class="form-group">
-        <label class="form-label">곡명 *</label>
-        <input type="text" class="form-input" id="add-title" placeholder="곡명 입력">
-      </div>
-      <div class="form-row">
-        <div class="form-group">
-          <label class="form-label">키 (Key)</label>
-          <select class="form-select" id="add-key">
-            <option>C</option><option>D</option><option>E</option><option>F</option>
-            <option>G</option><option>A</option><option>B</option><option>Bb</option>
-            <option>Eb</option><option>Ab</option><option>F#</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label class="form-label">아티스트</label>
-          <input type="text" class="form-input" id="add-artist" placeholder="아티스트명">
-        </div>
-      </div>
-      <div class="form-group">
-        <label class="form-label">BPM</label>
-        <input type="number" class="form-input" id="add-bpm" placeholder="예: 76">
-      </div>
-      <div class="form-group">
-        <label class="form-label">유튜브 링크</label>
-        <input type="text" class="form-input" id="add-youtube" placeholder="https://youtube.com/watch?v=...">
-      </div>
-      <div class="form-group">
-        <label class="form-label">악보 파일 (이미지 / PDF)</label>
-        <!-- 파일 업로드: 클릭 방식 -->
-        <input type="file" id="add-file-input" accept="image/*,.pdf" multiple style="display:none;" onchange="handleFileSelect(this,'add-file-preview')">
-        <div class="file-upload-area" onclick="document.getElementById('add-file-input').click()">
-          <div class="icon">📁</div>
-          <p><strong>클릭하여 파일 선택</strong></p>
-          <p style="font-size:11px;margin-top:4px;">이미지(JPG, PNG) 또는 PDF</p>
-        </div>
-        <div id="add-file-preview" style="margin-top:8px;font-size:13px;color:var(--olive);"></div>
-      </div>
-    </div>
-    
-    <!-- 일괄 임포트 탭 -->
-    <div class="tab-pane" id="tab-bulk">
-      <p class="text-muted mb-4">여러 악보 파일을 한번에 업로드합니다</p>
-      <input type="file" id="bulk-file-input" accept="image/*,.pdf" multiple style="display:none;" onchange="handleBulkFiles(this)">
-      <div class="file-upload-area" onclick="document.getElementById('bulk-file-input').click()">
-        <div class="icon">📁</div>
-        <p><strong>클릭하여 여러 파일 선택</strong></p>
-        <p style="font-size:11px;margin-top:4px;">Ctrl/Cmd + 클릭으로 여러 파일 동시 선택 가능</p>
-      </div>
-      <div id="bulk-file-list" style="margin-top:12px;"></div>
-    </div>
-
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModal('modal-add-song')">취소</button>
       <button class="btn btn-primary" onclick="addSong()">추가</button>
@@ -1464,18 +592,12 @@ body {
 <!-- 폴더 추가 모달 -->
 <div class="modal-overlay" id="modal-add-folder">
   <div class="modal" style="max-width:420px;">
-    <div class="modal-header">
-      <h3>새 폴더 만들기</h3>
-      <button class="modal-close" onclick="closeModal('modal-add-folder')">✕</button>
-    </div>
-    <div class="form-group">
-      <label class="form-label">폴더 이름</label>
-      <input type="text" class="form-input" id="folder-name" placeholder="예: FIA, 경배와찬양, 복음성가">
-    </div>
+    <div class="modal-header"><h3>새 폴더 만들기</h3><button class="modal-close" onclick="closeModal('modal-add-folder')">✕</button></div>
+    <div class="form-group"><label class="form-label">폴더 이름</label><input type="text" class="form-input" id="folder-name" placeholder="예: FIA, 경배와찬양"></div>
     <div class="form-group">
       <label class="form-label">아이콘</label>
       <div style="display:flex;gap:8px;flex-wrap:wrap;" id="folder-icon-picker">
-        <span onclick="selectFolderIcon(this)" class="folder-icon-opt" style="font-size:24px;cursor:pointer;padding:6px;border-radius:8px;border:2px solid transparent;">📂</span>
+        <span onclick="selectFolderIcon(this)" class="folder-icon-opt" style="font-size:24px;cursor:pointer;padding:6px;border-radius:8px;border:2px solid var(--olive);">📂</span>
         <span onclick="selectFolderIcon(this)" class="folder-icon-opt" style="font-size:24px;cursor:pointer;padding:6px;border-radius:8px;border:2px solid transparent;">🎵</span>
         <span onclick="selectFolderIcon(this)" class="folder-icon-opt" style="font-size:24px;cursor:pointer;padding:6px;border-radius:8px;border:2px solid transparent;">🙏</span>
         <span onclick="selectFolderIcon(this)" class="folder-icon-opt" style="font-size:24px;cursor:pointer;padding:6px;border-radius:8px;border:2px solid transparent;">✝️</span>
@@ -1493,18 +615,9 @@ body {
 <!-- 희망곡 추가 모달 -->
 <div class="modal-overlay" id="modal-add-wish">
   <div class="modal" style="max-width:420px;">
-    <div class="modal-header">
-      <h3>희망곡 추가</h3>
-      <button class="modal-close" onclick="closeModal('modal-add-wish')">✕</button>
-    </div>
-    <div class="form-group">
-      <label class="form-label">곡명</label>
-      <input type="text" class="form-input" id="wish-title" placeholder="희망곡 이름">
-    </div>
-    <div class="form-group">
-      <label class="form-label">파트 메모</label>
-      <input type="text" class="form-input" id="wish-part" placeholder="예: 드럼 - 4비트로 하면 좋겠어요">
-    </div>
+    <div class="modal-header"><h3>희망곡 추가</h3><button class="modal-close" onclick="closeModal('modal-add-wish')">✕</button></div>
+    <div class="form-group"><label class="form-label">곡명</label><input type="text" class="form-input" id="wish-title" placeholder="희망곡 이름"></div>
+    <div class="form-group"><label class="form-label">메모</label><input type="text" class="form-input" id="wish-part" placeholder="예: 드럼 - 4비트로 하면 좋겠어요"></div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModal('modal-add-wish')">취소</button>
       <button class="btn btn-primary" onclick="addWish()">추가</button>
@@ -1512,43 +625,11 @@ body {
   </div>
 </div>
 
-<!-- 악보 메모 추가 모달 -->
-<div class="modal-overlay" id="modal-add-memo">
-  <div class="modal" style="max-width:420px;">
-    <div class="modal-header">
-      <h3>악보 메모 추가</h3>
-      <button class="modal-close" onclick="closeModal('modal-add-memo')">✕</button>
-    </div>
-    <div class="form-group">
-      <label class="form-label">곡 선택</label>
-      <select class="form-select" id="memo-song"></select>
-    </div>
-    <div class="form-group">
-      <label class="form-label">인트로 방식</label>
-      <input type="text" class="form-input" id="memo-intro" placeholder="예: 피아노 솔로 → 밴드 인">
-    </div>
-    <div class="form-group">
-      <label class="form-label">세션 메모</label>
-      <textarea class="form-textarea" id="memo-content" placeholder="세션별 특이사항, 키 변경, 전주 방식 등..."></textarea>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-secondary" onclick="closeModal('modal-add-memo')">취소</button>
-      <button class="btn btn-primary" onclick="addMemo()">저장</button>
-    </div>
-  </div>
-</div>
-
 <!-- 폴더에 악보 추가 모달 -->
 <div class="modal-overlay" id="modal-add-to-folder">
   <div class="modal" style="max-width:420px;">
-    <div class="modal-header">
-      <h3 id="add-to-folder-title">폴더에 악보 추가</h3>
-      <button class="modal-close" onclick="closeModal('modal-add-to-folder')">✕</button>
-    </div>
-    <div class="form-group">
-      <label class="form-label">악보 선택</label>
-      <select class="form-select" id="folder-song-select"></select>
-    </div>
+    <div class="modal-header"><h3 id="add-to-folder-title">폴더에 악보 추가</h3><button class="modal-close" onclick="closeModal('modal-add-to-folder')">✕</button></div>
+    <div class="form-group"><label class="form-label">악보 선택</label><select class="form-select" id="folder-song-select"></select></div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModal('modal-add-to-folder')">취소</button>
       <button class="btn btn-primary" onclick="addSongToFolder()">추가</button>
@@ -1556,114 +637,169 @@ body {
   </div>
 </div>
 
-<!-- TOAST -->
 <div id="toast"></div>
 
 <script>
-// ===== DATA STORE =====
-const DEFAULT_SONGS = [
-  { id: 1, title: '주 예수보다 더 귀한 것은 없네', key: 'Bb', artist: '아이자야씩스티원', bpm: 64, youtube: 'https://www.youtube.com/watch?v=O66SLvLJWNY', lastUsed: '2026.05.04' },
-  { id: 2, title: '나의 죄를 씻기는', key: 'G', artist: 'FIA ver.', bpm: 105, youtube: 'https://www.youtube.com/watch?v=6UqoAZwp6QY', lastUsed: '2026.04.30' },
-  { id: 3, title: '예수 하나님의 공의', key: 'D', artist: 'This Kingdom (아이자야)', bpm: 66, youtube: 'https://www.youtube.com/watch?v=PNfbZIAiEuI', lastUsed: '2026.04.30' },
-  { id: 4, title: '나의 하나님', key: 'D', artist: '박우정', bpm: null, youtube: '', lastUsed: '2026.05.04' },
-];
+// ===== SUPABASE INIT =====
+const SUPABASE_URL = 'https://uvyahitvpuvtwcejavqj.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_3IC1yuQtNDFpNKxBCmFGNQ_G-RNoGTz';
+const { createClient } = supabase;
+const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-const DEFAULT_WEEKLY = [
-  {
-    id: 1, year: 2026, month: 5, week: 1, service: '주일 9시 예배',
-    leader: '박전도사', role: '전도사', practiceTime: '08:00',
-    verse: '여호수아 1:9', message: '기나긴 전쟁에서 승리하고 가나안을 점령했지만, 또 다시 끝나지 않는 과업을 맞이하는 여호수아와 백성들.',
-    songs: [1,2,3,4]
-  }
-];
-
-let songs = JSON.parse(localStorage.getItem('wm_songs') || 'null') || DEFAULT_SONGS;
-let weekly = JSON.parse(localStorage.getItem('wm_weekly') || 'null') || DEFAULT_WEEKLY;
-let collections = JSON.parse(localStorage.getItem('wm_collections') || '[]');
-let mypage = JSON.parse(localStorage.getItem('wm_mypage') || '{"name":"","role":"성도","sessions":[],"wishes":[],"memos":[]}');
+// ===== STATE =====
+let currentUser = null;
+let songs = [];
+let weekly = [];
+let collections = [];
+let wishes = [];
 let contiBuilt = [];
 let currentFolderIdx = null;
 let selectedFolderIcon = '📂';
 
-function save() {
-  localStorage.setItem('wm_songs', JSON.stringify(songs));
-  localStorage.setItem('wm_weekly', JSON.stringify(weekly));
-  localStorage.setItem('wm_collections', JSON.stringify(collections));
-  localStorage.setItem('wm_mypage', JSON.stringify(mypage));
+// ===== AUTH =====
+function switchLoginTab(tab) {
+  document.querySelectorAll('.login-tab').forEach(t => t.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById('login-form').style.display = tab === 'login' ? 'block' : 'none';
+  document.getElementById('signup-form').style.display = tab === 'signup' ? 'block' : 'none';
+}
+
+async function doLogin() {
+  const email = document.getElementById('login-email').value.trim();
+  const pw = document.getElementById('login-pw').value;
+  const errEl = document.getElementById('login-error');
+  const loadEl = document.getElementById('login-loading');
+  errEl.style.display = 'none';
+  if (!email || !pw) { errEl.textContent = '이메일과 비밀번호를 입력해주세요'; errEl.style.display = 'block'; return; }
+  loadEl.style.display = 'block';
+  document.getElementById('login-btn').disabled = true;
+  const { data, error } = await sb.auth.signInWithPassword({ email, password: pw });
+  loadEl.style.display = 'none';
+  document.getElementById('login-btn').disabled = false;
+  if (error) { errEl.textContent = '이메일 또는 비밀번호가 틀렸습니다'; errEl.style.display = 'block'; return; }
+  onLogin(data.user);
+}
+
+async function doSignup() {
+  const name = document.getElementById('signup-name').value.trim();
+  const email = document.getElementById('signup-email').value.trim();
+  const pw = document.getElementById('signup-pw').value;
+  const errEl = document.getElementById('signup-error');
+  const loadEl = document.getElementById('signup-loading');
+  errEl.style.display = 'none';
+  if (!name || !email || !pw) { errEl.textContent = '모든 항목을 입력해주세요'; errEl.style.display = 'block'; return; }
+  if (pw.length < 6) { errEl.textContent = '비밀번호는 6자 이상이어야 합니다'; errEl.style.display = 'block'; return; }
+  loadEl.style.display = 'block';
+  document.getElementById('signup-btn').disabled = true;
+  const { data, error } = await sb.auth.signUp({ email, password: pw, options: { data: { name } } });
+  loadEl.style.display = 'none';
+  document.getElementById('signup-btn').disabled = false;
+  if (error) { errEl.textContent = error.message; errEl.style.display = 'block'; return; }
+  // 이메일 확인 필요 없이 바로 로그인
+  if (data.user) {
+    onLogin(data.user);
+  } else {
+    errEl.textContent = '이메일 확인 후 로그인해주세요';
+    errEl.style.display = 'block';
+    errEl.style.color = 'var(--olive)';
+  }
+}
+
+async function doLogout() {
+  await sb.auth.signOut();
+  currentUser = null;
+  songs = []; weekly = []; collections = []; wishes = [];
+  closeModal('modal-logout');
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+}
+
+async function onLogin(user) {
+  currentUser = user;
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  // 사이드바 유저 정보
+  const name = user.user_metadata?.name || user.email?.split('@')[0] || '사용자';
+  document.getElementById('sidebar-name').textContent = name;
+  document.getElementById('sidebar-email').textContent = user.email;
+  document.getElementById('sidebar-avatar').textContent = name.charAt(0).toUpperCase();
+  document.getElementById('logout-modal-name').textContent = name;
+  document.getElementById('logout-modal-email').textContent = user.email;
+  // 데이터 로드
+  await loadAllData();
+  navigate('dashboard');
+}
+
+// ===== DATA LOAD =====
+async function loadAllData() {
+  await Promise.all([loadSongs(), loadWeekly(), loadCollections(), loadWishes()]);
+}
+
+async function loadSongs() {
+  const { data } = await sb.from('songs').select('*').order('created_at', { ascending: false });
+  songs = data || [];
+}
+
+async function loadWeekly() {
+  const { data } = await sb.from('weekly_contis').select('*').order('created_at', { ascending: false });
+  weekly = data || [];
+}
+
+async function loadCollections() {
+  const { data } = await sb.from('collections').select('*').eq('owner', currentUser.id).order('created_at', { ascending: false });
+  collections = data || [];
+}
+
+async function loadWishes() {
+  const { data } = await sb.from('wishes').select('*').eq('owner', currentUser.id).order('created_at', { ascending: false });
+  wishes = data || [];
 }
 
 // ===== NAVIGATION =====
 function navigate(page) {
   document.querySelectorAll('.page-section').forEach(p => p.classList.add('hidden'));
   document.getElementById('page-' + page).classList.remove('hidden');
-  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-  document.querySelectorAll(`[data-page="${page}"]`).forEach(n => n.classList.add('active'));
-  // 탭 유지 + 뒤로가기 지원
-  if (location.hash.replace('#','') !== page) {
-    history.pushState({ page }, '', '#' + page);
-  }
+  document.querySelectorAll('[data-page]').forEach(n => {
+    n.classList.toggle('active', n.dataset.page === page);
+  });
   renderPage(page);
 }
 
-// 뒤로가기/앞으로가기 버튼 지원
-window.addEventListener('popstate', (e) => {
-  const page = (e.state && e.state.page) || 'dashboard';
-  const validPages = ['dashboard','weekly','archive','collections','mypage','conti','merge','message'];
-  if (validPages.includes(page)) {
-    document.querySelectorAll('.page-section').forEach(p => p.classList.add('hidden'));
-    document.getElementById('page-' + page).classList.remove('hidden');
-    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-    document.querySelectorAll(`[data-page="${page}"]`).forEach(n => n.classList.add('active'));
-    renderPage(page);
-  }
-});
-
-// ===== SIDEBAR TOGGLE =====
-function toggleSidebar() {
-  const sidebar = document.getElementById('sidebar');
-  const main = document.getElementById('main');
-  const btn = document.getElementById('sidebar-toggle-btn');
-  const collapsed = sidebar.classList.toggle('sidebar-collapsed');
-  main.style.marginLeft = collapsed ? '0px' : '220px';
-  btn.style.left = collapsed ? '8px' : '228px';
-  btn.textContent = collapsed ? '›' : '‹';
-  btn.title = collapsed ? '사이드바 열기' : '사이드바 숨기기';
-  localStorage.setItem('wm_sidebar_collapsed', collapsed);
-}
-
 function renderPage(page) {
-  if (page === 'dashboard') renderDashboard();
-  else if (page === 'weekly') renderWeekly();
-  else if (page === 'archive') renderArchive();
-  else if (page === 'collections') renderCollections();
-  else if (page === 'mypage') renderMyPage();
-  else if (page === 'conti') renderContiPage();
-  else if (page === 'merge') renderMerge();
+  const map = { dashboard: renderDashboard, weekly: renderWeekly, archive: renderArchive, collections: renderCollections, mypage: renderMyPage, conti: renderContiPage, merge: renderMerge };
+  if (map[page]) map[page]();
 }
 
 // ===== DASHBOARD =====
 function renderDashboard() {
   const latest = weekly[0];
-  if (!latest) return;
-  document.getElementById('stat-songs').textContent = latest.songs.length;
   document.getElementById('stat-total').textContent = songs.length;
   document.getElementById('stat-weeks').textContent = weekly.length;
-  
+  document.getElementById('stat-songs').textContent = latest ? (latest.song_ids || []).length : 0;
+
   const list = document.getElementById('dash-conti-list');
-  list.innerHTML = latest.songs.map((sid, i) => {
-    const s = songs.find(x => x.id === sid);
-    if (!s) return '';
-    return `<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);">
-      <div style="width:28px;height:28px;background:var(--olive-pale);color:var(--olive-dark);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;">${i+1}</div>
-      <div style="flex:1;">
-        <div style="font-weight:600;font-size:14px;">${s.title}</div>
-        <div style="font-size:11.5px;color:var(--text-muted);">Key ${s.key} · ${s.artist}</div>
-      </div>
-      <div style="display:flex;gap:8px;">
-        ${s.youtube ? `<a href="${s.youtube}" target="_blank" class="btn btn-ghost btn-sm" style="font-size:12px;">▶ YT</a>` : ''}
-      </div>
-    </div>`;
-  }).join('');
+  if (!latest || !(latest.song_ids || []).length) {
+    list.innerHTML = '<div class="empty-state"><div class="icon">🎶</div><p>등록된 콘티가 없어요</p></div>';
+  } else {
+    list.innerHTML = (latest.song_ids || []).map((sid, i) => {
+      const s = songs.find(x => x.id == sid);
+      if (!s) return '';
+      return `<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);">
+        <div class="song-row-num">${i+1}</div>
+        <div style="flex:1;"><div style="font-weight:600;font-size:14px;">${s.title}</div><div style="font-size:11.5px;color:var(--text-muted);">Key ${s.key} · ${s.artist||''}</div></div>
+        ${s.youtube ? `<a href="${s.youtube}" target="_blank" class="btn btn-ghost btn-sm" style="padding:4px 8px;">▶</a>` : ''}
+      </div>`;
+    }).join('');
+  }
+  // 최근 악보
+  const recentEl = document.getElementById('dash-recent-songs');
+  recentEl.innerHTML = songs.slice(0,4).map(s =>
+    `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;font-size:12.5px;border-bottom:1px solid var(--border);">
+      <span style="font-size:14px;">🎵</span>
+      <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${s.title}</span>
+      <span class="badge badge-key">${s.key}</span>
+    </div>`
+  ).join('') || '<p class="text-muted">없음</p>';
 }
 
 // ===== WEEKLY =====
@@ -1674,182 +810,106 @@ function renderWeekly() {
     <div class="week-card">
       <div class="week-card-header" onclick="toggleWeekCard(${wi})">
         <div>
-          <div class="week-card-title">${w.year}년 ${w.month}월 ${w.week}주 — ${w.service}</div>
-          <div class="week-card-subtitle">찬양 ${w.songs.length}곡 · 연습 ${w.practiceTime} · 담당: ${w.leader||'미정'} ${w.role||''}</div>
+          <div style="font-weight:700;font-size:15px;">${w.year}년 ${w.month}월 ${w.week}주 — ${w.service}</div>
+          <div style="font-size:12px;color:var(--text-muted);">찬양 ${(w.song_ids||[]).length}곡 · 연습 ${w.practice_time||'08:00'}</div>
         </div>
-        <span class="week-card-arrow" id="week-arrow-${wi}">▼</span>
+        <span id="week-arrow-${wi}" style="transition:transform .2s;color:var(--text-muted);">▼</span>
       </div>
       <div class="week-card-body" id="week-body-${wi}">
-        ${w.verse ? `<p style="font-size:13px;color:var(--olive-dark);font-weight:600;margin-bottom:10px;">📖 ${w.verse}${w.message ? ' — ' + w.message : ''}</p>` : ''}
-        ${w.songs.map((sid, i) => {
-          const s = songs.find(x => x.id === sid);
-          if (!s) return '';
-          return `<div class="song-row" style="margin-bottom:6px;">
-            <div class="song-row-header" style="cursor:default;">
-              <div class="song-row-num">${i+1}</div>
-              <div class="song-row-info">
-                <div class="song-row-title">${s.title}</div>
-                <div class="song-row-meta">Key ${s.key} · ${s.artist}${s.bpm?' · ♩='+s.bpm:''}</div>
-              </div>
-              <div class="song-row-actions">
-                ${s.youtube ? `<a href="${s.youtube}" target="_blank" class="yt-icon-btn" title="유튜브 보기"><svg width="18" height="18" viewBox="0 0 24 24" fill="#cc0000"><path d="M23.5 6.2s-.2-1.6-.9-2.3c-.9-1-1.9-1-2.3-1.1C17.2 2.6 12 2.6 12 2.6s-5.2 0-8.3.2c-.5.1-1.4.1-2.3 1.1-.7.7-.9 2.3-.9 2.3S.3 8 .3 9.8v1.7c0 1.8.2 3.5.2 3.5s.2 1.6.9 2.3c.9 1 2 .9 2.6 1 1.8.2 7.9.2 7.9.2s5.2 0 8.3-.2c.5-.1 1.4-.1 2.3-1.1.7-.7.9-2.3.9-2.3s.2-1.8.2-3.5V9.8c0-1.8-.2-3.6-.2-3.6zM9.7 15.5V8.1l6.3 3.7-6.3 3.7z"/></svg></a>` : ''}
-              </div>
-            </div>
+        ${w.verse ? `<p style="font-size:13px;color:var(--olive-dark);font-weight:600;margin-bottom:10px;">📖 ${w.verse}</p>` : ''}
+        ${(w.song_ids||[]).map((sid,i) => {
+          const s = songs.find(x=>x.id==sid);
+          if(!s) return '';
+          return `<div style="display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--border);">
+            <div class="song-row-num">${i+1}</div>
+            <div style="flex:1;"><div style="font-weight:600;font-size:14px;">${s.title}</div><div style="font-size:11px;color:var(--text-muted);">Key ${s.key}</div></div>
+            ${s.youtube?`<a href="${s.youtube}" target="_blank" class="btn btn-ghost btn-sm" style="padding:4px 8px;">▶</a>`:''}
           </div>`;
         }).join('')}
-        <!-- 피드백 -->
-        <div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border);">
-          <div style="font-size:12px;font-weight:600;color:var(--text-muted);margin-bottom:6px;">💬 찬양 피드백</div>
-          <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">
-            <button class="reaction-btn" onclick="toggleWeekReaction(${wi},this,'🙌')"><span>🙌</span><span class="count">0</span></button>
-            <button class="reaction-btn" onclick="toggleWeekReaction(${wi},this,'🔥')"><span>🔥</span><span class="count">0</span></button>
-            <button class="reaction-btn" onclick="toggleWeekReaction(${wi},this,'🙏')"><span>🙏</span><span class="count">0</span></button>
-            <button class="reaction-btn" onclick="toggleWeekReaction(${wi},this,'💪')"><span>💪</span><span class="count">0</span></button>
-          </div>
-          <div style="display:flex;gap:6px;">
-            <input type="text" id="feedback-input-${wi}" class="form-input" style="font-size:12px;padding:6px 10px;" placeholder="피드백 남기기...">
-            <button class="btn btn-secondary btn-sm" onclick="submitFeedback(${wi})">등록</button>
-          </div>
-          <div id="feedback-list-${wi}" style="margin-top:8px;display:flex;flex-direction:column;gap:4px;"></div>
-        </div>
       </div>
     </div>
   `).join('');
 }
 
-function toggleWeekReaction(wi, btn, emoji) {
-  btn.classList.toggle('active');
-  const c = btn.querySelector('.count');
-  c.textContent = btn.classList.contains('active') ? parseInt(c.textContent)+1 : parseInt(c.textContent)-1;
-}
-
-function submitFeedback(wi) {
-  const input = document.getElementById(`feedback-input-${wi}`);
-  const text = input.value.trim();
-  if (!text) return;
-  const list = document.getElementById(`feedback-list-${wi}`);
-  const name = (mypage && mypage.name) ? mypage.name : '익명';
-  const item = document.createElement('div');
-  item.style.cssText = 'font-size:12px;padding:5px 8px;background:var(--cream-dark);border-radius:6px;';
-  item.innerHTML = `<b>${name}</b>: ${text}`;
-  list.appendChild(item);
-  input.value = '';
-}
-
 function toggleWeekCard(i) {
-  const body = document.getElementById(`week-body-${i}`);
+  document.getElementById(`week-body-${i}`).classList.toggle('open');
   const arrow = document.getElementById(`week-arrow-${i}`);
-  body.classList.toggle('open');
-  arrow.classList.toggle('open');
+  arrow.style.transform = arrow.style.transform === 'rotate(180deg)' ? '' : 'rotate(180deg)';
 }
 
 // ===== ARCHIVE =====
 function renderArchive() {
   const q = (document.getElementById('archive-search')?.value || '').toLowerCase();
-  const fa = document.getElementById('archive-filter-artist')?.value || '';
-  const fk = document.getElementById('archive-filter-key')?.value || '';
-  
-  let filtered = songs.filter(s => {
-    const matchQ = !q || s.title.toLowerCase().includes(q) || s.artist.toLowerCase().includes(q) || s.key.toLowerCase().includes(q);
-    const matchA = !fa || s.artist.includes(fa);
-    const matchK = !fk || s.key === fk;
-    return matchQ && matchA && matchK;
-  });
-
+  const filtered = songs.filter(s => !q || s.title.toLowerCase().includes(q) || (s.artist||'').toLowerCase().includes(q) || (s.key||'').toLowerCase().includes(q));
   const list = document.getElementById('archive-list');
   if (!filtered.length) { list.innerHTML = '<div class="empty-state"><div class="icon">🎵</div><p>검색 결과가 없습니다</p></div>'; return; }
-  
   list.innerHTML = filtered.map((s, i) => `
     <div class="song-row">
-      <div class="song-row-header" onclick="toggleSongRow(this)">
+      <div class="song-row-header" onclick="toggleSongRow(this,'sb-${s.id}')">
         <div class="song-row-num">${i+1}</div>
         <div class="song-row-info">
           <div class="song-row-title">${s.title}</div>
-          <div class="song-row-meta">
-            <span class="badge badge-key">${s.key}</span>
-            ${s.artist}
-            ${s.lastUsed ? `<span class="last-used-chip" style="margin-left:6px;">🕐 ${s.lastUsed}</span>` : ''}
-          </div>
+          <div class="song-row-meta"><span class="badge badge-key">${s.key}</span> ${s.artist||''}${s.last_used?` · <span class="last-used-chip">🕐 ${s.last_used}</span>`:''}</div>
         </div>
-        <div class="song-row-actions">
-          ${s.youtube ? `<a href="${s.youtube}" target="_blank" class="yt-icon-btn" onclick="event.stopPropagation()" title="유튜브"><svg width="18" height="18" viewBox="0 0 24 24" fill="#cc0000"><path d="M23.5 6.2s-.2-1.6-.9-2.3c-.9-1-1.9-1-2.3-1.1C17.2 2.6 12 2.6 12 2.6s-5.2 0-8.3.2c-.5.1-1.4.1-2.3 1.1-.7.7-.9 2.3-.9 2.3S.3 8 .3 9.8v1.7c0 1.8.2 3.5.2 3.5s.2 1.6.9 2.3c.9 1 2 .9 2.6 1 1.8.2 7.9.2 7.9.2s5.2 0 8.3-.2c.5-.1 1.4-.1 2.3-1.1.7-.7.9-2.3.9-2.3s.2-1.8.2-3.5V9.8c0-1.8-.2-3.6-.2-3.6zM9.7 15.5V8.1l6.3 3.7-6.3 3.7z"/></svg></a>` : ''}
-          ${s.fileData ? `<button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();viewScore(${s.id})" title="악보 보기">🎼</button>` : ''}
-          <button class="song-row-expand">▼</button>
+        <div style="display:flex;gap:8px;align-items:center;">
+          ${s.youtube?`<a href="${s.youtube}" target="_blank" class="btn btn-ghost btn-sm" style="padding:4px 8px;" onclick="event.stopPropagation()">▶</a>`:''}
+          <button class="expand-btn" id="exp-${s.id}">▼</button>
         </div>
       </div>
-      <div class="song-row-body" id="song-body-${s.id}">
-        <div class="song-row-body-grid">
-          <div>
-            <div class="text-muted">키 / BPM</div>
-            <div style="font-weight:600;">${s.key} / ${s.bpm ? '♩='+s.bpm : '-'}</div>
-          </div>
-          <div>
-            <div class="text-muted">아티스트</div>
-            <div style="font-weight:600;">${s.artist}</div>
-          </div>
-          <div>
-            <div class="text-muted">마지막 사용</div>
-            <div style="font-weight:600;">${s.lastUsed || '-'}</div>
-          </div>
+      <div class="song-row-body" id="sb-${s.id}">
+        <div style="display:flex;gap:20px;flex-wrap:wrap;margin-bottom:10px;">
+          <div><div class="text-muted">키</div><div style="font-weight:600;">${s.key}</div></div>
+          <div><div class="text-muted">BPM</div><div style="font-weight:600;">${s.bpm?'♩='+s.bpm:'-'}</div></div>
+          <div><div class="text-muted">아티스트</div><div style="font-weight:600;">${s.artist||'-'}</div></div>
+          <div><div class="text-muted">마지막 사용</div><div style="font-weight:600;">${s.last_used||'-'}</div></div>
         </div>
-        <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">
-          ${s.youtube ? `<a href="${s.youtube}" target="_blank" class="yt-icon-btn" title="유튜브"><svg width="18" height="18" viewBox="0 0 24 24" fill="#cc0000"><path d="M23.5 6.2s-.2-1.6-.9-2.3c-.9-1-1.9-1-2.3-1.1C17.2 2.6 12 2.6 12 2.6s-5.2 0-8.3.2c-.5.1-1.4.1-2.3 1.1-.7.7-.9 2.3-.9 2.3S.3 8 .3 9.8v1.7c0 1.8.2 3.5.2 3.5s.2 1.6.9 2.3c.9 1 2 .9 2.6 1 1.8.2 7.9.2 7.9.2s5.2 0 8.3-.2c.5-.1 1.4-.1 2.3-1.1.7-.7.9-2.3.9-2.3s.2-1.8.2-3.5V9.8c0-1.8-.2-3.6-.2-3.6zM9.7 15.5V8.1l6.3 3.7-6.3 3.7z"/></svg></a>` : ''}
-          ${s.fileData ? `<button class="btn btn-secondary btn-sm" onclick="viewScore(${s.id})">🎼 악보 보기</button>` : '<span style="font-size:12px;color:var(--text-muted);">첨부 파일 없음</span>'}
-          <button class="btn btn-ghost btn-sm" onclick="deleteSong(${s.id})">🗑 삭제</button>
-        </div>
+        <button class="btn btn-ghost btn-sm" onclick="deleteSong(${s.id})">🗑 삭제</button>
       </div>
     </div>
   `).join('');
 }
 
-function toggleSongRow(header) {
-  const expand = header.querySelector('.song-row-expand');
-  const sid = header.closest('.song-row').querySelector('[id^="song-body-"]')?.id?.replace('song-body-','');
-  if (!sid) return;
-  const body = document.getElementById(`song-body-${sid}`);
-  if (!body) return;
+function toggleSongRow(header, bodyId) {
+  const body = document.getElementById(bodyId);
+  const sid = bodyId.replace('sb-','');
+  const btn = document.getElementById(`exp-${sid}`);
   body.classList.toggle('open');
-  if (expand) expand.classList.toggle('open');
+  if(btn) btn.classList.toggle('open');
 }
 
-function deleteSong(id) {
+async function deleteSong(id) {
   if (!confirm('이 악보를 삭제하시겠습니까?')) return;
-  songs = songs.filter(s => s.id !== id);
-  save(); renderArchive(); showToast('악보가 삭제됐습니다');
+  await sb.from('songs').delete().eq('id', id);
+  await loadSongs(); renderArchive(); showToast('악보가 삭제됐습니다');
 }
 
 // ===== COLLECTIONS =====
 function renderCollections() {
   const list = document.getElementById('collections-list');
-  if (!collections.length) {
-    list.innerHTML = '<div class="empty-state"><div class="icon">📂</div><p>폴더가 없습니다<br><small>상단의 + 폴더 추가를 눌러 만들어보세요</small></p></div>';
-    return;
-  }
+  if (!collections.length) { list.innerHTML = '<div class="empty-state"><div class="icon">📂</div><p>폴더가 없습니다<br><small>+ 폴더 추가를 눌러 만들어보세요</small></p></div>'; return; }
   list.innerHTML = collections.map((folder, fi) => `
     <div class="collection-folder">
       <div class="folder-header" onclick="toggleFolder(${fi})">
-        <span class="folder-icon">${folder.icon}</span>
-        <span class="folder-name">${folder.name}</span>
-        <span class="folder-count">${(folder.songs||[]).length}곡</span>
+        <span style="font-size:20px;">${folder.icon||'📂'}</span>
+        <span style="font-weight:700;flex:1;">${folder.name}</span>
+        <span style="font-size:11px;color:var(--text-muted);">${(folder.song_ids||[]).length}곡</span>
         <div style="display:flex;gap:6px;" onclick="event.stopPropagation()">
           <button class="btn btn-ghost btn-sm" onclick="openAddToFolder(${fi})">+ 추가</button>
-          <button class="btn btn-ghost btn-sm" onclick="deleteFolder(${fi})" style="color:var(--danger);">🗑</button>
+          <button class="btn btn-ghost btn-sm" style="color:var(--danger);" onclick="deleteFolder(${fi})">🗑</button>
         </div>
-        <span class="folder-arrow" id="folder-arrow-${fi}">▶</span>
+        <span id="folder-arrow-${fi}" style="transition:transform .2s;color:var(--text-muted);">▶</span>
       </div>
       <div class="folder-body" id="folder-body-${fi}">
-        ${!(folder.songs||[]).length ? '<p class="text-muted" style="padding:8px 6px;">악보를 추가해보세요</p>' :
-          folder.songs.map(sid => {
-            const s = songs.find(x => x.id === sid);
-            if (!s) return '';
+        ${!(folder.song_ids||[]).length ? '<p class="text-muted" style="padding:8px 6px;">악보를 추가해보세요</p>' :
+          (folder.song_ids||[]).map(sid => {
+            const s = songs.find(x=>x.id==sid);
+            if(!s) return '';
             return `<div class="folder-song-item">
-              <span>🎵</span>
-              <span style="flex:1;font-weight:500;">${s.title}</span>
+              <span>🎵</span><span style="flex:1;font-weight:500;">${s.title}</span>
               <span class="badge badge-key">${s.key}</span>
-              <button class="folder-song-remove" onclick="removeSongFromFolder(${fi},${sid})">✕</button>
+              <button onclick="removeSongFromFolder(${fi},${sid})" style="background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:14px;margin-left:6px;">✕</button>
             </div>`;
-          }).join('')
-        }
+          }).join('')}
       </div>
     </div>
   `).join('');
@@ -1859,37 +919,37 @@ function toggleFolder(i) {
   const body = document.getElementById(`folder-body-${i}`);
   const arrow = document.getElementById(`folder-arrow-${i}`);
   body.classList.toggle('open');
-  arrow.classList.toggle('open');
+  arrow.style.transform = body.classList.contains('open') ? 'rotate(90deg)' : '';
 }
 
 function openAddToFolder(fi) {
   currentFolderIdx = fi;
   document.getElementById('add-to-folder-title').textContent = `"${collections[fi].name}" 폴더에 악보 추가`;
-  const sel = document.getElementById('folder-song-select');
-  sel.innerHTML = songs.map(s => `<option value="${s.id}">${s.title} (${s.key})</option>`).join('');
+  document.getElementById('folder-song-select').innerHTML = songs.map(s => `<option value="${s.id}">${s.title} (${s.key})</option>`).join('');
   openModal('modal-add-to-folder');
 }
 
-function addSongToFolder() {
+async function addSongToFolder() {
   const sid = parseInt(document.getElementById('folder-song-select').value);
   if (currentFolderIdx === null) return;
-  if (!collections[currentFolderIdx].songs) collections[currentFolderIdx].songs = [];
-  if (!collections[currentFolderIdx].songs.includes(sid)) {
-    collections[currentFolderIdx].songs.push(sid);
-    save(); renderCollections(); showToast('악보가 추가됐습니다');
-  }
-  closeModal('modal-add-to-folder');
+  const folder = collections[currentFolderIdx];
+  const ids = [...(folder.song_ids || [])];
+  if (!ids.includes(sid)) ids.push(sid);
+  await sb.from('collections').update({ song_ids: ids }).eq('id', folder.id);
+  await loadCollections(); renderCollections(); closeModal('modal-add-to-folder'); showToast('악보가 추가됐습니다');
 }
 
-function removeSongFromFolder(fi, sid) {
-  collections[fi].songs = (collections[fi].songs || []).filter(s => s !== sid);
-  save(); renderCollections();
+async function removeSongFromFolder(fi, sid) {
+  const folder = collections[fi];
+  const ids = (folder.song_ids || []).filter(s => s != sid);
+  await sb.from('collections').update({ song_ids: ids }).eq('id', folder.id);
+  await loadCollections(); renderCollections();
 }
 
-function deleteFolder(fi) {
+async function deleteFolder(fi) {
   if (!confirm(`"${collections[fi].name}" 폴더를 삭제하시겠습니까?`)) return;
-  collections.splice(fi, 1);
-  save(); renderCollections(); showToast('폴더가 삭제됐습니다');
+  await sb.from('collections').delete().eq('id', collections[fi].id);
+  await loadCollections(); renderCollections(); showToast('폴더가 삭제됐습니다');
 }
 
 function selectFolderIcon(el) {
@@ -1898,135 +958,69 @@ function selectFolderIcon(el) {
   selectedFolderIcon = el.textContent;
 }
 
-function addFolder() {
+async function addFolder() {
   const name = document.getElementById('folder-name').value.trim();
   if (!name) { showToast('폴더 이름을 입력해주세요'); return; }
-  collections.push({ name, icon: selectedFolderIcon, songs: [] });
-  save(); closeModal('modal-add-folder');
+  await sb.from('collections').insert({ name, icon: selectedFolderIcon, song_ids: [], owner: currentUser.id });
+  await loadCollections(); closeModal('modal-add-folder'); navigate('collections');
   document.getElementById('folder-name').value = '';
-  navigate('collections'); showToast('폴더가 생성됐습니다 🎉');
+  showToast('폴더가 생성됐습니다 🎉');
 }
 
 // ===== MYPAGE =====
 function renderMyPage() {
-  document.getElementById('my-name').value = mypage.name || '';
-  document.getElementById('my-role').value = mypage.role || '성도';
-  
-  // Sessions
-  document.querySelectorAll('.session-badge').forEach(b => {
-    const sess = b.textContent.trim().replace(/^[\S]+\s/, '');
-    if ((mypage.sessions||[]).some(s => b.textContent.includes(s))) b.classList.add('active');
-  });
-  
+  const name = currentUser.user_metadata?.name || '';
+  document.getElementById('my-name').value = name;
+  document.getElementById('my-email-display').textContent = currentUser.email;
   renderWishes();
-  renderMemos();
-  
-  // Populate memo song select
-  const memoSel = document.getElementById('memo-song');
-  if (memoSel) memoSel.innerHTML = songs.map(s => `<option value="${s.id}">${s.title}</option>`).join('');
 }
 
-function toggleSession(el, name) {
-  el.classList.toggle('active');
-  const idx = (mypage.sessions||[]).indexOf(name);
-  if (idx > -1) mypage.sessions.splice(idx, 1);
-  else { if (!mypage.sessions) mypage.sessions = []; mypage.sessions.push(name); }
-  save();
-}
-
-function saveMyPage() {
-  mypage.name = document.getElementById('my-name').value;
-  mypage.role = document.getElementById('my-role').value;
-  save();
+async function saveProfile() {
+  const name = document.getElementById('my-name').value;
+  await sb.auth.updateUser({ data: { name } });
+  document.getElementById('sidebar-name').textContent = name;
+  document.getElementById('sidebar-avatar').textContent = name.charAt(0).toUpperCase();
+  showToast('저장됐습니다');
 }
 
 function renderWishes() {
   const list = document.getElementById('wish-list');
-  if (!(mypage.wishes||[]).length) {
-    list.innerHTML = '<div class="empty-state"><div class="icon">🎶</div><p>희망곡을 추가해보세요</p></div>';
-    return;
-  }
-  list.innerHTML = mypage.wishes.map((w, i) => `
+  if (!wishes.length) { list.innerHTML = '<div class="empty-state"><div class="icon">🎶</div><p>희망곡을 추가해보세요</p></div>'; return; }
+  list.innerHTML = wishes.map((w, i) => `
     <div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);">
       <span style="font-size:16px;">🎵</span>
-      <div style="flex:1;">
-        <div style="font-weight:600;font-size:14px;">${w.title}</div>
-        ${w.part ? `<div class="text-muted">${w.part}</div>` : ''}
-      </div>
-      <button onclick="removeWish(${i})" style="background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:16px;">✕</button>
+      <div style="flex:1;"><div style="font-weight:600;font-size:14px;">${w.title}</div>${w.part?`<div class="text-muted">${w.part}</div>`:''}</div>
+      <button onclick="removeWish(${w.id})" style="background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:16px;">✕</button>
     </div>
   `).join('');
 }
 
-function addWish() {
+async function addWish() {
   const title = document.getElementById('wish-title').value.trim();
   if (!title) return;
-  if (!mypage.wishes) mypage.wishes = [];
-  mypage.wishes.push({ title, part: document.getElementById('wish-part').value });
-  save(); closeModal('modal-add-wish'); renderWishes();
+  await sb.from('wishes').insert({ title, part: document.getElementById('wish-part').value, owner: currentUser.id });
+  await loadWishes(); closeModal('modal-add-wish'); renderWishes();
   document.getElementById('wish-title').value = '';
   document.getElementById('wish-part').value = '';
   showToast('희망곡이 추가됐습니다 🎵');
 }
 
-function removeWish(i) {
-  mypage.wishes.splice(i, 1);
-  save(); renderWishes();
-}
-
-function renderMemos() {
-  const list = document.getElementById('song-memo-items');
-  if (!(mypage.memos||[]).length) { list.innerHTML = ''; return; }
-  list.innerHTML = mypage.memos.map((m, i) => {
-    const s = songs.find(x => x.id === m.songId);
-    return `<div class="card card-sm" style="margin-bottom:8px;">
-      <div style="font-weight:700;font-size:14px;margin-bottom:4px;">${s ? s.title : '삭제된 악보'}</div>
-      ${m.intro ? `<div class="text-muted">🎵 인트로: ${m.intro}</div>` : ''}
-      ${m.content ? `<div style="font-size:13px;margin-top:4px;">${m.content}</div>` : ''}
-      <button onclick="removeMemo(${i})" style="background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:12px;margin-top:6px;">삭제</button>
-    </div>`;
-  }).join('');
-}
-
-function addMemo() {
-  const songId = parseInt(document.getElementById('memo-song').value);
-  if (!mypage.memos) mypage.memos = [];
-  mypage.memos.push({
-    songId,
-    intro: document.getElementById('memo-intro').value,
-    content: document.getElementById('memo-content').value
-  });
-  save(); closeModal('modal-add-memo'); renderMemos();
-  document.getElementById('memo-intro').value = '';
-  document.getElementById('memo-content').value = '';
-  showToast('메모가 저장됐습니다 📝');
-}
-
-function removeMemo(i) {
-  mypage.memos.splice(i, 1);
-  save(); renderMemos();
+async function removeWish(id) {
+  await sb.from('wishes').delete().eq('id', id);
+  await loadWishes(); renderWishes();
 }
 
 // ===== CONTI MAKER =====
-function renderContiPage() {
-  renderContiPool();
-  renderContiBuilt();
-}
+function renderContiPage() { renderContiPool(); renderContiBuilt(); }
 
 function renderContiPool() {
-  const q = (document.getElementById('conti-search')?.value || '').toLowerCase();
-  const filtered = songs.filter(s => !q || s.title.toLowerCase().includes(q) || s.artist.toLowerCase().includes(q));
-  const pool = document.getElementById('conti-pool');
-  pool.innerHTML = filtered.map(s => {
+  const q = (document.getElementById('conti-search')?.value||'').toLowerCase();
+  const filtered = songs.filter(s => !q || s.title.toLowerCase().includes(q));
+  document.getElementById('conti-pool').innerHTML = filtered.map(s => {
     const inConti = contiBuilt.includes(s.id);
-    return `<div style="display:flex;align-items:center;gap:10px;padding:9px 10px;border-bottom:1px solid var(--border);${inConti?'opacity:0.5;':''}">
-      <div style="flex:1;">
-        <div style="font-weight:600;font-size:13.5px;">${s.title}</div>
-        <div style="font-size:11px;color:var(--text-muted);">
-          Key ${s.key} · ${s.artist}
-          ${s.lastUsed ? `<span class="last-used-chip" style="margin-left:4px;">🕐 ${s.lastUsed}</span>` : ''}
-        </div>
-      </div>
+    return `<div style="display:flex;align-items:center;gap:10px;padding:9px 10px;border-bottom:1px solid var(--border);${inConti?'opacity:.5':''}">
+      <div style="flex:1;"><div style="font-weight:600;font-size:13.5px;">${s.title}</div>
+      <div style="font-size:11px;color:var(--text-muted);">Key ${s.key} · ${s.artist||''}${s.last_used?` · <span class="last-used-chip">🕐 ${s.last_used}</span>`:''}</div></div>
       <button class="btn btn-primary btn-sm" ${inConti?'disabled':''} onclick="addToConti(${s.id})">＋</button>
     </div>`;
   }).join('');
@@ -2035,162 +1029,89 @@ function renderContiPool() {
 function addToConti(id) {
   if (contiBuilt.includes(id)) return;
   contiBuilt.push(id);
-  renderContiPool();
-  renderContiBuilt();
+  renderContiPool(); renderContiBuilt();
 }
 
 function removeFromConti(id) {
   contiBuilt = contiBuilt.filter(x => x !== id);
-  renderContiPool();
-  renderContiBuilt();
+  renderContiPool(); renderContiBuilt();
 }
 
-function clearConti() {
-  contiBuilt = [];
-  renderContiPool();
-  renderContiBuilt();
-}
+function clearConti() { contiBuilt = []; renderContiPool(); renderContiBuilt(); }
 
 function renderContiBuilt() {
   const built = document.getElementById('conti-built');
   const empty = document.getElementById('conti-built-empty');
-  if (!contiBuilt.length) {
-    built.innerHTML = '';
-    empty.style.display = '';
-    return;
-  }
+  if (!contiBuilt.length) { built.innerHTML = ''; empty.style.display = ''; return; }
   empty.style.display = 'none';
   built.innerHTML = contiBuilt.map((sid, i) => {
-    const s = songs.find(x => x.id === sid);
+    const s = songs.find(x => x.id == sid);
     if (!s) return '';
     return `<div class="conti-song-item">
       <div class="conti-song-num">${i+1}</div>
-      <div class="conti-song-info">
-        <div class="conti-song-title">${s.title}</div>
-        <div class="conti-song-meta">Key ${s.key} · ${s.artist}</div>
-      </div>
-      <button class="conti-song-remove" onclick="removeFromConti(${sid})">✕</button>
+      <div style="flex:1;"><div style="font-weight:600;font-size:13.5px;">${s.title}</div><div style="font-size:11px;color:var(--text-muted);">Key ${s.key}</div></div>
+      <button onclick="removeFromConti(${sid})" style="background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:16px;">✕</button>
     </div>`;
   }).join('');
 }
 
-function saveContiToWeekly() {
+async function saveContiToWeekly() {
   if (!contiBuilt.length) { showToast('곡을 먼저 추가해주세요'); return; }
   const now = new Date();
-  weekly.unshift({
-    id: Date.now(),
-    year: now.getFullYear(),
-    month: now.getMonth()+1,
+  await sb.from('weekly_contis').insert({
+    year: now.getFullYear(), month: now.getMonth()+1,
     week: Math.ceil(now.getDate()/7),
     service: '주일 9시 예배',
-    leader: mypage.name || '-',
-    role: mypage.role || '성도',
-    practiceTime: '08:00',
-    songs: [...contiBuilt]
+    leader: currentUser.user_metadata?.name || '-',
+    practice_time: '08:00',
+    song_ids: contiBuilt,
+    created_by: currentUser.id
   });
-  // update lastUsed
-  contiBuilt.forEach(sid => {
-    const s = songs.find(x => x.id === sid);
-    if (s) s.lastUsed = now.toLocaleDateString('ko-KR').replace(/\. /g,'.').replace('.','');
-  });
-  save(); showToast('콘티가 저장됐습니다 🎉');
+  // Update last_used
+  const today = now.toISOString().split('T')[0];
+  for (const sid of contiBuilt) {
+    await sb.from('songs').update({ last_used: today }).eq('id', sid);
+  }
+  await loadWeekly(); await loadSongs();
+  showToast('콘티가 저장됐습니다 🎉');
 }
 
-// ===== CONTI REGISTER MODAL =====
-function registerConti() {
+// ===== REGISTER CONTI =====
+async function registerConti() {
   const date = document.getElementById('reg-date').value;
-  const service = document.getElementById('reg-service').value;
-  const leader = document.getElementById('reg-leader').value;
-  const role = document.getElementById('reg-role').value;
-  const verse = document.getElementById('reg-verse').value;
-  const message = document.getElementById('reg-message').value;
-  const practiceTime = document.getElementById('reg-practice').value;
-  
   const d = date ? new Date(date) : new Date();
-  weekly.unshift({
-    id: Date.now(),
-    year: d.getFullYear(), month: d.getMonth()+1,
-    week: Math.ceil(d.getDate()/7),
-    service, leader, role, verse, message, practiceTime,
-    songs: []
+  await sb.from('weekly_contis').insert({
+    year: d.getFullYear(), month: d.getMonth()+1, week: Math.ceil(d.getDate()/7),
+    service: document.getElementById('reg-service').value,
+    leader: document.getElementById('reg-leader').value,
+    verse: document.getElementById('reg-verse').value,
+    message: document.getElementById('reg-message').value,
+    practice_time: document.getElementById('reg-practice').value,
+    song_ids: [], created_by: currentUser.id
   });
-  save(); closeModal('modal-conti-register');
-  showToast('콘티가 등록됐습니다 ✅');
-  setTimeout(() => navigate('dashboard'), 300);
+  await loadWeekly(); closeModal('modal-conti-register'); showToast('콘티가 등록됐습니다 ✅');
+  renderDashboard();
 }
 
 // ===== ADD SONG =====
-function addSong() {
+async function addSong() {
   const title = document.getElementById('add-title').value.trim();
   if (!title) { showToast('곡명을 입력해주세요'); return; }
-  const fileInput = document.getElementById('add-file-input');
-  const file = fileInput.files[0];
-
-  const finalize = (fileData, fileType) => {
-    const newSong = {
-      id: Date.now(),
-      title,
-      key: document.getElementById('add-key').value,
-      artist: document.getElementById('add-artist').value,
-      bpm: parseInt(document.getElementById('add-bpm').value) || null,
-      youtube: document.getElementById('add-youtube').value,
-      fileData: fileData || null,
-      fileType: fileType || null,
-      lastUsed: null
-    };
-    songs.unshift(newSong);
-    save(); closeModal('modal-add-song'); renderArchive();
-    ['add-title','add-artist','add-bpm','add-youtube'].forEach(id => document.getElementById(id).value = '');
-    fileInput.value = '';
-    document.getElementById('add-file-preview').textContent = '파일을 선택하려면 클릭하세요';
-    showToast('악보가 추가됐습니다 🎵');
-  };
-
-  if (file) {
-    const reader = new FileReader();
-    reader.onload = e => finalize(e.target.result, file.type);
-    reader.readAsDataURL(file);
-  } else {
-    finalize(null, null);
-  }
+  await sb.from('songs').insert({
+    title, key: document.getElementById('add-key').value,
+    artist: document.getElementById('add-artist').value,
+    bpm: parseInt(document.getElementById('add-bpm').value) || null,
+    youtube: document.getElementById('add-youtube').value,
+    created_by: currentUser.id
+  });
+  await loadSongs(); closeModal('modal-add-song'); renderArchive();
+  ['add-title','add-artist','add-bpm','add-youtube'].forEach(id => document.getElementById(id).value = '');
+  showToast('악보가 추가됐습니다 🎵');
 }
 
-function handleFileSelect(input, previewId) {
-  const preview = document.getElementById(previewId);
-  if (input.files.length) {
-    const f = input.files[0];
-    preview.innerHTML = `✅ <b>${f.name}</b> (${(f.size/1024).toFixed(1)}KB)`;
-  }
-}
-
-// 악보 뷰어 — 이미지 or PDF
-function viewScore(songId) {
-  const s = songs.find(x => x.id === songId);
-  if (!s) return;
-  const modal = document.getElementById('modal-score-viewer');
-  const title = document.getElementById('score-viewer-title');
-  const body = document.getElementById('score-viewer-body');
-  if (!modal) return;
-  title.textContent = `${s.title} · Key ${s.key}`;
-  if (!s.fileData) {
-    body.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-muted);"><div style="font-size:48px;margin-bottom:12px;">🎵</div><p>등록된 악보 파일이 없습니다</p></div>';
-  } else if (s.fileType && s.fileType.includes('pdf')) {
-    body.innerHTML = `<iframe src="${s.fileData}" style="width:100%;height:70vh;border:none;border-radius:8px;"></iframe>`;
-  } else {
-    body.innerHTML = `<img src="${s.fileData}" style="width:100%;border-radius:8px;display:block;">`;
-  }
-  openModal('modal-score-viewer');
-}
-
-function handleBulkFiles(input) {
-  const list = document.getElementById('bulk-file-list');
-  list.innerHTML = Array.from(input.files).map((f,i) => `
-    <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);">
-      <span>📄</span>
-      <span style="flex:1;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${f.name}</span>
-      <span style="font-size:11px;color:var(--text-muted);">${(f.size/1024).toFixed(1)}KB</span>
-    </div>
-  `).join('');
+function handleFileSelect(input) {
+  const preview = document.getElementById('add-file-preview');
+  if (input.files.length) preview.textContent = '✅ ' + Array.from(input.files).map(f=>f.name).join(', ');
 }
 
 // ===== MERGE =====
@@ -2201,495 +1122,181 @@ function renderMerge() {
     sel.innerHTML = '<option value="">악보 선택...</option>' + songs.map(s => `<option value="${s.id}">${s.title} (${s.key})</option>`).join('');
   });
 }
+function mergePDF() { showToast('PDF 내보내기 기능은 업데이트 예정이에요'); }
 
-function mergePreview() {
-  showToast('미리보기 기능은 업데이트 예정이에요');
-}
-function mergePDF() {
-  showToast('PDF 내보내기 기능은 업데이트 예정이에요');
-}
-
-// ===== BIBLE DROPDOWN =====
+// ===== BIBLE =====
 const BIBLE_DATA = {
-  "구약": {
-    "창세기":50,"출애굽기":40,"레위기":27,"민수기":36,"신명기":34,"여호수아":24,"사사기":21,"룻기":4,
-    "사무엘상":31,"사무엘하":24,"열왕기상":22,"열왕기하":25,"역대상":29,"역대하":36,"에스라":10,
-    "느헤미야":13,"에스더":10,"욥기":42,"시편":150,"잠언":31,"전도서":12,"아가":8,"이사야":66,
-    "예레미야":52,"예레미야애가":5,"에스겔":48,"다니엘":12,"호세아":14,"요엘":3,"아모스":9,
-    "오바댜":1,"요나":4,"미가":7,"나훔":3,"하박국":3,"스바냐":3,"학개":2,"스가랴":14,"말라기":4
-  },
-  "신약": {
-    "마태복음":28,"마가복음":16,"누가복음":24,"요한복음":21,"사도행전":28,"로마서":16,"고린도전서":16,
-    "고린도후서":13,"갈라디아서":6,"에베소서":6,"빌립보서":4,"골로새서":4,"데살로니가전서":5,
-    "데살로니가후서":3,"디모데전서":6,"디모데후서":4,"디도서":3,"빌레몬서":1,"히브리서":13,
-    "야고보서":5,"베드로전서":5,"베드로후서":3,"요한일서":5,"요한이서":1,"요한삼서":1,
-    "유다서":1,"요한계시록":22
-  }
+  "구약":{"창세기":50,"출애굽기":40,"레위기":27,"민수기":36,"신명기":34,"여호수아":24,"사사기":21,"룻기":4,"사무엘상":31,"사무엘하":24,"열왕기상":22,"열왕기하":25,"역대상":29,"역대하":36,"에스라":10,"느헤미야":13,"에스더":10,"욥기":42,"시편":150,"잠언":31,"전도서":12,"아가":8,"이사야":66,"예레미야":52,"예레미야애가":5,"에스겔":48,"다니엘":12,"호세아":14,"요엘":3,"아모스":9,"오바댜":1,"요나":4,"미가":7,"나훔":3,"하박국":3,"스바냐":3,"학개":2,"스가랴":14,"말라기":4},
+  "신약":{"마태복음":28,"마가복음":16,"누가복음":24,"요한복음":21,"사도행전":28,"로마서":16,"고린도전서":16,"고린도후서":13,"갈라디아서":6,"에베소서":6,"빌립보서":4,"골로새서":4,"데살로니가전서":5,"데살로니가후서":3,"디모데전서":6,"디모데후서":4,"디도서":3,"빌레몬서":1,"히브리서":13,"야고보서":5,"베드로전서":5,"베드로후서":3,"요한일서":5,"요한이서":1,"요한삼서":1,"유다서":1,"요한계시록":22}
 };
-
-// 각 장의 절 수 (주요 장 샘플 - 실제로는 API 호출로 구절 텍스트 가져옴)
-const VERSE_COUNTS = {};
-// 대략적인 절 수 - 실제 성경 데이터 없이 장당 평균 절수 사용
-function getVerseCount(book, chapter) {
-  const avgVerses = { '시편': 22, '잠언': 20, '이사야': 18, '요한복음': 36 };
-  return avgVerses[book] || 25;
-}
-
-// 주요 성경 구절 샘플 (자주 쓰이는 찬양 관련 구절)
 const SAMPLE_VERSES = {
-  '여호수아_1_9': '강하고 담대하라 두려워하지 말며 놀라지 말라 네가 어디로 가든지 네 하나님 여호와가 너와 함께 하느니라',
-  '시편_100_1': '온 땅이여 여호와께 즐거운 소리를 낼지어다',
-  '시편_150_6': '호흡이 있는 자마다 여호와를 찬양할지어다 할렐루야',
-  '이사야_40_31': '오직 여호와를 앙망하는 자는 새 힘을 얻으리니 독수리가 날개치며 올라감 같을 것이요',
-  '요한복음_3_16': '하나님이 세상을 이처럼 사랑하사 독생자를 주셨으니 이는 그를 믿는 자마다 멸망하지 않고 영생을 얻게 하려 하심이라',
-  '빌립보서_4_13': '내게 능력 주시는 자 안에서 내가 모든 것을 할 수 있느니라',
+  '여호수아_1_9':'강하고 담대하라 두려워하지 말며 놀라지 말라 네가 어디로 가든지 네 하나님 여호와가 너와 함께 하느니라',
+  '시편_100_1':'온 땅이여 여호와께 즐거운 소리를 낼지어다',
+  '시편_150_6':'호흡이 있는 자마다 여호와를 찬양할지어다',
+  '이사야_40_31':'오직 여호와를 앙망하는 자는 새 힘을 얻으리니 독수리가 날개치며 올라감 같을 것이요',
+  '요한복음_3_16':'하나님이 세상을 이처럼 사랑하사 독생자를 주셨으니',
+  '빌립보서_4_13':'내게 능력 주시는 자 안에서 내가 모든 것을 할 수 있느니라',
 };
-
 function updateBibleBooks() {
-  const testament = document.getElementById('bible-testament').value;
-  const bookSel = document.getElementById('bible-book');
-  const chapterSel = document.getElementById('bible-chapter');
-  const verseSel = document.getElementById('bible-verse');
-  
-  bookSel.innerHTML = '<option value="">책 선택</option>';
-  chapterSel.innerHTML = '<option value="">장 선택</option>';
-  verseSel.innerHTML = '<option value="">절 선택</option>';
-  chapterSel.disabled = true;
-  verseSel.disabled = true;
+  const t = document.getElementById('bible-testament').value;
+  const bs = document.getElementById('bible-book');
+  const cs = document.getElementById('bible-chapter');
+  const vs = document.getElementById('bible-verse');
+  bs.innerHTML = '<option value="">책 선택</option>';
+  cs.innerHTML = '<option value="">장 선택</option>'; cs.disabled = true;
+  vs.innerHTML = '<option value="">절 선택</option>'; vs.disabled = true;
   document.getElementById('recommend-btn').disabled = true;
   document.getElementById('bible-verse-display').textContent = '책을 선택해주세요';
-  
-  if (!testament) { bookSel.disabled = true; return; }
-  bookSel.disabled = false;
-  
-  Object.keys(BIBLE_DATA[testament]).forEach(book => {
-    const opt = document.createElement('option');
-    opt.value = book;
-    opt.textContent = book;
-    bookSel.appendChild(opt);
-  });
+  if (!t) { bs.disabled = true; return; }
+  bs.disabled = false;
+  Object.keys(BIBLE_DATA[t]).forEach(b => { const o = document.createElement('option'); o.value=b; o.textContent=b; bs.appendChild(o); });
 }
-
 function updateBibleChapters() {
-  const testament = document.getElementById('bible-testament').value;
-  const book = document.getElementById('bible-book').value;
-  const chapterSel = document.getElementById('bible-chapter');
-  const verseSel = document.getElementById('bible-verse');
-  
-  chapterSel.innerHTML = '<option value="">장 선택</option>';
-  verseSel.innerHTML = '<option value="">절 선택</option>';
-  verseSel.disabled = true;
+  const t = document.getElementById('bible-testament').value;
+  const b = document.getElementById('bible-book').value;
+  const cs = document.getElementById('bible-chapter');
+  const vs = document.getElementById('bible-verse');
+  cs.innerHTML = '<option value="">장 선택</option>'; vs.innerHTML = '<option value="">절 선택</option>'; vs.disabled = true;
   document.getElementById('recommend-btn').disabled = true;
   document.getElementById('bible-verse-display').textContent = '장을 선택해주세요';
-  
-  if (!book) { chapterSel.disabled = true; return; }
-  chapterSel.disabled = false;
-  
-  const chapters = BIBLE_DATA[testament][book];
-  for (let i = 1; i <= chapters; i++) {
-    const opt = document.createElement('option');
-    opt.value = i;
-    opt.textContent = i + '장';
-    chapterSel.appendChild(opt);
-  }
+  if (!b) { cs.disabled = true; return; }
+  cs.disabled = false;
+  for (let i=1; i<=BIBLE_DATA[t][b]; i++) { const o=document.createElement('option'); o.value=i; o.textContent=i+'장'; cs.appendChild(o); }
 }
-
 function updateBibleVerses() {
-  const book = document.getElementById('bible-book').value;
-  const chapter = document.getElementById('bible-chapter').value;
-  const verseSel = document.getElementById('bible-verse');
-  
-  verseSel.innerHTML = '<option value="">절 선택</option>';
+  const b = document.getElementById('bible-book').value;
+  const vs = document.getElementById('bible-verse');
+  vs.innerHTML = '<option value="">절 선택</option>';
   document.getElementById('recommend-btn').disabled = true;
   document.getElementById('bible-verse-display').textContent = '절을 선택해주세요';
-  
-  if (!chapter) { verseSel.disabled = true; return; }
-  verseSel.disabled = false;
-  
-  const verseCount = getVerseCount(book, chapter);
-  for (let i = 1; i <= verseCount; i++) {
-    const opt = document.createElement('option');
-    opt.value = i;
-    opt.textContent = i + '절';
-    verseSel.appendChild(opt);
-  }
+  if (!document.getElementById('bible-chapter').value) { vs.disabled = true; return; }
+  vs.disabled = false;
+  const avg = {'시편':22,'잠언':20,'이사야':18,'요한복음':36}[b]||25;
+  for (let i=1; i<=avg; i++) { const o=document.createElement('option'); o.value=i; o.textContent=i+'절'; vs.appendChild(o); }
 }
-
 function updateVerseDisplay() {
   const book = document.getElementById('bible-book').value;
-  const chapter = document.getElementById('bible-chapter').value;
-  const verse = document.getElementById('bible-verse').value;
-  const display = document.getElementById('bible-verse-display');
-  
-  if (!verse) { document.getElementById('recommend-btn').disabled = true; return; }
-  
-  const key = `${book}_${chapter}_${verse}`;
+  const ch = document.getElementById('bible-chapter').value;
+  const v = document.getElementById('bible-verse').value;
+  if (!v) { document.getElementById('recommend-btn').disabled = true; return; }
+  const key = `${book}_${ch}_${v}`;
   const text = SAMPLE_VERSES[key];
-  
-  if (text) {
-    display.textContent = `"${text}" — ${book} ${chapter}:${verse}`;
-  } else {
-    display.textContent = `${book} ${chapter}장 ${verse}절`;
-  }
+  document.getElementById('bible-verse-display').textContent = text ? `"${text}" — ${book} ${ch}:${v}` : `${book} ${ch}장 ${v}절`;
   document.getElementById('recommend-btn').disabled = false;
 }
 
-function getSelectedBibleRef() {
-  const book = document.getElementById('bible-book').value;
-  const chapter = document.getElementById('bible-chapter').value;
-  const verse = document.getElementById('bible-verse').value;
-  const key = `${book}_${chapter}_${verse}`;
-  const text = SAMPLE_VERSES[key];
-  return { ref: `${book} ${chapter}:${verse}`, text: text || '' };
-}
-
-// ===== RECOMMENDATION AI =====
 async function getRecommendation() {
-  const { ref, text } = getSelectedBibleRef();
+  const book = document.getElementById('bible-book').value;
+  const ch = document.getElementById('bible-chapter').value;
+  const v = document.getElementById('bible-verse').value;
   const display = document.getElementById('bible-verse-display').textContent;
-  
   document.getElementById('recommend-loading').classList.remove('hidden');
   document.getElementById('recommend-results').innerHTML = '';
-
-  const prompt = `당신은 한국 교회 찬양 전문가입니다. 다음 성경 구절에 어울리는 한국 CCM 찬양을 3곡 추천해주세요.
-
-성경 구절: ${display}
-
-다음 JSON 형식으로만 응답해주세요. 다른 텍스트 없이 JSON만:
-[
-  {"title": "곡명", "artist": "아티스트", "key": "추천키", "reason": "이 구절과 어울리는 이유 (1-2문장)"},
-  {"title": "곡명", "artist": "아티스트", "key": "추천키", "reason": "이유"},
-  {"title": "곡명", "artist": "아티스트", "key": "추천키", "reason": "이유"}
-]
-
-한국 CCM, 특히 아이자야씩스티원, FIA, 마커스워십, 예수전도단, 소망의소리 등의 찬양을 중심으로 추천해주세요.`;
-
+  const prompt = `당신은 한국 교회 찬양 전문가입니다. 다음 성경 구절에 어울리는 한국 CCM 찬양을 3곡 추천해주세요.\n\n성경 구절: ${display}\n\n다음 JSON 형식으로만 응답 (preamble 없이):\n[{"title":"곡명","artist":"아티스트","key":"추천키","reason":"이유 1-2문장"},{"title":"...","artist":"...","key":"...","reason":"..."},{"title":"...","artist":"...","key":"...","reason":"..."}]\n\n아이자야씩스티원, FIA, 마커스워십, 예수전도단, 소망의소리 중심으로 추천해주세요.`;
   try {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 1000,
-        messages: [{ role: 'user', content: prompt }]
-      })
-    });
-    const data = await response.json();
-    const text2 = data.content?.[0]?.text || '[]';
-    const clean = text2.replace(/```json|```/g,'').trim();
-    const results = JSON.parse(clean);
-    renderRecommendations(results);
-  } catch (e) {
-    // Fallback recommendations
-    renderRecommendations([
-      { title: '주 예수보다 더 귀한 것은 없네', artist: '아이자야씩스티원', key: 'Bb', reason: '예수님의 귀함을 고백하는 이 곡은 말씀의 감격과 잘 어울립니다.' },
-      { title: '나의 죄를 씻기는', artist: 'FIA ver.', key: 'G', reason: '은혜로운 고백의 가사가 이번 말씀 주제와 연결됩니다.' },
-      { title: '예수 하나님의 공의', artist: '아이자야씩스티원', key: 'D', reason: '하나님의 공의와 사랑을 노래하며 말씀을 묵상하기에 적합합니다.' }
-    ]);
+    const res = await fetch('https://api.anthropic.com/v1/messages', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ model:'claude-sonnet-4-20250514', max_tokens:800, messages:[{role:'user',content:prompt}] }) });
+    const data = await res.json();
+    const text = data.content?.[0]?.text || '[]';
+    const results = JSON.parse(text.replace(/```json|```/g,'').trim());
+    document.getElementById('recommend-results').innerHTML = results.map((r,i) => `
+      <div class="recommend-card">
+        <div class="recommend-num">${i+1}</div>
+        <div style="flex:1;"><div style="font-weight:700;font-size:14px;">${r.title}</div><div style="font-size:12px;color:var(--text-muted);margin-top:3px;">${r.artist} · Key ${r.key}<br>${r.reason}</div></div>
+        <button onclick="addRecommendedSong('${r.title.replace(/'/g,"\\'")}','${r.artist.replace(/'/g,"\\'")}','${r.key}')" style="background:var(--olive-pale);border:none;color:var(--olive-dark);padding:4px 10px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;white-space:nowrap;">+ 콘티</button>
+      </div>`).join('');
+  } catch(e) {
+    document.getElementById('recommend-results').innerHTML = '<p style="color:var(--text-muted);font-size:13px;">추천을 불러오지 못했어요. 잠시 후 다시 시도해주세요.</p>';
   }
   document.getElementById('recommend-loading').classList.add('hidden');
 }
 
-function renderRecommendations(results) {
-  const container = document.getElementById('recommend-results');
-  container.innerHTML = results.map((r, i) => `
-    <div class="recommend-card">
-      <div class="recommend-num">${i+1}</div>
-      <div class="recommend-info">
-        <div class="recommend-title">${r.title}</div>
-        <div class="recommend-reason">${r.artist} · Key ${r.key}<br>${r.reason}</div>
-      </div>
-      <button class="recommend-add" onclick="addRecommendedSong('${r.title}','${r.artist}','${r.key}')">+ 콘티</button>
-    </div>
-  `).join('');
-}
-
-function addRecommendedSong(title, artist, key) {
-  // Check if song exists
+async function addRecommendedSong(title, artist, key) {
   let s = songs.find(x => x.title === title);
   if (!s) {
-    s = { id: Date.now(), title, artist, key, bpm: null, youtube: '', lastUsed: null };
-    songs.unshift(s);
-    save();
+    const { data } = await sb.from('songs').insert({ title, artist, key, created_by: currentUser.id }).select().single();
+    if (data) { await loadSongs(); s = songs.find(x => x.id === data.id); }
   }
-  if (!contiBuilt.includes(s.id)) {
-    contiBuilt.push(s.id);
-    renderContiBuilt();
-    showToast(`"${title}" 콘티에 추가됐습니다 🎵`);
-  }
+  if (s && !contiBuilt.includes(s.id)) { contiBuilt.push(s.id); renderContiBuilt(); showToast(`"${title}" 콘티에 추가됐습니다 🎵`); }
 }
 
 // ===== MESSAGE GENERATOR =====
 async function generateMessage() {
-  const tone = document.getElementById('msg-tone').value;
   const hint = document.getElementById('msg-hint').value;
   const latest = weekly[0];
-  
   document.getElementById('message-loading').classList.remove('hidden');
   document.getElementById('message-preview').textContent = '';
-
-  const songList = latest ? latest.songs.map((sid,i) => {
-    const s = songs.find(x => x.id === sid);
-    return s ? `${i+1}. ${s.title} (${s.key})${s.youtube ? '\n   ▶ '+s.youtube : ''}` : '';
-  }).filter(Boolean).join('\n') : '(등록된 곡 없음)';
-
-  const prompt = `당신은 한국 교회 찬양팀 전도사님입니다. 단톡방에 보낼 이번 주 찬양 콘티 메시지를 작성해주세요.
-
-이번 주 정보:
-- 기간: ${latest ? `${latest.year}년 ${latest.month}월 ${latest.week}주` : '이번 주'}
-- 예배: ${latest ? latest.service : '주일 예배'}
-- 연습: ${latest ? latest.practiceTime : '08:00'}
-- 찬양 목록:
-${songList}
-${hint ? `- 말씀/힌트: ${hint}` : ''}
-
-스타일: ${tone}
-
-조건:
-- 카카오톡 단톡방 형식에 맞게 작성
-- 이모티콘 적절히 사용
-- 마지막에 연습 참석 독려 문구 포함
-- 인사말로 시작하여 공감/아멘 요청으로 마무리
-- 300자 내외로 간결하게`;
-
+  const songList = latest ? (latest.song_ids||[]).map((sid,i) => { const s=songs.find(x=>x.id==sid); return s?`${i+1}. ${s.title} (${s.key})${s.youtube?'\n   ▶ '+s.youtube:''}`:''}).filter(Boolean).join('\n') : '(등록된 곡 없음)';
+  const prompt = `당신은 한국 교회 찬양팀 전도사님입니다. 카카오톡 단톡방에 보낼 이번 주 찬양 콘티 메시지를 작성해주세요.\n\n이번 주:\n- ${latest?`${latest.year}년 ${latest.month}월 ${latest.week}주 ${latest.service}`:''}\n- 연습: ${latest?.practice_time||'08:00'}\n- 찬양:\n${songList}\n${hint?'- 말씀/힌트: '+hint:''}\n\n친근하고 따뜻하게, 이모티콘 적절히, 연습 참석 독려, 공감/아멘 요청으로 마무리. 300자 내외.`;
   try {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 1000,
-        messages: [{ role: 'user', content: prompt }]
-      })
-    });
-    const data = await response.json();
-    const text = data.content?.[0]?.text || '';
-    document.getElementById('message-preview').textContent = text;
-  } catch (e) {
-    document.getElementById('message-preview').textContent = `할렐루야! 🙌\n이번 주 찬양 콘티를 안내드립니다 😊\n\n${songList}\n\n⏰ 연습은 ${latest?.practiceTime || '08:00'}에 시작됩니다\n함께 예배 준비에 힘써주세요! 🙏\n공감 또는 아멘으로 확인해주시면 감사하겠습니다 ✅`;
+    const res = await fetch('https://api.anthropic.com/v1/messages', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ model:'claude-sonnet-4-20250514', max_tokens:800, messages:[{role:'user',content:prompt}] }) });
+    const data = await res.json();
+    document.getElementById('message-preview').textContent = data.content?.[0]?.text || '';
+  } catch(e) {
+    document.getElementById('message-preview').textContent = `할렐루야! 🙌\n이번 주 찬양 콘티입니다 😊\n\n${songList}\n\n⏰ 연습: ${latest?.practice_time||'08:00'}\n공감 또는 아멘으로 화답해주시면 감사합니다 👍`;
   }
   document.getElementById('message-loading').classList.add('hidden');
 }
 
 function generateMessageManual() {
   const latest = weekly[0];
-  const songList = latest ? latest.songs.map((sid,i) => {
-    const s = songs.find(x => x.id === sid);
-    return s ? `${i+1}. ${s.title} (${s.key})${s.youtube?'\n   ▶ '+s.youtube:''}` : '';
-  }).filter(Boolean).join('\n') : '';
-  
-  document.getElementById('message-preview').textContent = `할렐루야! 🙌\n${latest?`${latest.year}년 ${latest.month}월 ${latest.week}주`:'이번 주'} 찬양 콘티입니다 😊\n\n${songList}\n\n⏰ 연습: ${latest?.practiceTime||'08:00'}\n🙏 예배: 09:00\n\n공감/아멘으로 화답해주시면 감사합니다 👍`;
+  const songList = latest ? (latest.song_ids||[]).map((sid,i)=>{ const s=songs.find(x=>x.id==sid); return s?`${i+1}. ${s.title} (${s.key})${s.youtube?'\n   ▶ '+s.youtube:''}`:'' }).filter(Boolean).join('\n') : '';
+  document.getElementById('message-preview').textContent = `할렐루야! 🙌\n${latest?`${latest.year}년 ${latest.month}월 ${latest.week}주`:'이번 주'} 찬양 콘티입니다 😊\n\n${songList}\n\n⏰ 연습: ${latest?.practice_time||'08:00'}\n공감/아멘으로 화답해주시면 감사합니다 👍`;
   document.getElementById('message-preview').contentEditable = 'true';
 }
 
 function editMessage() {
-  const preview = document.getElementById('message-preview');
-  preview.contentEditable = preview.contentEditable === 'true' ? 'false' : 'true';
-  if (preview.contentEditable === 'true') preview.focus();
-  showToast(preview.contentEditable === 'true' ? '편집 모드 ON ✏️' : '편집 완료');
+  const p = document.getElementById('message-preview');
+  p.contentEditable = p.contentEditable === 'true' ? 'false' : 'true';
+  if (p.contentEditable === 'true') p.focus();
 }
-
-function copyMessage() {
-  const text = document.getElementById('message-preview').textContent;
-  navigator.clipboard.writeText(text).then(() => showToast('메시지가 복사됐습니다 📋'));
-}
+function copyMessage() { navigator.clipboard.writeText(document.getElementById('message-preview').textContent).then(() => showToast('메시지가 복사됐습니다 📋')); }
 
 // ===== REACTION =====
-function toggleReaction(btn, emoji) {
+function toggleReaction(btn) {
   btn.classList.toggle('reacted');
   const count = btn.querySelector('.count');
   count.textContent = btn.classList.contains('reacted') ? parseInt(count.textContent)+1 : parseInt(count.textContent)-1;
 }
 
-// ===== MODAL HELPERS =====
-function openModal(id) {
-  document.getElementById(id).classList.add('open');
-  document.body.style.overflow = 'hidden';
-}
-function closeModal(id) {
-  document.getElementById(id).classList.remove('open');
-  document.body.style.overflow = '';
-}
-document.querySelectorAll('.modal-overlay').forEach(overlay => {
-  overlay.addEventListener('click', e => {
-    if (e.target === overlay) closeModal(overlay.id);
-  });
-});
-
-// ===== TAB HELPERS =====
-function switchTab(btn, paneId) {
-  const parent = btn.closest('.modal') || btn.closest('.card') || document.body;
-  parent.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-  parent.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
-  btn.classList.add('active');
-  document.getElementById(paneId).classList.add('active');
-}
+// ===== MODAL =====
+function openModal(id) { document.getElementById(id).classList.add('open'); document.body.style.overflow='hidden'; }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); document.body.style.overflow=''; }
+document.querySelectorAll('.modal-overlay').forEach(o => o.addEventListener('click', e => { if(e.target===o) closeModal(o.id); }));
 
 // ===== THEME =====
 function toggleTheme() {
   const html = document.documentElement;
   const isDark = html.getAttribute('data-theme') === 'dark';
   html.setAttribute('data-theme', isDark ? 'light' : 'dark');
-  document.querySelector('.theme-toggle').textContent = isDark ? '🌙 다크모드' : '☀️ 라이트모드';
   localStorage.setItem('wm_theme', isDark ? 'light' : 'dark');
 }
 
 // ===== TOAST =====
 function showToast(msg) {
   const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.classList.add('show');
+  t.textContent = msg; t.classList.add('show');
   setTimeout(() => t.classList.remove('show'), 2500);
 }
 
 // ===== INIT =====
-// ===== AUTH SYSTEM =====
-// 현재: localStorage 기반 (v0.5에서 Supabase Auth로 교체 예정)
-// 구조는 Supabase 호환으로 설계
-
-let currentUser = null;
-
-function getUsers() {
-  return JSON.parse(localStorage.getItem('wm_users') || '[]');
-}
-
-function saveUsers(users) {
-  localStorage.setItem('wm_users', JSON.stringify(users));
-}
-
-function switchLoginTab(tab) {
-  document.querySelectorAll('.login-tab').forEach((t,i) => {
-    t.classList.toggle('active', (i===0&&tab==='signin')||(i===1&&tab==='signup'));
-  });
-  document.getElementById('form-signin').classList.toggle('hidden', tab !== 'signin');
-  document.getElementById('form-signup').classList.toggle('hidden', tab !== 'signup');
-  document.getElementById('signin-error').textContent = '';
-  document.getElementById('signup-error').textContent = '';
-}
-
-function doLogin() {
-  const id = document.getElementById('signin-id').value.trim();
-  const pw = document.getElementById('signin-pw').value;
-  const errEl = document.getElementById('signin-error');
-  if (!id || !pw) { errEl.textContent = '아이디와 비밀번호를 입력해주세요'; return; }
-  const users = getUsers();
-  const user = users.find(u => u.id === id && u.pw === btoa(pw));
-  if (!user) { errEl.textContent = '아이디 또는 비밀번호가 올바르지 않습니다'; return; }
-  loginSuccess(user);
-}
-
-function doGuestLogin() {
-  loginSuccess({ id: 'guest', name: '게스트', isGuest: true });
-}
-
-function doSignup() {
-  const name = document.getElementById('signup-name').value.trim();
-  const id = document.getElementById('signup-id').value.trim();
-  const pw = document.getElementById('signup-pw').value;
-  const pw2 = document.getElementById('signup-pw2').value;
-  const errEl = document.getElementById('signup-error');
-  if (!name || !id || !pw) { errEl.textContent = '모든 항목을 입력해주세요'; return; }
-  if (!/^[a-zA-Z0-9_]+$/.test(id)) { errEl.textContent = '아이디는 영문/숫자/_만 사용 가능합니다'; return; }
-  if (pw.length < 6) { errEl.textContent = '비밀번호는 6자 이상이어야 합니다'; return; }
-  if (pw !== pw2) { errEl.textContent = '비밀번호가 일치하지 않습니다'; return; }
-  const users = getUsers();
-  if (users.find(u => u.id === id)) { errEl.textContent = '이미 사용중인 아이디입니다'; return; }
-  const newUser = { id, name, pw: btoa(pw), createdAt: new Date().toISOString() };
-  users.push(newUser);
-  saveUsers(users);
-  loginSuccess(newUser);
-  showToast(`환영해요, ${name}님! 🎉`);
-}
-
-function loginSuccess(user) {
-  currentUser = user;
-  localStorage.setItem('wm_session', JSON.stringify({ id: user.id, name: user.name, isGuest: user.isGuest || false }));
-  document.getElementById('login-screen').classList.add('hidden');
-  updateUserChip();
-  // 마이페이지 이름 자동 설정
-  if (mypage && !mypage.name && user.name !== '게스트') {
-    mypage.name = user.name;
-    const nameEl = document.getElementById('my-name');
-    if (nameEl) nameEl.value = user.name;
-  }
-}
-
-function updateUserChip() {
-  if (!currentUser) return;
-  const avatar = document.getElementById('user-avatar');
-  const chipName = document.getElementById('user-chip-name');
-  if (avatar) avatar.textContent = currentUser.name.charAt(0).toUpperCase();
-  if (chipName) chipName.textContent = currentUser.isGuest ? '게스트' : currentUser.name;
-}
-
-function showUserMenu() {
-  if (!currentUser) return;
-  const isGuest = currentUser.isGuest;
-  const msg = isGuest
-    ? '게스트 모드입니다.\n로그인하시겠습니까?'
-    : `${currentUser.name}님으로 로그인 중입니다.\n로그아웃하시겠습니까?`;
-  if (confirm(msg)) {
-    if (isGuest) {
-      document.getElementById('login-screen').classList.remove('hidden');
-    } else {
-      doLogout();
-    }
-  }
-}
-
-function doLogout() {
-  currentUser = null;
-  localStorage.removeItem('wm_session');
-  document.getElementById('login-screen').classList.remove('hidden');
-  document.getElementById('signin-id').value = '';
-  document.getElementById('signin-pw').value = '';
-  document.getElementById('signin-error').textContent = '';
-  showToast('로그아웃됐습니다');
-}
-
-window.addEventListener('DOMContentLoaded', () => {
-  // 세션 복원 — 로그인 상태 유지
-  const session = localStorage.getItem('wm_session');
-  if (session) {
-    try {
-      currentUser = JSON.parse(session);
-      document.getElementById('login-screen').classList.add('hidden');
-      updateUserChip();
-    } catch(e) {
-      localStorage.removeItem('wm_session');
-    }
-  }
-  // Apply saved theme
+window.addEventListener('DOMContentLoaded', async () => {
+  // 테마
   const theme = localStorage.getItem('wm_theme') || 'light';
   document.documentElement.setAttribute('data-theme', theme);
-  document.querySelector('.theme-toggle').textContent = theme === 'dark' ? '☀️ 라이트모드' : '🌙 다크모드';
-
-  // Set today's date in register modal
-  const today = new Date().toISOString().split('T')[0];
-  document.getElementById('reg-date').value = today;
-
-  // 사이드바 상태 복원
-  const sidebarCollapsed = localStorage.getItem('wm_sidebar_collapsed') === 'true';
-  if (sidebarCollapsed) {
-    document.getElementById('sidebar').classList.add('sidebar-collapsed');
-    document.getElementById('main').style.marginLeft = '0px';
-    const btn = document.getElementById('sidebar-toggle-btn');
-    if (btn) { btn.style.left = '8px'; btn.textContent = '›'; }
+  // 날짜 기본값
+  document.getElementById('reg-date').value = new Date().toISOString().split('T')[0];
+  // Supabase 세션 확인
+  const { data: { session } } = await sb.auth.getSession();
+  if (session?.user) {
+    onLogin(session.user);
   }
-
-  // 탭 복원 — 새로고침해도 마지막 탭 유지
-  const validPages = ['dashboard','weekly','archive','collections','mypage','conti','merge','message'];
-  const lastPage = location.hash.replace('#','');
-  navigate(validPages.includes(lastPage) ? lastPage : 'dashboard');
-
-  // D-day 계산
-  const ddayEl = document.getElementById('dash-dday');
-  if (ddayEl) {
-    const next = new Date('2026-05-10');
-    const todayD = new Date(); todayD.setHours(0,0,0,0);
-    const diff = Math.ceil((next - todayD) / 86400000);
-    ddayEl.textContent = diff > 0 ? 'D-' + diff : diff === 0 ? 'D-Day!' : 'D+' + Math.abs(diff);
-  }
+  // 인증 상태 변화 감지
+  sb.auth.onAuthStateChange((event, session) => {
+    if (event === 'SIGNED_OUT') {
+      document.getElementById('login-screen').style.display = 'flex';
+      document.getElementById('app').style.display = 'none';
+    }
+  });
 });
 </script>
 </body>
