@@ -288,13 +288,15 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--cream);color:var(--t
     <div class="nav-item" data-page="archive" onclick="navigate('archive')"><span class="icon">🎵</span> 악보 창고</div>
     <div class="nav-item" data-page="collections" onclick="navigate('collections')"><span class="icon">📂</span> 모음집</div>
     <div class="nav-item" data-page="mypage" onclick="navigate('mypage')"><span class="icon">👤</span> 마이 페이지</div>
-    <div class="nav-label" style="margin-top:8px;">워크플로우</div>
-    <div class="nav-item" data-page="conti" onclick="navigate('conti')"><span class="icon">✍️</span> 콘티 짜기</div>
-    <div class="nav-item" data-page="merge" onclick="navigate('merge')"><span class="icon">📋</span> 악보 합치기</div>
-    <div class="nav-item" data-page="message" onclick="navigate('message')"><span class="icon">💬</span> 메시지 생성기</div>
+    <div class="nav-label superadmin-only" style="margin-top:8px;">슈퍼어드민</div>
+    <div class="nav-item superadmin-only" data-page="admin" onclick="navigate('admin')"><span class="icon">⚙️</span> 멤버 관리</div>
+    <div class="nav-label admin-only" style="margin-top:4px;">워크플로우</div>
+    <div class="nav-item admin-only" data-page="conti" onclick="navigate('conti')"><span class="icon">✍️</span> 콘티 짜기</div>
+    <div class="nav-item admin-only" data-page="merge" onclick="navigate('merge')"><span class="icon">📋</span> 악보 합치기</div>
+    <div class="nav-item admin-only" data-page="message" onclick="navigate('message')"><span class="icon">💬</span> 메시지 생성기</div>
   </div>
   <div class="sidebar-bottom">
-    <div class="user-chip" onclick="openModal('modal-logout')">
+    <div class="user-chip" onclick="confirmLogout()" title="로그아웃">
       <div class="user-avatar" id="sidebar-avatar">?</div>
       <div class="user-info">
         <div class="user-name" id="sidebar-name">로딩중...</div>
@@ -303,7 +305,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--cream);color:var(--t
     </div>
     <div class="sidebar-actions">
       <button class="sidebar-btn" onclick="toggleTheme()">🌙 테마</button>
-      <button class="sidebar-btn" onclick="openModal('modal-logout')" style="color:#ff8080;">로그아웃</button>
+      <button class="sidebar-btn" onclick="confirmLogout()" style="color:#ff8080;">로그아웃</button>
     </div>
   </div>
 </nav>
@@ -325,7 +327,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--cream);color:var(--t
 <div id="page-dashboard" class="page-section">
   <div class="page-header">
     <div><h2>대시보드</h2><p id="dash-subtitle">이번 주 찬양을 확인하세요</p></div>
-    <button class="btn btn-primary btn-sm" onclick="openModal('modal-conti-register')">＋ 새 콘티 등록</button>
+    <button class="btn btn-primary btn-sm admin-only" onclick="openModal('modal-conti-register')">＋ 새 콘티 등록</button>
   </div>
   <div class="page-content">
     <div class="stats-grid">
@@ -380,7 +382,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--cream);color:var(--t
 <div id="page-weekly" class="page-section hidden">
   <div class="page-header">
     <div><h2>주차별 찬양</h2><p>주차를 클릭하면 콘티를 확인할 수 있습니다</p></div>
-    <button class="btn btn-primary btn-sm" onclick="openModal('modal-conti-register')">＋ 새 주차 등록</button>
+    <button class="btn btn-primary btn-sm admin-only" onclick="openModal('modal-conti-register')">＋ 새 주차 등록</button>
   </div>
   <div class="page-content"><div id="weekly-list"></div></div>
 </div>
@@ -389,7 +391,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--cream);color:var(--t
 <div id="page-archive" class="page-section hidden">
   <div class="page-header">
     <div><h2>악보 창고</h2><p>전체 악보를 검색하고 관리합니다</p></div>
-    <button class="btn btn-primary btn-sm" onclick="openModal('modal-add-song')">＋ 악보 추가</button>
+    <button class="btn btn-primary btn-sm admin-only" onclick="openModal('modal-add-song')">＋ 악보 추가</button>
   </div>
   <div class="page-content">
     <div class="search-bar"><span class="search-icon">🔍</span><input type="text" id="archive-search" placeholder="곡명, 아티스트, 키 검색..." oninput="renderArchive()"></div>
@@ -490,6 +492,31 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--cream);color:var(--t
       </div>
       <div style="display:flex;gap:10px;margin-top:16px;">
         <button class="btn btn-primary" onclick="mergePDF()">📥 PDF로 내보내기</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ADMIN -->
+<div id="page-admin" class="page-section hidden">
+  <div class="page-header"><div><h2>⚙️ 멤버 관리</h2><p>유저 권한을 관리합니다 (슈퍼어드민 전용)</p></div></div>
+  <div class="page-content">
+    <div class="card mb-4">
+      <h3 style="font-size:14px;font-weight:700;margin-bottom:14px;">👥 전체 유저 목록</h3>
+      <div id="admin-user-list"><p class="text-muted">로딩 중...</p></div>
+    </div>
+    <div class="card">
+      <h3 style="font-size:14px;font-weight:700;margin-bottom:8px;">📋 권한 안내</h3>
+      <div style="display:flex;flex-direction:column;gap:8px;font-size:13px;">
+        <div style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--cream);border-radius:8px;">
+          <span style="font-size:18px;">👑</span>
+          <div><div style="font-weight:700;">어드민</div><div class="text-muted">콘티 등록, 악보 추가, 전달사항 작성, 멤버 관리 — 모든 기능</div></div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--cream);border-radius:8px;">
+          <span style="font-size:18px;">👤</span>
+          <div><div style="font-weight:700;">멤버</div><div class="text-muted">악보/콘티 보기, 희망곡 등록, 모음집 관리</div></div>
+        </div>
       </div>
     </div>
   </div>
@@ -648,6 +675,7 @@ const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // ===== STATE =====
 let currentUser = null;
+let userRole = 'member'; // 'super_admin' | 'admin' | 'member'
 let songs = [];
 let weekly = [];
 let collections = [];
@@ -655,6 +683,8 @@ let wishes = [];
 let contiBuilt = [];
 let currentFolderIdx = null;
 let selectedFolderIcon = '📂';
+function isAdmin() { return userRole === 'admin' || userRole === 'super_admin'; }
+function isSuperAdmin() { return userRole === 'super_admin'; }
 
 // ===== AUTH =====
 function switchLoginTab(tab) {
@@ -705,11 +735,30 @@ async function doSignup() {
   }
 }
 
+async function confirmLogout() {
+  const name = currentUser?.user_metadata?.name || '사용자';
+  // 사이드바 하단에 인라인 확인 UI 표시
+  const bottom = document.querySelector('.sidebar-bottom');
+  const existing = document.getElementById('logout-confirm-inline');
+  if (existing) { existing.remove(); return; }
+  const box = document.createElement('div');
+  box.id = 'logout-confirm-inline';
+  box.style.cssText = 'background:rgba(192,57,43,0.15);border:1px solid rgba(192,57,43,0.4);border-radius:8px;padding:10px 12px;margin-top:8px;';
+  box.innerHTML = `
+    <p style="color:#ff8080;font-size:12px;margin-bottom:8px;">로그아웃 하시겠어요?</p>
+    <div style="display:flex;gap:6px;">
+      <button onclick="doLogout()" style="flex:1;background:#c0392b;border:none;color:#fff;padding:6px;border-radius:6px;cursor:pointer;font-size:12px;font-family:inherit;">확인</button>
+      <button onclick="document.getElementById('logout-confirm-inline').remove()" style="flex:1;background:rgba(255,255,255,0.1);border:none;color:var(--sidebar-text);padding:6px;border-radius:6px;cursor:pointer;font-size:12px;font-family:inherit;">취소</button>
+    </div>`;
+  bottom.appendChild(box);
+}
+
 async function doLogout() {
   await sb.auth.signOut();
   currentUser = null;
   songs = []; weekly = []; collections = []; wishes = [];
-  closeModal('modal-logout');
+  const box = document.getElementById('logout-confirm-inline');
+  if (box) box.remove();
   document.getElementById('app').style.display = 'none';
   document.getElementById('login-screen').style.display = 'flex';
 }
@@ -718,16 +767,51 @@ async function onLogin(user) {
   currentUser = user;
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('app').style.display = 'block';
+
+  // 프로필에서 role 가져오기
+  const { data: profile } = await sb.from('profiles').select('role').eq('id', user.id).single();
+  // intersong-20@naver.com 은 항상 super_admin
+  if (user.email === 'intersong-20@naver.com') {
+    userRole = 'super_admin';
+  } else {
+    userRole = profile?.role || 'member';
+  }
+
   // 사이드바 유저 정보
   const name = user.user_metadata?.name || user.email?.split('@')[0] || '사용자';
   document.getElementById('sidebar-name').textContent = name;
-  document.getElementById('sidebar-email').textContent = user.email;
   document.getElementById('sidebar-avatar').textContent = name.charAt(0).toUpperCase();
-  document.getElementById('logout-modal-name').textContent = name;
-  document.getElementById('logout-modal-email').textContent = user.email;
+
+  // 역할 뱃지
+  const roleBadge = userRole === 'admin' ? '👑 어드민' : '👤 멤버';
+  const roleColor = userRole === 'admin' ? '#b8c98a' : 'rgba(255,255,255,0.4)';
+  document.getElementById('sidebar-email').innerHTML =
+    '<span style="font-size:10px;color:' + roleColor + ';">' + roleBadge + '</span> · ' + user.email;
+
+  // 권한 UI 적용
+  applyRoleUI();
+
   // 데이터 로드
   await loadAllData();
   navigate('dashboard');
+}
+
+function applyRoleUI() {
+  // admin 전용 요소 표시/숨김
+  document.querySelectorAll('.admin-only').forEach(el => {
+    el.style.display = isAdmin() ? '' : 'none';
+  });
+  // super_admin 전용 요소
+  document.querySelectorAll('.superadmin-only').forEach(el => {
+    el.style.display = isSuperAdmin() ? '' : 'none';
+  });
+  // 사이드바 역할 표시
+  const roleText = isSuperAdmin() ? '👑 슈퍼어드민' : isAdmin() ? '🔧 어드민' : '👤 멤버';
+  const roleColor = isSuperAdmin() ? '#ffd700' : isAdmin() ? '#b8c98a' : 'rgba(255,255,255,0.4)';
+  const emailEl = document.getElementById('sidebar-email');
+  if (emailEl && currentUser) {
+    emailEl.innerHTML = '<span style="font-size:10px;color:' + roleColor + ';">' + roleText + '</span>';
+  }
 }
 
 // ===== DATA LOAD =====
@@ -766,7 +850,7 @@ function navigate(page) {
 }
 
 function renderPage(page) {
-  const map = { dashboard: renderDashboard, weekly: renderWeekly, archive: renderArchive, collections: renderCollections, mypage: renderMyPage, conti: renderContiPage, merge: renderMerge };
+  const map = { dashboard: renderDashboard, weekly: renderWeekly, archive: renderArchive, collections: renderCollections, mypage: renderMyPage, conti: renderContiPage, merge: renderMerge, admin: renderAdmin };
   if (map[page]) map[page]();
 }
 
@@ -1123,6 +1207,42 @@ function renderMerge() {
   });
 }
 function mergePDF() { showToast('PDF 내보내기 기능은 업데이트 예정이에요'); }
+
+// ===== ADMIN =====
+async function renderAdmin() {
+  if (!isSuperAdmin()) { showToast('슈퍼어드민 전용 페이지입니다'); navigate('dashboard'); return; }
+  const list = document.getElementById('admin-user-list');
+  list.innerHTML = '<p class="text-muted">로딩 중...</p>';
+  const { data: profiles } = await sb.from('profiles').select('id, name, role');
+  const { data: { users } } = await sb.auth.admin?.listUsers?.() || { data: { users: [] } };
+
+  if (!profiles || !profiles.length) { list.innerHTML = '<p class="text-muted">유저 없음</p>'; return; }
+
+  list.innerHTML = profiles.map(p => `
+    <div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border);">
+      <div style="width:36px;height:36px;border-radius:50%;background:${p.role==='admin'?'var(--olive)':'var(--cream-dark)'};display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:${p.role==='admin'?'#fff':'var(--text)'};">
+        ${(p.name||'?').charAt(0)}
+      </div>
+      <div style="flex:1;">
+        <div style="font-weight:600;">${p.name || '이름 없음'}</div>
+        <div class="text-muted">${p.role === 'admin' ? '👑 어드민' : '👤 멤버'}</div>
+      </div>
+      <select onchange="changeUserRole('${p.id}', this.value)"
+        style="padding:5px 8px;border:1px solid var(--border);border-radius:6px;background:var(--cream);color:var(--text);font-size:12px;font-family:inherit;cursor:pointer;">
+        <option value="member" ${p.role==='member'?'selected':''}>👤 멤버</option>
+        <option value="admin" ${p.role==='admin'?'selected':''}>👑 어드민</option>
+      </select>
+    </div>
+  `).join('');
+}
+
+async function changeUserRole(userId, newRole) {
+  if (!isSuperAdmin()) { showToast('권한이 없습니다'); return; }
+  await sb.from('profiles').update({ role: newRole }).eq('id', userId);
+  showToast(`권한이 ${newRole === 'admin' ? '👑 어드민' : '👤 멤버'}으로 변경됐습니다`);
+  renderAdmin();
+}
+
 
 // ===== BIBLE =====
 const BIBLE_DATA = {
