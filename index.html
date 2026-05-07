@@ -232,9 +232,8 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--cream);color:var(--t
     <div class="login-logo">🎵</div>
     <div class="login-title">함께하는교회 안성</div>
     <div class="login-sub">악보 / 콘티 매니저</div>
-    <div class="login-tabs">
-      <button class="login-tab active" onclick="switchLoginTab('login')">로그인</button>
-      <button class="login-tab" onclick="switchLoginTab('signup')">회원가입</button>
+    <div style="margin-bottom:20px;padding:10px 14px;background:var(--olive-pale,#d4dfc0);border-radius:8px;font-size:12.5px;color:#4a5730;text-align:left;">
+      🔒 초대받은 분만 이용 가능한 서비스입니다.<br>전도사님께 계정 초대를 요청해주세요.
     </div>
     <!-- 로그인 폼 -->
     <div id="login-form">
@@ -250,24 +249,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--cream);color:var(--t
       <div class="login-error" id="login-error"></div>
       <div class="login-loading" id="login-loading">로그인 중...</div>
     </div>
-    <!-- 회원가입 폼 -->
-    <div id="signup-form" style="display:none;">
-      <div class="login-form-group">
-        <label class="login-label">이름</label>
-        <input type="text" class="login-input" id="signup-name" placeholder="이름 입력">
-      </div>
-      <div class="login-form-group">
-        <label class="login-label">이메일</label>
-        <input type="email" class="login-input" id="signup-email" placeholder="이메일 입력">
-      </div>
-      <div class="login-form-group">
-        <label class="login-label">비밀번호 (6자 이상)</label>
-        <input type="password" class="login-input" id="signup-pw" placeholder="비밀번호 입력" onkeydown="if(event.key==='Enter')doSignup()">
-      </div>
-      <button class="login-btn" onclick="doSignup()" id="signup-btn">가입하기</button>
-      <div class="login-error" id="signup-error"></div>
-      <div class="login-loading" id="signup-loading">가입 중...</div>
-    </div>
+
   </div>
 </div>
 
@@ -502,6 +484,34 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--cream);color:var(--t
 <div id="page-admin" class="page-section hidden">
   <div class="page-header"><div><h2>⚙️ 멤버 관리</h2><p>유저 권한을 관리합니다 (슈퍼어드민 전용)</p></div></div>
   <div class="page-content">
+    <!-- 초대 카드 -->
+    <div class="card mb-4">
+      <h3 style="font-size:14px;font-weight:700;margin-bottom:4px;">✉️ 새 멤버 초대</h3>
+      <p style="font-size:12px;color:var(--text-muted);margin-bottom:14px;">이메일로 초대장을 보내면 상대방이 링크를 클릭해 가입할 수 있습니다</p>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">이름</label>
+          <input type="text" class="form-input" id="invite-name" placeholder="홍길동">
+        </div>
+        <div class="form-group">
+          <label class="form-label">이메일</label>
+          <input type="email" class="form-input" id="invite-email" placeholder="example@email.com">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">권한</label>
+        <select class="form-select" id="invite-role">
+          <option value="member">👤 멤버 (악보/콘티 보기, 희망곡 등록)</option>
+          <option value="admin">🔧 어드민 (콘티 등록, 악보 추가 등)</option>
+        </select>
+      </div>
+      <button class="btn btn-primary" onclick="sendInvite()" id="invite-btn">
+        ✉️ 초대 메일 발송
+      </button>
+      <div id="invite-result" style="margin-top:10px;font-size:13px;display:none;"></div>
+    </div>
+
+    <!-- 유저 목록 -->
     <div class="card mb-4">
       <h3 style="font-size:14px;font-weight:700;margin-bottom:14px;">👥 전체 유저 목록</h3>
       <div id="admin-user-list"><p class="text-muted">로딩 중...</p></div>
@@ -1234,6 +1244,85 @@ async function renderAdmin() {
       </select>
     </div>
   `).join('');
+}
+
+
+// ===== INVITE =====
+async function sendInvite() {
+  if (!isSuperAdmin()) { showToast('권한이 없습니다'); return; }
+  const name = document.getElementById('invite-name').value.trim();
+  const email = document.getElementById('invite-email').value.trim();
+  const role = document.getElementById('invite-role').value;
+  const resultEl = document.getElementById('invite-result');
+
+  if (!name || !email) { showToast('이름과 이메일을 입력해주세요'); return; }
+
+  const btn = document.getElementById('invite-btn');
+  btn.disabled = true;
+  btn.textContent = '발송 중...';
+  resultEl.style.display = 'none';
+
+  try {
+    // Supabase Admin invite (서버사이드 필요) 대신
+    // 직접 signUp + 이메일 확인 방식 사용
+    const redirectUrl = 'https://mingyshellow-prog.github.io/Worship-Manager/';
+    const { data, error } = await sb.auth.admin?.inviteUserByEmail?.(email, {
+      data: { name },
+      redirectTo: redirectUrl
+    });
+
+    if (error) {
+      // admin API 없을 경우 대안: signUp으로 임시 비번 생성 후 안내
+      const tempPw = Math.random().toString(36).slice(-10) + 'A1!';
+      const { data: signupData, error: signupError } = await sb.auth.signUp({
+        email,
+        password: tempPw,
+        options: {
+          data: { name },
+          emailRedirectTo: redirectUrl
+        }
+      });
+
+      if (signupError) throw signupError;
+
+      // 권한 설정 (프로필이 생성될 때까지 잠시 대기)
+      setTimeout(async () => {
+        if (signupData.user) {
+          await sb.from('profiles').upsert({
+            id: signupData.user.id,
+            name,
+            role
+          });
+        }
+      }, 2000);
+
+      resultEl.style.display = 'block';
+      resultEl.style.color = 'var(--success, #27ae60)';
+      resultEl.innerHTML = `✅ <strong>${email}</strong> 로 초대 메일을 발송했습니다!<br><span style="font-size:11px;color:var(--text-muted);">상대방이 이메일의 링크를 클릭하면 가입이 완료됩니다.</span>`;
+      document.getElementById('invite-name').value = '';
+      document.getElementById('invite-email').value = '';
+      showToast('초대 메일 발송 완료 ✉️');
+    } else {
+      // admin invite 성공
+      if (data?.user) {
+        await sb.from('profiles').upsert({ id: data.user.id, name, role });
+      }
+      resultEl.style.display = 'block';
+      resultEl.style.color = 'var(--success, #27ae60)';
+      resultEl.innerHTML = `✅ <strong>${email}</strong> 로 초대 메일을 발송했습니다!`;
+      document.getElementById('invite-name').value = '';
+      document.getElementById('invite-email').value = '';
+      showToast('초대 메일 발송 완료 ✉️');
+    }
+  } catch (err) {
+    resultEl.style.display = 'block';
+    resultEl.style.color = 'var(--danger, #c0392b)';
+    resultEl.textContent = '발송 실패: ' + (err.message || '알 수 없는 오류');
+  }
+
+  btn.disabled = false;
+  btn.textContent = '✉️ 초대 메일 발송';
+  await renderAdmin();
 }
 
 async function changeUserRole(userId, newRole) {
