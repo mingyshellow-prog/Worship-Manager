@@ -208,6 +208,12 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--cream);color:var(--t
 #toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
 
 /* ===== DASHBOARD 2-COL ===== */
+.dash-quick-btn {
+  background: var(--cream); border: 1px solid var(--border); border-radius: var(--radius-sm);
+  padding: 8px 6px; font-size: 12px; font-weight: 600; cursor: pointer; font-family: inherit;
+  color: var(--text); transition: all 0.15s; text-align: center;
+}
+.dash-quick-btn:hover { border-color: var(--olive); background: var(--olive); color: white; }
 .dash-grid{display:grid;grid-template-columns:1fr 300px;gap:16px;align-items:start;}
 @media(max-width:900px){.dash-grid{grid-template-columns:1fr;}}
 
@@ -308,54 +314,146 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--cream);color:var(--t
 <!-- DASHBOARD -->
 <div id="page-dashboard" class="page-section">
   <div class="page-header">
-    <div><h2>대시보드</h2><p id="dash-subtitle">이번 주 찬양을 확인하세요</p></div>
-    <button class="btn btn-primary btn-sm admin-only" onclick="openModal('modal-conti-register')">＋ 새 콘티 등록</button>
+    <div><h2>대시보드</h2><p id="dash-subtitle">함께하는교회 찬양팀</p></div>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <button class="btn btn-secondary btn-sm admin-only" onclick="openDashboardEdit()" title="대시보드 편집">⚙️ 편집</button>
+      <button class="btn btn-primary btn-sm admin-only" onclick="openModal('modal-conti-register')">＋ 새 콘티 등록</button>
+    </div>
   </div>
   <div class="page-content">
-    <div class="stats-grid">
-      <div class="stat-card"><div class="stat-num" id="stat-songs">-</div><div class="stat-label">이번 주 곡수</div></div>
-      <div class="stat-card"><div class="stat-num" id="stat-total">-</div><div class="stat-label">총 악보수</div></div>
-      <div class="stat-card"><div class="stat-num" id="stat-weeks">-</div><div class="stat-label">주차 기록</div></div>
-    </div>
-    <div class="card mb-4">
-      <div class="flex items-center justify-between mb-4">
-        <div><h3 style="font-size:15px;font-weight:700;">📢 전도사님 전달사항</h3><p class="text-muted" style="margin-top:3px;" id="dash-notice-date">-</p></div>
-        <div style="font-size:11px;color:var(--text-muted);">⏰ 연습: 8시 🙏 예배: 9시</div>
+
+    <!-- 통계 -->
+    <div class="stats-grid" style="margin-bottom:16px;">
+      <div class="stat-card" onclick="navigate('archive')" style="cursor:pointer;">
+        <div class="stat-num" id="stat-total">-</div><div class="stat-label">총 악보</div>
       </div>
-      <h4 style="font-size:14px;font-weight:700;color:var(--olive-dark);margin-bottom:8px;" id="dash-notice-title">여호수아의 과업 — 평안함과 담대함으로 승리하는 믿음</h4>
-      <p style="font-size:13.5px;line-height:1.75;" id="dash-notice-body">기나긴 전쟁에서 승리하고 가나안을 점령했지만, 또 다시 끝나지 않는 과업을 맞이하는 여호수아와 백성들. 예수님께서는 십자가에서 죽으심으로 승리하시고, '평안함'과 '담대함'으로 그 승리에 동참하라고 말씀하십니다.</p>
-      <div class="reaction-bar">
-        <button class="reaction-btn" onclick="toggleReaction(this)"><span>👍</span><span class="count">5</span></button>
-        <button class="reaction-btn" onclick="toggleReaction(this)"><span>🙏</span><span class="count">8</span></button>
-        <button class="reaction-btn" onclick="toggleReaction(this)"><span>🔥</span><span class="count">3</span></button>
-        <button class="reaction-btn" onclick="toggleReaction(this)"><span>❤️</span><span class="count">6</span></button>
-        <button class="reaction-btn" onclick="toggleReaction(this)"><span>✅</span><span class="count">4</span></button>
+      <div class="stat-card" onclick="navigate('weekly')" style="cursor:pointer;">
+        <div class="stat-num" id="stat-weeks">-</div><div class="stat-label">주차 기록</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num" id="dash-dday">-</div><div class="stat-label">다음 예배</div>
       </div>
     </div>
+
+    <!-- 고정 공지 카드 (어드민만 수정) -->
+    <div class="card mb-4" id="dash-notice-card" style="background:linear-gradient(135deg,var(--olive-dark),var(--olive));color:white;position:relative;">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;">
+        <div style="flex:1;">
+          <div style="font-size:11px;opacity:0.75;margin-bottom:4px;font-weight:600;letter-spacing:0.05em;">📢 전도사님 전달사항 · <span id="dash-notice-date">-</span></div>
+          <div style="font-size:16px;font-weight:700;margin-bottom:6px;line-height:1.4;" id="dash-notice-title">이번 주 전달사항을 등록해주세요</div>
+          <p style="font-size:13px;opacity:0.9;line-height:1.7;" id="dash-notice-body">어드민 계정으로 로그인 후 우측 편집 버튼으로 내용을 수정할 수 있습니다.</p>
+        </div>
+        <button class="btn btn-sm admin-only" onclick="openNoticeEdit()"
+          style="background:rgba(255,255,255,0.2);color:white;border:1px solid rgba(255,255,255,0.3);flex-shrink:0;">✏️</button>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:14px;flex-wrap:wrap;gap:8px;">
+        <div class="reaction-bar" style="gap:6px;">
+          <button class="reaction-btn" onclick="toggleReaction(this)" style="background:rgba(255,255,255,0.15);border-color:rgba(255,255,255,0.25);color:white;"><span>👍</span><span class="count">5</span></button>
+          <button class="reaction-btn" onclick="toggleReaction(this)" style="background:rgba(255,255,255,0.15);border-color:rgba(255,255,255,0.25);color:white;"><span>🙏</span><span class="count">8</span></button>
+          <button class="reaction-btn" onclick="toggleReaction(this)" style="background:rgba(255,255,255,0.15);border-color:rgba(255,255,255,0.25);color:white;"><span>🔥</span><span class="count">3</span></button>
+          <button class="reaction-btn" onclick="toggleReaction(this)" style="background:rgba(255,255,255,0.15);border-color:rgba(255,255,255,0.25);color:white;"><span>❤️</span><span class="count">6</span></button>
+          <button class="reaction-btn" onclick="toggleReaction(this)" style="background:rgba(255,255,255,0.15);border-color:rgba(255,255,255,0.25);color:white;"><span>✅</span><span class="count">4</span></button>
+        </div>
+        <div style="font-size:12px;opacity:0.75;">⏰ 연습 <b id="dash-practice-time">08:00</b> &nbsp;🙏 예배 <b id="dash-worship-time">09:00</b></div>
+      </div>
+    </div>
+
+    <!-- 메인 그리드 -->
     <div class="dash-grid">
+      <!-- 왼쪽: 이번 주 콘티 -->
       <div class="card">
-        <h3 style="font-size:15px;font-weight:700;margin-bottom:14px;">🎵 이번 주 콘티</h3>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+          <h3 style="font-size:15px;font-weight:700;">🎵 이번 주 콘티</h3>
+          <button class="btn btn-ghost btn-sm" onclick="navigate('weekly')">전체 보기 →</button>
+        </div>
         <div id="dash-conti-list"><div class="empty-state"><div class="icon">🎶</div><p>등록된 콘티가 없어요</p></div></div>
       </div>
+
+      <!-- 오른쪽 카드 스택 -->
       <div style="display:flex;flex-direction:column;gap:12px;">
-        <div class="card card-sm">
-          <h4 style="font-size:13px;font-weight:700;margin-bottom:10px;">⏰ 이번 주 일정</h4>
-          <div style="display:flex;flex-direction:column;gap:6px;">
-            <div style="display:flex;justify-content:space-between;font-size:13px;"><span style="color:var(--text-muted);">연습</span><span style="font-weight:600;">08:00</span></div>
-            <div style="display:flex;justify-content:space-between;font-size:13px;"><span style="color:var(--text-muted);">예배</span><span style="font-weight:600;">09:00</span></div>
+
+        <!-- 빠른 메뉴 -->
+        <div class="card card-sm" id="dash-card-quickmenu">
+          <h4 style="font-size:13px;font-weight:700;margin-bottom:10px;">⚡ 빠른 메뉴</h4>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+            <button class="dash-quick-btn" onclick="navigate('archive')">🎵 악보 창고</button>
+            <button class="dash-quick-btn" onclick="navigate('conti')">✏️ 콘티 짜기</button>
+            <button class="dash-quick-btn" onclick="navigate('weekly')">📅 주차 기록</button>
+            <button class="dash-quick-btn" onclick="navigate('message')">💬 카톡 발송</button>
           </div>
         </div>
-        <div class="card card-sm">
+
+        <!-- 일정 카드 -->
+        <div class="card card-sm" id="dash-card-schedule">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+            <h4 style="font-size:13px;font-weight:700;">📅 이번 주 일정</h4>
+            <button class="btn btn-ghost btn-sm admin-only" onclick="openScheduleEdit()" style="font-size:11px;">✏️</button>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:5px;" id="dash-schedule-list">
+            <div style="display:flex;justify-content:space-between;font-size:13px;padding:5px 0;border-bottom:1px solid var(--border);">
+              <span style="color:var(--text-muted);">🎸 연습</span><span style="font-weight:600;">08:00</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:13px;padding:5px 0;border-bottom:1px solid var(--border);">
+              <span style="color:var(--text-muted);">🙏 예배</span><span style="font-weight:600;">09:00</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:13px;padding:5px 0;">
+              <span style="color:var(--text-muted);">📍 장소</span><span style="font-weight:600;">본당</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 드림찬양단 유튜브 -->
+        <div class="card card-sm" id="dash-card-youtube">
           <h4 style="font-size:13px;font-weight:700;margin-bottom:10px;">🎶 드림찬양단</h4>
-          <a href="https://www.youtube.com/@dreamworshipteam" target="_blank" style="display:flex;align-items:center;gap:8px;padding:7px 10px;background:var(--cream);border-radius:var(--radius-sm);font-size:12.5px;text-decoration:none;color:var(--text);border:1px solid var(--border);margin-bottom:6px;">
-            <span>▶</span><span>드림찬양단 YouTube</span>
+          <a href="https://www.youtube.com/@dreamworshipteam" target="_blank"
+            style="display:flex;align-items:center;gap:8px;padding:9px 12px;background:var(--cream);border-radius:var(--radius-sm);font-size:13px;text-decoration:none;color:var(--text);border:1px solid var(--border);font-weight:500;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="#cc0000"><path d="M23.5 6.2s-.2-1.6-.9-2.3c-.9-1-1.9-1-2.3-1.1C17.2 2.6 12 2.6 12 2.6s-5.2 0-8.3.2c-.5.1-1.4.1-2.3 1.1-.7.7-.9 2.3-.9 2.3S.3 8 .3 9.8v1.7c0 1.8.2 3.5.2 3.5s.2 1.6.9 2.3c.9 1 2 .9 2.6 1 1.8.2 7.9.2 7.9.2s5.2 0 8.3-.2c.5-.1 1.4-.1 2.3-1.1.7-.7.9-2.3.9-2.3s.2-1.8.2-3.5V9.8c0-1.8-.2-3.6-.2-3.6zM9.7 15.5V8.1l6.3 3.7-6.3 3.7z"/></svg>
+            드림찬양단 유튜브 채널
           </a>
         </div>
-        <div class="card card-sm">
-          <h4 style="font-size:13px;font-weight:700;margin-bottom:10px;">📂 최근 악보</h4>
+
+        <!-- 최근 악보 -->
+        <div class="card card-sm" id="dash-card-recent">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+            <h4 style="font-size:13px;font-weight:700;">📂 최근 악보</h4>
+            <button class="btn btn-ghost btn-sm" onclick="navigate('archive')" style="font-size:11px;">전체 →</button>
+          </div>
           <div id="dash-recent-songs" style="display:flex;flex-direction:column;gap:4px;"></div>
         </div>
+
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- 공지 편집 모달 (어드민 전용) -->
+<div class="modal-overlay admin-only" id="modal-notice-edit">
+  <div class="modal" style="max-width:520px;">
+    <div class="modal-header">
+      <h3>📢 전달사항 편집</h3>
+      <button class="modal-close" onclick="closeModal('modal-notice-edit')">✕</button>
+    </div>
+    <div class="form-group">
+      <label class="form-label">제목</label>
+      <input type="text" class="form-input" id="notice-edit-title" placeholder="이번 주 말씀 제목 또는 주제">
+    </div>
+    <div class="form-group">
+      <label class="form-label">내용</label>
+      <textarea class="form-input" id="notice-edit-body" rows="4" placeholder="팀원들에게 전달할 내용..." style="resize:vertical;"></textarea>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">연습 시간</label>
+        <input type="text" class="form-input" id="notice-edit-practice" placeholder="08:00">
+      </div>
+      <div class="form-group">
+        <label class="form-label">예배 시간</label>
+        <input type="text" class="form-input" id="notice-edit-worship" placeholder="09:00">
+      </div>
+    </div>
+    <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:8px;">
+      <button class="btn btn-secondary" onclick="closeModal('modal-notice-edit')">취소</button>
+      <button class="btn btn-primary" onclick="saveNotice()">저장</button>
     </div>
   </div>
 </div>
@@ -869,7 +967,23 @@ function renderDashboard() {
   const latest = weekly[0];
   document.getElementById('stat-total').textContent = songs.length;
   document.getElementById('stat-weeks').textContent = weekly.length;
-  document.getElementById('stat-songs').textContent = latest ? (latest.song_ids || []).length : 0;
+
+  // D-day 계산
+  const ddayEl = document.getElementById('dash-dday');
+  if (ddayEl) {
+    const now = new Date(); now.setHours(0,0,0,0);
+    const day = now.getDay();
+    const daysUntilSun = day === 0 ? 7 : 7 - day;
+    ddayEl.textContent = daysUntilSun === 7 ? 'D-Day!' : `D-${daysUntilSun}`;
+  }
+
+  // 공지 복원
+  const notice = JSON.parse(localStorage.getItem('wm_notice') || '{}');
+  if (notice.title) document.getElementById('dash-notice-title').textContent = notice.title;
+  if (notice.body) document.getElementById('dash-notice-body').textContent = notice.body;
+  if (notice.practice) document.getElementById('dash-practice-time').textContent = notice.practice;
+  if (notice.worship) document.getElementById('dash-worship-time').textContent = notice.worship;
+  if (notice.date) document.getElementById('dash-notice-date').textContent = notice.date;
 
   const list = document.getElementById('dash-conti-list');
   if (!latest || !(latest.song_ids || []).length) {
@@ -881,19 +995,52 @@ function renderDashboard() {
       return `<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);">
         <div class="song-row-num">${i+1}</div>
         <div style="flex:1;"><div style="font-weight:600;font-size:14px;">${s.title}</div><div style="font-size:11.5px;color:var(--text-muted);">Key ${s.key} · ${s.artist||''}</div></div>
-        ${s.youtube ? `<a href="${s.youtube}" target="_blank" class="btn btn-ghost btn-sm" style="padding:4px 8px;">▶</a>` : ''}
+        ${s.youtube ? `<a href="${s.youtube}" target="_blank" class="yt-icon-btn" title="유튜브"><svg width="16" height="16" viewBox="0 0 24 24" fill="#cc0000"><path d="M23.5 6.2s-.2-1.6-.9-2.3c-.9-1-1.9-1-2.3-1.1C17.2 2.6 12 2.6 12 2.6s-5.2 0-8.3.2c-.5.1-1.4.1-2.3 1.1-.7.7-.9 2.3-.9 2.3S.3 8 .3 9.8v1.7c0 1.8.2 3.5.2 3.5s.2 1.6.9 2.3c.9 1 2 .9 2.6 1 1.8.2 7.9.2 7.9.2s5.2 0 8.3-.2c.5-.1 1.4-.1 2.3-1.1.7-.7.9-2.3.9-2.3s.2-1.8.2-3.5V9.8c0-1.8-.2-3.6-.2-3.6zM9.7 15.5V8.1l6.3 3.7-6.3 3.7z"/></svg></a>` : ''}
       </div>`;
     }).join('');
   }
+
   // 최근 악보
   const recentEl = document.getElementById('dash-recent-songs');
   recentEl.innerHTML = songs.slice(0,4).map(s =>
-    `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;font-size:12.5px;border-bottom:1px solid var(--border);">
+    `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;font-size:12.5px;border-bottom:1px solid var(--border);cursor:pointer;" onclick="navigate('archive')">
       <span style="font-size:14px;">🎵</span>
       <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${s.title}</span>
       <span class="badge badge-key">${s.key}</span>
     </div>`
-  ).join('') || '<p class="text-muted">없음</p>';
+  ).join('') || '<p class="text-muted" style="font-size:12px;">아직 악보가 없어요</p>';
+}
+
+// ===== 공지 편집 (어드민 전용) =====
+function openNoticeEdit() {
+  const notice = JSON.parse(localStorage.getItem('wm_notice') || '{}');
+  document.getElementById('notice-edit-title').value = notice.title || '';
+  document.getElementById('notice-edit-body').value = notice.body || '';
+  document.getElementById('notice-edit-practice').value = notice.practice || '08:00';
+  document.getElementById('notice-edit-worship').value = notice.worship || '09:00';
+  openModal('modal-notice-edit');
+}
+
+function saveNotice() {
+  const notice = {
+    title: document.getElementById('notice-edit-title').value.trim(),
+    body: document.getElementById('notice-edit-body').value.trim(),
+    practice: document.getElementById('notice-edit-practice').value.trim() || '08:00',
+    worship: document.getElementById('notice-edit-worship').value.trim() || '09:00',
+    date: new Date().toLocaleDateString('ko-KR', {month:'long', day:'numeric'})
+  };
+  localStorage.setItem('wm_notice', JSON.stringify(notice));
+  closeModal('modal-notice-edit');
+  renderDashboard();
+  showToast('전달사항이 저장됐습니다 ✅');
+}
+
+function openDashboardEdit() {
+  showToast('현재 버전에서는 카드 구성이 고정되어 있습니다');
+}
+
+function openScheduleEdit() {
+  openNoticeEdit();
 }
 
 // ===== WEEKLY =====
