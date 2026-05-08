@@ -2074,15 +2074,28 @@ async function runRecommend() {
 현재 악보 창고에 있는 찬양 목록:
 ${scoreList || '(등록된 악보 없음)'}
 
-다음 형식으로 JSON만 응답해주세요 (다른 텍스트 없이):
+다음 형식으로 JSON만 응답해주세요 (다른 텍스트 없이, 마크다운 없이):
 {
   "verse_interpretation": "이 말씀 구절의 핵심 주제와 분위기를 2-3문장으로 설명",
-  "keywords": ["키워드1", "키워드2", "키워드3", "키워드4", "키워드5"],
-  "score_recommendations": [
-    {"title": "악보창고에서 일치하는 곡 제목", "reason": "추천 이유 1문장", "match_score": 85},
-    {"title": "두번째 곡", "reason": "추천 이유", "match_score": 72}
+  "keywords": [
+    {"word": "키워드1", "color": "#E8F5E9", "textColor": "#1B5E20", "meaning": "이 키워드가 말씀에서 갖는 의미"},
+    {"word": "키워드2", "color": "#E3F2FD", "textColor": "#0D47A1", "meaning": "의미"},
+    {"word": "키워드3", "color": "#FFF3E0", "textColor": "#E65100", "meaning": "의미"},
+    {"word": "키워드4", "color": "#F3E5F5", "textColor": "#4A148C", "meaning": "의미"},
+    {"word": "키워드5", "color": "#FCE4EC", "textColor": "#880E4F", "meaning": "의미"}
   ],
-  "youtube_search_queries": ["유튜브 검색어1 찬양", "유튜브 검색어2 찬양", "유튜브 검색어3"]
+  "score_recommendations": [
+    {
+      "title": "악보창고에서 일치하는 곡 제목",
+      "reason": "추천 이유 1문장",
+      "match_score": 85,
+      "keyword_connections": [
+        {"keyword": "키워드1", "lyric_example": "이 곡의 가사 중 해당 키워드와 연관된 구절"},
+        {"keyword": "키워드2", "lyric_example": "관련 가사 예시"}
+      ]
+    }
+  ],
+  "youtube_search_queries": ["유튜브 검색어1 찬양", "유튜브 검색어2 찬양", "유튜브 검색어3 CCM"]
 }`;
 
     const geminiRes = await fetch(
@@ -2150,13 +2163,39 @@ ${scoreList || '(등록된 악보 없음)'}
   }
 }
 
+function highlightKeywords(text, keywords) {
+  if (!text || !keywords?.length) return text || '';
+  let result = text;
+  keywords.forEach(k => {
+    const word = typeof k === 'string' ? k : k.word;
+    const bg = typeof k === 'object' ? k.color : '#FFF9C4';
+    const tc = typeof k === 'object' ? k.textColor : '#5A3E00';
+    const re = new RegExp(`(${word})`, 'gi');
+    result = result.replace(re, `<mark style="background:${bg};color:${tc};padding:1px 4px;border-radius:4px;font-weight:600;">$1</mark>`);
+  });
+  return result;
+}
+
 function renderRecResults(ai, ytItems, ref) {
   document.getElementById('recResults').style.display = 'block';
 
-  // AI 해석
+  const keywords = ai.keywords || [];
+  const kwIsObj = keywords.length && typeof keywords[0] === 'object';
+
+  // AI 해석 + 키워드 하이라이팅
+  const interpHighlighted = highlightKeywords(ai.verse_interpretation || '-', keywords);
+  const kwChips = keywords.map(k => {
+    const word = kwIsObj ? k.word : k;
+    const bg = kwIsObj ? k.color : '#F5F4EE';
+    const tc = kwIsObj ? k.textColor : '#5A5A35';
+    const meaning = kwIsObj ? k.meaning : '';
+    return `<span style="display:inline-flex;align-items:center;gap:4px;background:${bg};color:${tc};padding:4px 10px;border-radius:20px;font-size:12px;font-weight:600;cursor:help;" title="${meaning}">#${word}${meaning?` 💬`:''}</span>`;
+  }).join('');
+
   document.getElementById('recAiText').innerHTML = `
-    <p style="margin-bottom:10px;">${ai.verse_interpretation || '-'}</p>
-    ${ai.keywords?.length ? `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;">${ai.keywords.map(k=>`<span class="tag">#${k}</span>`).join('')}</div>` : ''}`;
+    <p style="margin-bottom:12px;line-height:1.8;">${interpHighlighted}</p>
+    ${kwChips ? `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px;">${kwChips}</div>` : ''}
+    ${kwIsObj ? `<div style="font-size:11px;color:var(--light);margin-top:8px;">💡 키워드에 마우스를 올리면 의미를 확인할 수 있어요</div>` : ''}`;
 
   // 악보 창고 추천
   const scoreEl = document.getElementById('recScoreResults');
@@ -2166,31 +2205,59 @@ function renderRecResults(ai, ytItems, ref) {
     score: scores.find(s => s.title === r.title)
   })).filter(r => r.score);
 
-  // AI 추천 없으면 키워드 매칭으로 fallback
   const displayScores = matchedScores.length > 0 ? matchedScores :
-    scores.filter(s => (ai.keywords||[]).some(k =>
-      (s.title+s.artist+s.memo).toLowerCase().includes(k.toLowerCase())
-    )).slice(0,3).map(s => ({score: s, title: s.title, reason: '키워드 매칭', match_score: 60}));
+    scores.filter(s => keywords.some(k => {
+      const word = typeof k === 'string' ? k : k.word;
+      return (s.title+s.artist+(s.memo||'')).toLowerCase().includes(word.toLowerCase());
+    })).slice(0,3).map(s => ({score: s, title: s.title, reason: '키워드 매칭', match_score: 60, keyword_connections: []}));
 
   if (!displayScores.length) {
-    scoreEl.innerHTML = '<div style="font-size:12px;color:var(--light);padding:10px;">악보 창고에 매칭되는 곡이 없습니다. 악보를 더 등록해보세요!</div>';
+    scoreEl.innerHTML = `<div style="text-align:center;padding:20px;background:var(--white);border:1px dashed var(--border);border-radius:10px;">
+      <div style="font-size:24px;margin-bottom:8px;">🎵</div>
+      <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:4px;">매칭되는 악보가 없습니다</div>
+      <div style="font-size:12px;color:var(--light);">악보 창고에 악보를 등록하면 AI가 말씀과 연결해드려요!</div>
+    </div>`;
   } else {
-    scoreEl.innerHTML = displayScores.map(r => `
-      <div style="background:var(--white);border:1px solid var(--border);border-radius:10px;padding:13px;display:flex;align-items:center;gap:12px;">
-        <div style="flex:1;">
-          <div style="font-weight:600;font-size:13px;margin-bottom:3px;">${r.title}</div>
-          <div style="font-size:11px;color:var(--light);margin-bottom:6px;">${r.score?.artist||'-'} · Key ${r.score?.key||'-'}</div>
-          <div style="font-size:12px;color:var(--muted);">💡 ${r.reason}</div>
-          <div style="margin-top:6px;height:4px;background:var(--olive-bg);border-radius:2px;overflow:hidden;">
-            <div style="height:100%;width:${r.match_score||60}%;background:var(--olive);border-radius:2px;transition:width .5s;"></div>
+    scoreEl.innerHTML = displayScores.map(r => {
+      const matchScore = r.match_score || 60;
+      const barColor = matchScore >= 80 ? '#22C55E' : matchScore >= 60 ? 'var(--olive)' : '#F59E0B';
+      const kwConns = r.keyword_connections || [];
+      const connHtml = kwConns.length ? `
+        <div style="margin-top:10px;padding:10px;background:var(--cream);border-radius:8px;">
+          <div style="font-size:10px;font-weight:700;color:var(--light);letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;">🔗 가사 연관성</div>
+          ${kwConns.map(c => {
+            const kObj = keywords.find(k => (typeof k==='object'?k.word:k) === c.keyword);
+            const bg = kObj?.color || '#F5F4EE';
+            const tc = kObj?.textColor || '#5A5A35';
+            return `<div style="display:flex;align-items:flex-start;gap:6px;margin-bottom:5px;">
+              <span style="background:${bg};color:${tc};padding:1px 7px;border-radius:10px;font-size:10px;font-weight:700;white-space:nowrap;flex-shrink:0;">${c.keyword}</span>
+              <span style="font-size:12px;color:var(--muted);line-height:1.5;font-style:italic;">"${c.lyric_example}"</span>
+            </div>`;
+          }).join('')}
+        </div>` : '';
+
+      return `<div style="background:var(--white);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:8px;">
+        <div style="display:flex;align-items:flex-start;gap:12px;">
+          <div style="flex:1;">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+              <div style="font-weight:700;font-size:14px;">${r.title}</div>
+              <span style="font-size:11px;font-weight:700;color:${barColor};">${matchScore}%</span>
+            </div>
+            <div style="font-size:11px;color:var(--light);margin-bottom:8px;">${r.score?.artist||'-'} · Key ${r.score?.key||'-'}</div>
+            <div style="height:6px;background:var(--olive-bg);border-radius:3px;overflow:hidden;margin-bottom:8px;">
+              <div style="height:100%;width:${matchScore}%;background:${barColor};border-radius:3px;transition:width .8s ease;"></div>
+            </div>
+            <div style="font-size:12px;color:var(--muted);line-height:1.6;">💡 ${highlightKeywords(r.reason, keywords)}</div>
+            ${connHtml}
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0;">
+            ${r.score?.file ? `<button class="btn btn-sm" onclick="viewScore('${r.score.id}')">📄 악보</button>` : ''}
+            ${r.score?.yt ? `<a href="${r.score.yt}" target="_blank" class="yt-icon-btn"><svg viewBox="0 0 24 24" fill="white" width="12" height="12"><path d="M8 5v14l11-7z"/></svg></a>` : ''}
+            <button class="btn btn-primary btn-sm" onclick="addToConti('${r.score?.id}')">＋ 추가</button>
           </div>
         </div>
-        <div style="display:flex;flex-direction:column;gap:6px;">
-          ${r.score?.file ? `<button class="btn btn-sm" onclick="viewScore('${r.score.id}')">악보</button>` : ''}
-          ${r.score?.yt ? `<a href="${r.score.yt}" target="_blank" class="yt-icon-btn"><svg viewBox="0 0 24 24" fill="white" width="12" height="12"><path d="M8 5v14l11-7z"/></svg></a>` : ''}
-          <button class="btn btn-primary btn-sm" onclick="addToConti('${r.score?.id}')">＋ 추가</button>
-        </div>
-      </div>`).join('');
+      </div>`;
+    }).join('');
   }
 
   // YouTube 결과
