@@ -2215,26 +2215,65 @@ function updateBibleVerses() {
 // ════════════════════════════════════════════
 const BOOK_NUM = {"창세기":1,"출애굽기":2,"레위기":3,"민수기":4,"신명기":5,"여호수아":6,"사사기":7,"룻기":8,"사무엘상":9,"사무엘하":10,"열왕기상":11,"열왕기하":12,"역대상":13,"역대하":14,"에스라":15,"느헤미야":16,"에스더":17,"욥기":18,"시편":19,"잠언":20,"전도서":21,"아가":22,"이사야":23,"예레미야":24,"예레미야애가":25,"에스겔":26,"다니엘":27,"호세아":28,"요엘":29,"아모스":30,"오바댜":31,"요나":32,"미가":33,"나훔":34,"하박국":35,"스바냐":36,"학개":37,"스가랴":38,"말라기":39,"마태복음":40,"마가복음":41,"누가복음":42,"요한복음":43,"사도행전":44,"로마서":45,"고린도전서":46,"고린도후서":47,"갈라디아서":48,"에베소서":49,"빌립보서":50,"골로새서":51,"데살로니가전서":52,"데살로니가후서":53,"디모데전서":54,"디모데후서":55,"디도서":56,"빌레몬서":57,"히브리서":58,"야고보서":59,"베드로전서":60,"베드로후서":61,"요한일서":62,"요한이서":63,"요한삼서":64,"유다서":65,"요한계시록":66};
 
+// 로컬 키워드 추출 (Gemini 없이도 동작)
+function extractLocalKeywords(text) {
+  if (!text) return [];
+  const COLORS = [
+    {color:'#E8F5E9',textColor:'#1B5E20'},
+    {color:'#E3F2FD',textColor:'#0D47A1'},
+    {color:'#FFF3E0',textColor:'#E65100'},
+    {color:'#F3E5F5',textColor:'#4A148C'},
+    {color:'#FCE4EC',textColor:'#880E4F'}
+  ];
+  // 불용어 제거
+  const STOP = ['이','가','을','를','의','에','서','로','와','과','도','은','는','이라','하고','하며','하시','하나','것이','것을','그가','그의','그를','니라','하여','으로','이요','이니','하니','하사','하신','이며','하되','들이','에서','으며','이시','시니'];
+  const words = text.replace(/[^가-힣\s]/g, ' ').split(/\s+/).filter(w => w.length >= 2 && !STOP.some(s => w.endsWith(s)));
+  // 빈도 계산
+  const freq = {};
+  words.forEach(w => { freq[w] = (freq[w]||0) + 1; });
+  const sorted = Object.entries(freq).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  return sorted.map(([word], i) => ({ word, ...COLORS[i%COLORS.length], meaning:'' }));
+}
+
 async function fetchVerseFromAPI(book, chapter, verseStart, verseEnd) {
   const bookNum = BOOK_NUM[book];
   if (!bookNum) return '';
   try {
-    // getbible.net v2 API - 개역한글 (kor)
+    // getbible.net v2 API
     const url = `https://getbible.net/v2/kor/${bookNum}/${chapter}.json`;
-    const res = await fetch(url);
-    if (!res.ok) throw new Error('API error');
+    const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
+    if (!res.ok) throw new Error('API ' + res.status);
     const data = await res.json();
-    // 절 범위 추출
+    console.log('Bible API data sample:', JSON.stringify(data).slice(0,200));
+
     const vs = parseInt(verseStart);
     const ve = verseEnd ? parseInt(verseEnd) : vs;
     let text = '';
-    for (let v = vs; v <= ve; v++) {
-      const verseData = data.verses?.find(x => x.verse === v);
-      if (verseData?.text) text += (text ? ' ' : '') + verseData.text.trim();
+
+    // getbible v2 구조: data.chapter 또는 data.verses 배열
+    const verses = data.chapter || data.verses || data;
+    if (Array.isArray(verses)) {
+      for (let v = vs; v <= ve; v++) {
+        const item = verses.find(x => (x.verse_nr||x.verse||x.v) === v);
+        if (item) text += (text?' ':'') + (item.text||item.t||'').trim();
+      }
+    } else if (typeof verses === 'object') {
+      for (let v = vs; v <= ve; v++) {
+        const item = verses[v] || verses[String(v)];
+        if (item) text += (text?' ':'') + (typeof item==='string'?item:item.text||item.t||'').trim();
+      }
     }
     return text;
   } catch(e) {
-    console.log('Bible API error:', e);
+    console.log('Bible API error:', e.message);
+    // Fallback: scripture.api.bible 무료 공개 엔드포인트
+    try {
+      const bookNames = {'마가복음':'MRK','마태복음':'MAT','누가복음':'LUK','요한복음':'JHN','창세기':'GEN','시편':'PSA','이사야':'ISA','로마서':'ROM','빌립보서':'PHP','에베소서':'EPH'};
+      const bk = bookNames[book];
+      if (!bk) return '';
+      const r2 = await fetch(`https://api.esv.org/v3/passage/text/?q=${bk}+${chapter}:${verseStart}${verseEnd&&verseEnd!==verseStart?'-'+verseEnd:''}&include-headings=false&include-footnotes=false&include-verse-numbers=false`);
+      // ESV는 영어라 패스
+    } catch(e2) {}
     return '';
   }
 }
@@ -2433,10 +2472,11 @@ JSON으로만 답하세요:
     } catch(err) {
       console.error('Parse:', err);
       const is429 = lastErr==='429' || !geminiData;
-      // fallback: 키워드 없이 본문만 표시
+      // 로컬 키워드 추출 fallback (Gemini 없이도 동작)
+      const localKws = extractLocalKeywords(fullVerseText || verseText);
       aiResult = {
-        verse_interpretation: is429 ? '⚠️ AI 한도 초과. 잠시 후 다시 시도해주세요.' : '말씀과 어울리는 찬양을 찾고 있습니다.',
-        keywords: [{word:'하나님',color:'#E8F5E9',textColor:'#1B5E20',meaning:''},{word:'은혜',color:'#E3F2FD',textColor:'#0D47A1',meaning:''},{word:'찬양',color:'#FFF3E0',textColor:'#E65100',meaning:''}],
+        verse_interpretation: is429 ? '잠시 후 다시 시도하거나, 아래 YouTube 찬양을 참고해주세요.' : '말씀과 어울리는 찬양을 찾고 있습니다.',
+        keywords: localKws,
         score_recommendations: [],
         youtube_search_queries: [book+' 찬양 피아', '위러브 찬양 MR', '아이자야61 CCM']
       };
