@@ -319,7 +319,37 @@ nav{flex:1;padding:4px 8px;overflow-y:auto;}
 </head>
 <body>
 
-<!-- ══ SPLASH ══ -->
+<!-- ══ INTRO ══ -->
+<div id="introScreen" style="position:fixed;inset:0;z-index:9998;background:#1C1F14;display:none;flex-direction:column;align-items:center;justify-content:center;overflow:hidden;">
+  <!-- 배경 파티클 -->
+  <canvas id="introCanvas" style="position:absolute;inset:0;width:100%;height:100%;"></canvas>
+
+  <!-- 중앙 콘텐츠 -->
+  <div id="introContent" style="position:relative;z-index:1;text-align:center;opacity:0;transform:scale(0.85);transition:all .8s cubic-bezier(.34,1.56,.64,1);">
+    <!-- 빛나는 십자가 -->
+    <div style="position:relative;width:100px;height:100px;margin:0 auto 24px;">
+      <!-- 빛 효과 -->
+      <div style="position:absolute;inset:-20px;border-radius:50%;background:radial-gradient(circle,rgba(167,175,100,0.4) 0%,transparent 70%);animation:glowPulse 2s ease-in-out infinite;"></div>
+      <div style="width:100px;height:100px;background:linear-gradient(135deg,#6B7239,#C4CC7A);border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 0 40px rgba(167,175,100,0.6),0 0 80px rgba(107,114,57,0.3);">
+        <svg viewBox="0 0 24 24" fill="white" width="48" height="48" style="filter:drop-shadow(0 0 8px rgba(255,255,255,0.8));">
+          <path d="M11 2h2v7h7v2h-7v11h-2V11H4V9h7V2z"/>
+        </svg>
+      </div>
+    </div>
+
+    <div style="font-family:'Noto Serif KR',serif;font-size:28px;font-weight:700;color:#fff;letter-spacing:2px;margin-bottom:8px;text-shadow:0 0 20px rgba(167,175,100,0.8);">함께하는교회</div>
+    <div style="font-size:13px;color:rgba(255,255,255,0.5);letter-spacing:3px;text-transform:uppercase;margin-bottom:4px;">안성</div>
+    <div style="font-size:11px;color:rgba(255,255,255,0.3);letter-spacing:4px;text-transform:uppercase;">Worship Team</div>
+
+    <!-- 하단 라인 -->
+    <div style="width:0px;height:1px;background:linear-gradient(90deg,transparent,rgba(167,175,100,0.6),transparent);margin:24px auto 0;transition:width 1s ease .4s;" id="introLine"></div>
+  </div>
+</div>
+
+<style>
+@keyframes glowPulse{0%,100%{opacity:0.6;transform:scale(1)}50%{opacity:1;transform:scale(1.1)}}
+@keyframes floatUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+</style>
 <div id="splashScreen" style="position:fixed;inset:0;z-index:99999;background:#1C1F14;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;">
   <!-- 배경 원형 장식 -->
   <div style="position:absolute;width:400px;height:400px;border-radius:50%;background:radial-gradient(circle,rgba(107,114,57,0.15),transparent 70%);top:50%;left:50%;transform:translate(-50%,-50%);animation:pulse 3s ease-in-out infinite;"></div>
@@ -399,7 +429,7 @@ nav{flex:1;padding:4px 8px;overflow-y:auto;}
 <div class="app" id="mainApp" style="display:none;">
   <div class="sidebar-wrap">
     <aside class="sidebar" id="sidebar">
-      <div class="logo-area">
+      <div class="logo-area" onclick="goToDashboard()" style="cursor:pointer;" title="대시보드로 이동">
         <div class="logo-row">
           <div class="logo-img-wrap">
             <img src="logo.png" alt="로고" onerror="this.style.display='none'"/>
@@ -1346,8 +1376,76 @@ let currentCollId = null;
 let mergeSlot = {1:null, 2:null};
 
 // ════════════════════════════════════════════
-// SPLASH SCREEN
+// INTRO ANIMATION
 // ════════════════════════════════════════════
+function showIntro(callback) {
+  const intro = document.getElementById('introScreen');
+  const content = document.getElementById('introContent');
+  const line = document.getElementById('introLine');
+  const canvas = document.getElementById('introCanvas');
+  if (!intro) { if(callback) callback(); return; }
+
+  intro.style.display = 'flex';
+
+  // Canvas 파티클 (별빛 효과)
+  if (canvas) {
+    const ctx = canvas.getContext('2d');
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    const particles = Array.from({length:80}, () => ({
+      x: Math.random()*canvas.width,
+      y: Math.random()*canvas.height,
+      r: Math.random()*1.5+0.3,
+      o: Math.random(),
+      speed: Math.random()*0.3+0.1,
+      twinkle: Math.random()*Math.PI*2
+    }));
+    let animId;
+    function drawParticles() {
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+      particles.forEach(p => {
+        p.twinkle += p.speed * 0.05;
+        p.o = 0.3 + Math.sin(p.twinkle)*0.4;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+        ctx.fillStyle = `rgba(167,175,100,${p.o})`;
+        ctx.fill();
+      });
+      animId = requestAnimationFrame(drawParticles);
+    }
+    drawParticles();
+    setTimeout(() => cancelAnimationFrame(animId), 2800);
+  }
+
+  // 콘텐츠 등장
+  setTimeout(() => {
+    content.style.opacity = '1';
+    content.style.transform = 'scale(1)';
+    if (line) line.style.width = '200px';
+  }, 100);
+
+  // 페이드 아웃
+  setTimeout(() => {
+    intro.style.transition = 'opacity .7s ease';
+    intro.style.opacity = '0';
+    setTimeout(() => {
+      intro.style.display = 'none';
+      intro.style.opacity = '1';
+      if (callback) callback();
+    }, 700);
+  }, 2200);
+}
+
+// 로고 클릭 → 대시보드
+function goToDashboard() {
+  const items = document.querySelectorAll('.nav-item');
+  items.forEach(i => i.classList.remove('active'));
+  const dashBtn = document.querySelector('.nav-item[onclick*="dashboard"]');
+  if (dashBtn) dashBtn.classList.add('active');
+  showPage('dashboard', dashBtn);
+}
+
+// 권한 체크 헬퍼
 function hideSplash() {
   const splash = document.getElementById('splashScreen');
   if (!splash) return;
@@ -1433,11 +1531,14 @@ async function loginSuccess(sbUser) {
     });
   }
   document.getElementById('loginScreen').style.display = 'none';
-  document.getElementById('mainApp').style.display = 'flex';
   hideSplash();
-  loadAllData();
-  updateUserUI();
-  restoreTab();
+  // 로그인 후 인트로 애니메이션
+  showIntro(() => {
+    document.getElementById('mainApp').style.display = 'flex';
+    loadAllData();
+    updateUserUI();
+    restoreTab();
+  });
 }
 
 async function doLogout() {
