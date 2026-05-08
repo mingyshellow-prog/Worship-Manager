@@ -516,7 +516,7 @@ nav{flex:1;padding:4px 8px;overflow-y:auto;}
             </div>
             <button class="btn btn-sm" onclick="openSuggestion()" style="background:#FEF3C7;color:#92400E;border-color:#FDE68A;">✏️ 의견 남기기</button>
           </div>
-          <div id="suggestionList" style="display:flex;flex-direction:column;gap:6px;max-height:200px;overflow-y:auto;"></div>
+          <div id="suggestionList" style="display:flex;flex-direction:column;gap:8px;max-height:280px;overflow-y:auto;"></div>
         </div>
 
         <!-- Dev Note -->
@@ -1977,7 +1977,10 @@ function renderWeekly() {
               </div>
             </div>`;
           }).join('')}
-          ${songs.length>0?`<div style="margin-top:10px;text-align:right;"><button class="btn btn-primary btn-sm" onclick="openWeeklyViewMode(${wi})">📱 View Mode</button></div>`:''}
+          ${songs.length>0?`<div style="margin-top:10px;text-align:right;display:flex;gap:8px;justify-content:flex-end;">
+            <button class="btn btn-sm" onclick="downloadWeeklyPDF(${wi})" style="background:#FF3B30;color:#fff;border-color:#FF3B30;">📄 PDF 다운로드</button>
+            <button class="btn btn-primary btn-sm" onclick="openWeeklyViewMode(${wi})">📱 View Mode</button>
+          </div>`:''}
         </div>
       </div>
     </div>`;
@@ -3503,6 +3506,77 @@ function renderWv() {
     <div onclick="_wvIdx=${i};renderWv()" style="padding:6px 12px;border-radius:20px;cursor:pointer;font-size:12px;white-space:nowrap;background:${i===_wvIdx?'var(--olive)':'rgba(255,255,255,.2)'};color:#fff;">${i+1}. ${s.title}</div>`).join('');
 }
 
+function downloadWeeklyPDF(wi) {
+  const w = weeklyContis[wi];
+  if (!w) return;
+  const date = w.date || w.worship_date || '';
+  const service = w.service || w.worship_type || '주일 예배';
+  const songs = Array.isArray(w.songs) ? w.songs : [];
+  const memo = w.memo || w.notes || '';
+
+  // HTML → PDF (print 방식)
+  const pdfWin = window.open('', '_blank');
+  const html = `<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8"/>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700&family=Noto+Serif+KR:wght@700&display=swap');
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{font-family:'Noto Sans KR',sans-serif;padding:40px;color:#1a1a1a;background:#fff;}
+  .header{border-bottom:3px solid #6B7239;padding-bottom:20px;margin-bottom:24px;}
+  .church{font-family:'Noto Serif KR',serif;font-size:13px;color:#6B7239;letter-spacing:2px;margin-bottom:6px;}
+  .title{font-family:'Noto Serif KR',serif;font-size:24px;font-weight:700;color:#1a1a1a;margin-bottom:4px;}
+  .date{font-size:13px;color:#666;}
+  .section{margin-bottom:20px;}
+  .section-title{font-size:11px;font-weight:700;letter-spacing:2px;color:#6B7239;text-transform:uppercase;margin-bottom:10px;padding-bottom:4px;border-bottom:1px solid #e8e8e0;}
+  .song-row{display:flex;align-items:center;gap:12px;padding:10px 12px;border:1px solid #e8e8e0;border-radius:8px;margin-bottom:6px;background:#fafaf7;}
+  .song-num{width:24px;height:24px;border-radius:50%;background:#6B7239;color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .song-title{flex:1;font-size:14px;font-weight:600;}
+  .song-key{font-size:12px;color:#6B7239;font-weight:700;background:#f0f1e8;padding:2px 8px;border-radius:6px;}
+  .memo{background:#fafaf7;border-left:3px solid #6B7239;padding:10px 14px;border-radius:0 8px 8px 0;font-size:12px;color:#555;line-height:1.7;}
+  .footer{margin-top:32px;padding-top:16px;border-top:1px solid #e8e8e0;text-align:center;font-size:10px;color:#999;letter-spacing:1px;}
+  @media print{body{padding:20px;} @page{margin:15mm;size:A4;}}
+</style>
+</head>
+<body>
+<div class="header">
+  <div class="church">함께하는교회 안성 · Worship Team</div>
+  <div class="title">${service}</div>
+  <div class="date">📅 ${date} ${w.practice?'· 연습 '+w.practice:''}</div>
+</div>
+
+${memo?`<div class="section">
+  <div class="section-title">📝 메모</div>
+  <div class="memo">${memo}</div>
+</div>`:''}
+
+<div class="section">
+  <div class="section-title">🎵 찬양 목록 (${songs.length}곡)</div>
+  ${songs.map((s,i)=>{
+    const title = s.title||s.name||(typeof s==='string'?s:'');
+    const key = s.key||s.song_key||'';
+    return `<div class="song-row">
+      <div class="song-num">${i+1}</div>
+      <div class="song-title">${title}</div>
+      ${key?`<div class="song-key">Key ${key}</div>`:''}
+    </div>`;
+  }).join('')}
+</div>
+
+<div class="footer">함께하는교회 안성 · Worship Manager · 이 문서는 예배 콘티입니다</div>
+</body>
+</html>`;
+
+  pdfWin.document.write(html);
+  pdfWin.document.close();
+  pdfWin.focus();
+  setTimeout(() => {
+    pdfWin.print();
+  }, 500);
+  showToast('📄 PDF 저장 창이 열렸어요! 저장 → 굿노트/노타빌리티로 임포트하세요');
+}
+
 function wvNext() { if (_wvIdx < _wvSongs.length-1) { _wvIdx++; renderWv(); } }
 function wvPrev() { if (_wvIdx > 0) { _wvIdx--; renderWv(); } }
 
@@ -3649,28 +3723,96 @@ async function submitSuggestion() {
 async function renderSuggestions() {
   const el = document.getElementById('suggestionList');
   if (!el) return;
-  const { data } = await sb.from('suggestions').select('*').order('created_at', { ascending: false }).limit(5);
+  const { data } = await sb.from('suggestions').select('*').order('created_at', { ascending: false }).limit(10);
   if (!data?.length) {
-    el.innerHTML = '<div style="font-size:12px;color:var(--light);text-align:center;padding:8px;">아직 등록된 의견이 없습니다</div>';
+    el.innerHTML = '<div style="font-size:12px;color:var(--light);text-align:center;padding:12px;">아직 등록된 의견이 없습니다</div>';
     return;
   }
+  // 댓글 수 가져오기
+  const ids = data.map(s=>s.id);
+  const { data: replies } = await sb.from('suggestion_replies').select('suggestion_id').in('suggestion_id', ids);
+  const replyCounts = {};
+  (replies||[]).forEach(r => { replyCounts[r.suggestion_id] = (replyCounts[r.suggestion_id]||0)+1; });
+
   const CAT = { feature:'🚀', bug:'🐛', suggestion:'💡', etc:'📝' };
   const STATUS = { pending:{label:'검토중',bg:'#FEF3C7',color:'#92400E'}, done:{label:'완료',bg:'#F0FDF4',color:'#166534'}, rejected:{label:'보류',bg:'#FEE2E2',color:'#CC2200'} };
   el.innerHTML = data.map(s => {
     const st = STATUS[s.status] || STATUS.pending;
-    const date = new Date(s.created_at).toLocaleDateString('ko-KR', {month:'short', day:'numeric'});
-    return `<div style="display:flex;align-items:flex-start;gap:8px;padding:9px 12px;background:var(--cream);border-radius:8px;border:1px solid var(--border);">
-      <span style="font-size:14px;flex-shrink:0;">${CAT[s.category]||'📝'}</span>
-      <div style="flex:1;min-width:0;">
-        <div style="font-size:12px;color:var(--text);line-height:1.5;">${s.content}</div>
-        <div style="display:flex;align-items:center;gap:6px;margin-top:4px;">
-          <span style="font-size:10px;color:var(--light);">${s.author_name||'익명'} · ${date}</span>
-          <span style="font-size:10px;font-weight:600;padding:1px 6px;border-radius:8px;background:${st.bg};color:${st.color};">${st.label}</span>
+    const date = new Date(s.created_at).toLocaleDateString('ko-KR', {month:'short', day:'numeric', hour:'2-digit', minute:'2-digit'});
+    const rc = replyCounts[s.id] || 0;
+    return `<div style="background:var(--cream);border-radius:10px;border:1px solid var(--border);overflow:hidden;">
+      <div style="display:flex;align-items:flex-start;gap:8px;padding:10px 12px;">
+        <span style="font-size:16px;flex-shrink:0;margin-top:1px;">${CAT[s.category]||'📝'}</span>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:12px;color:var(--text);line-height:1.6;margin-bottom:5px;">${s.content}</div>
+          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+            <span style="font-size:10px;font-weight:600;color:var(--olive-d);">${s.author_name||'익명'}</span>
+            <span style="font-size:10px;color:var(--light);">${date}</span>
+            <span style="font-size:10px;font-weight:600;padding:1px 7px;border-radius:8px;background:${st.bg};color:${st.color};">${st.label}</span>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0;align-items:flex-end;">
+          ${isAdmin()&&s.status==='pending'?`<button class="btn btn-sm" onclick="resolveSuggestion('${s.id}')" style="font-size:10px;padding:2px 8px;">✓ 완료</button>`:''}
+          <button onclick="toggleSuggReply('${s.id}')" style="font-size:10px;color:var(--olive);background:none;border:none;cursor:pointer;padding:2px 4px;">💬 ${rc}개</button>
         </div>
       </div>
-      ${isAdmin()&&s.status==='pending'?`<button class="btn btn-sm" onclick="resolveSuggestion('${s.id}')" style="font-size:10px;padding:2px 7px;">완료</button>`:''}
+      <!-- 댓글 영역 -->
+      <div id="replyArea_${s.id}" style="display:none;border-top:1px solid var(--border);background:var(--white);">
+        <div id="replyList_${s.id}" style="padding:8px 12px;display:flex;flex-direction:column;gap:6px;max-height:150px;overflow-y:auto;"></div>
+        <div style="display:flex;gap:6px;padding:8px 12px;border-top:1px solid var(--border);">
+          <input class="form-input" id="replyInput_${s.id}" placeholder="댓글 달기..." style="flex:1;font-size:12px;padding:6px 10px;"/>
+          <button class="btn btn-primary btn-sm" onclick="submitReply('${s.id}')">등록</button>
+        </div>
+      </div>
     </div>`;
   }).join('');
+}
+
+async function toggleSuggReply(id) {
+  const area = document.getElementById(`replyArea_${id}`);
+  if (!area) return;
+  const isOpen = area.style.display !== 'none';
+  area.style.display = isOpen ? 'none' : 'block';
+  if (!isOpen) await loadReplies(id);
+}
+
+async function loadReplies(suggId) {
+  const el = document.getElementById(`replyList_${suggId}`);
+  if (!el) return;
+  const { data } = await sb.from('suggestion_replies')
+    .select('*').eq('suggestion_id', suggId).order('created_at', {ascending:true});
+  if (!data?.length) {
+    el.innerHTML = '<div style="font-size:11px;color:var(--light);text-align:center;padding:6px;">첫 댓글을 남겨보세요!</div>';
+    return;
+  }
+  el.innerHTML = data.map(r => {
+    const date = new Date(r.created_at).toLocaleDateString('ko-KR', {month:'short', day:'numeric', hour:'2-digit', minute:'2-digit'});
+    const isMe = r.user_id === currentUser?.id;
+    return `<div style="display:flex;gap:6px;align-items:flex-start;${isMe?'flex-direction:row-reverse;':''}">
+      <div style="width:24px;height:24px;border-radius:50%;background:var(--olive);color:#fff;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;">${(r.author_name||'?')[0]}</div>
+      <div style="max-width:80%;background:${isMe?'var(--olive-bg)':'var(--cream)'};padding:6px 10px;border-radius:${isMe?'12px 2px 12px 12px':'2px 12px 12px 12px'};border:1px solid var(--border);">
+        <div style="font-size:11px;font-weight:600;color:var(--olive-d);margin-bottom:2px;">${r.author_name||'익명'}</div>
+        <div style="font-size:12px;color:var(--text);line-height:1.5;">${r.content}</div>
+        <div style="font-size:10px;color:var(--light);margin-top:3px;">${date}</div>
+      </div>
+    </div>`;
+  }).join('');
+  el.scrollTop = el.scrollHeight;
+}
+
+async function submitReply(suggId) {
+  const input = document.getElementById(`replyInput_${suggId}`);
+  const content = input?.value.trim();
+  if (!content) return;
+  await sb.from('suggestion_replies').insert({
+    suggestion_id: suggId,
+    content,
+    author_name: currentUser?.name || '익명',
+    user_id: currentUser?.id || null
+  });
+  input.value = '';
+  await loadReplies(suggId);
+  showToast('댓글이 등록됐어요 💬');
 }
 
 async function resolveSuggestion(id) {
