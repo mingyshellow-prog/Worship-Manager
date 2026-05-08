@@ -105,6 +105,7 @@ nav{flex:1;padding:4px 8px;overflow-y:auto;}
 .yt-icon-btn{width:28px;height:28px;background:#FF0000;border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0;text-decoration:none;border:none;cursor:pointer;}
 .yt-icon-btn svg{width:12px;height:12px;}
 .badge-admin{background:#FEF3C7;color:#92400E;font-size:10px;padding:2px 7px;border-radius:10px;font-weight:600;}
+.badge-super{background:#EDE9FE;color:#5B21B6;font-size:10px;padding:2px 7px;border-radius:10px;font-weight:600;}
 .badge-member{background:var(--olive-bg);color:var(--olive-d);font-size:10px;padding:2px 7px;border-radius:10px;font-weight:600;}
 .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--text);color:var(--cream);padding:10px 20px;border-radius:20px;font-size:13px;z-index:9000;opacity:0;transition:opacity .3s;pointer-events:none;}
 .toast.show{opacity:1;}
@@ -912,8 +913,13 @@ let wkSongs = [];
 let currentCollId = null;
 let mergeSlot = {1:null, 2:null};
 
-// ════════════════════════════════════════════
-// SUPABASE INIT
+// 권한 체크 헬퍼
+function isAdmin() {
+  return currentUser?.role === 'admin' || currentUser?.role === 'super_admin';
+}
+function isSuperAdmin() {
+  return currentUser?.role === 'super_admin';
+}
 // ════════════════════════════════════════════
 const SUPABASE_URL = 'https://uvyahitvpuvtwcejavqj.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV2eWFoaXR2cHV2dHdjZWphdnFqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgwNDQ2MTYsImV4cCI6MjA5MzYyMDYxNn0.1HAaTNyKRoJb5jRR30PUkFO9Eubh9Io6Gao02UFTkTQ';
@@ -1008,9 +1014,9 @@ function updateUserUI() {
   if (avatar) { sa.innerHTML=`<img src="${avatar}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;"/>`; }
   else sa.textContent = initial;
   document.getElementById('sidebarName').textContent = currentUser.name;
-  document.getElementById('sidebarRole').textContent = currentUser.role==='admin'?'관리자':'멤버';
+  document.getElementById('sidebarRole').textContent = isSuperAdmin()?'슈퍼관리자':isAdmin()?'관리자':'멤버';
   // admin features
-  if (currentUser.role==='admin') {
+  if (isAdmin()) {
     document.getElementById('annEditBtn').style.display = 'block';
     document.getElementById('quickContiBtn').style.display = 'flex';
     document.getElementById('weeklyAddBtn').style.display = 'flex';
@@ -1032,8 +1038,8 @@ function updateUserUI() {
   }
   document.getElementById('myName').textContent = currentUser.name;
   document.getElementById('myEmail').textContent = currentUser.email || '게스트';
-  document.getElementById('myRoleBadge').className = currentUser.role==='admin' ? 'badge-admin' : 'badge-member';
-  document.getElementById('myRoleBadge').textContent = currentUser.role==='admin' ? '관리자' : '멤버';
+  document.getElementById('myRoleBadge').className = isSuperAdmin()?'badge-super':isAdmin()?'badge-admin':'badge-member';
+  document.getElementById('myRoleBadge').textContent = isSuperAdmin()?'슈퍼관리자':isAdmin()?'관리자':'멤버';
   document.getElementById('dashSub').textContent = `환영합니다, ${currentUser.name}님!`;
   renderRoles();
   renderWishes();
@@ -1295,7 +1301,7 @@ function renderWeekly() {
           </div>
         </div>
         <div style="display:flex;align-items:center;gap:8px;">
-          ${currentUser?.role==='admin'?`<button class="btn btn-danger btn-sm" onclick="event.stopPropagation();deleteWeekly(${wi})">삭제</button>`:''}
+          ${isAdmin()?`<button class="btn btn-danger btn-sm" onclick="event.stopPropagation();deleteWeekly(${wi})">삭제</button>`:''}
           <span class="week-arrow">▼</span>
         </div>
       </div>
@@ -1398,7 +1404,7 @@ function renderScores() {
       <div class="score-actions" onclick="event.stopPropagation()">
         ${s.yt?`<a href="${s.yt}" target="_blank" class="yt-icon-btn"><svg viewBox="0 0 24 24" fill="white" width="12" height="12"><path d="M8 5v14l11-7z"/></svg></a>`:''}
         <button class="link-btn score btn-sm" onclick="viewScore('${s.id}')">악보</button>
-        ${currentUser?.role==='admin'?`<button class="btn btn-danger btn-sm" onclick="deleteScore('${s.id}')">삭제</button>`:''}
+        ${isAdmin()?`<button class="btn btn-danger btn-sm" onclick="deleteScore('${s.id}')">삭제</button>`:''}
       </div>
     </div>`).join('');
 }
@@ -2146,9 +2152,9 @@ async function renderMembers() {
         <div class="member-sub">${u.email} · Last login: ${lastLogin}</div>
       </div>
       ${isOnline?'<div class="online-dot" title="최근 접속"></div>':''}
-      <span class="${u.role==='admin'?'badge-admin':'badge-member'}">${u.role==='admin'?'관리자':'멤버'}</span>
-      ${currentUser?.role==='admin'&&!isMe?`
-        <button class="btn btn-sm" onclick="toggleMemberRole('${u.id}','${u.role}')">${u.role==='admin'?'멤버로':'관리자로'}</button>
+      <span class="${u.role==='admin'||u.role==='super_admin'?'badge-admin':'badge-member'}">${u.role==='admin'||u.role==='super_admin'?'관리자':'멤버'}</span>
+      ${isAdmin()&&!isMe?`
+        <button class="btn btn-sm" onclick="toggleMemberRole('${u.id}','${u.role}')">${u.role==='admin'||u.role==='super_admin'?'멤버로':'관리자로'}</button>
         <button class="btn btn-danger btn-sm" onclick="deleteMember('${u.id}')">삭제</button>
       `:''}
     </div>`;
