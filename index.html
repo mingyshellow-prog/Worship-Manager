@@ -2066,37 +2066,16 @@ async function runRecommend() {
   try {
     // 1단계: Claude API로 말씀 분석 + 악보 창고 매칭
     const scoreList = scores.map(s => `• ${s.title}${s.artist?' ('+s.artist+')':''}${s.key?' Key '+s.key:''}`).join('\n');
-    const prompt = `당신은 교회 찬양팀을 위한 전문 찬양 추천 AI입니다.
+    const prompt = `You are a worship song recommendation AI for a Korean church worship team.
 
-말씀 구절: ${ref}
-구절 내용: "${verseText}"
+Bible verse: ${ref}
+Verse content: "${verseText}"
 
-현재 악보 창고에 있는 찬양 목록:
-${scoreList || '(등록된 악보 없음)'}
+Songs in our library:
+${scoreList || '(none)'}
 
-다음 형식으로 JSON만 응답해주세요 (다른 텍스트 없이, 마크다운 없이):
-{
-  "verse_interpretation": "이 말씀 구절의 핵심 주제와 분위기를 2-3문장으로 설명",
-  "keywords": [
-    {"word": "키워드1", "color": "#E8F5E9", "textColor": "#1B5E20", "meaning": "이 키워드가 말씀에서 갖는 의미"},
-    {"word": "키워드2", "color": "#E3F2FD", "textColor": "#0D47A1", "meaning": "의미"},
-    {"word": "키워드3", "color": "#FFF3E0", "textColor": "#E65100", "meaning": "의미"},
-    {"word": "키워드4", "color": "#F3E5F5", "textColor": "#4A148C", "meaning": "의미"},
-    {"word": "키워드5", "color": "#FCE4EC", "textColor": "#880E4F", "meaning": "의미"}
-  ],
-  "score_recommendations": [
-    {
-      "title": "악보창고에서 일치하는 곡 제목",
-      "reason": "추천 이유 1문장",
-      "match_score": 85,
-      "keyword_connections": [
-        {"keyword": "키워드1", "lyric_example": "이 곡의 가사 중 해당 키워드와 연관된 구절"},
-        {"keyword": "키워드2", "lyric_example": "관련 가사 예시"}
-      ]
-    }
-  ],
-  "youtube_search_queries": ["유튜브 검색어1 찬양", "유튜브 검색어2 찬양", "유튜브 검색어3 CCM"]
-}`;
+Respond ONLY with valid JSON, no markdown, no explanation:
+{"verse_interpretation":"2-3 sentence Korean explanation of this verse theme and mood","keywords":[{"word":"한국어키워드1","color":"#E8F5E9","textColor":"#1B5E20","meaning":"이 키워드의 의미"},{"word":"키워드2","color":"#E3F2FD","textColor":"#0D47A1","meaning":"의미"},{"word":"키워드3","color":"#FFF3E0","textColor":"#E65100","meaning":"의미"}],"score_recommendations":[{"title":"exact song title from library","reason":"Korean reason","match_score":85,"keyword_connections":[{"keyword":"키워드","lyric_example":"관련 가사 예시"}]}],"youtube_search_queries":["찬양 검색어1","찬양 검색어2"]}`;
 
     const geminiRes = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`,
@@ -2111,23 +2090,38 @@ ${scoreList || '(등록된 악보 없음)'}
     );
 
     const geminiData = await geminiRes.json();
-    console.log('Gemini raw:', JSON.stringify(geminiData).slice(0,300));
     let aiResult;
     try {
-      const raw = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
-      // Gemini sometimes wraps in ```json ... ``` or just returns plain JSON
-      const jsonMatch = raw.match(/\{[\s\S]*\}/);
-      const clean = jsonMatch ? jsonMatch[0] : raw.replace(/```json|```/g, '').trim();
+      const raw = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || '';
+      console.log('Gemini response:', raw.slice(0,200));
+      if (!raw) throw new Error('Empty response');
+      // Try multiple extraction strategies
+      let clean = raw;
+      // Remove markdown code blocks
+      clean = clean.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
+      // Find JSON object
+      const start = clean.indexOf('{');
+      const end = clean.lastIndexOf('}');
+      if (start !== -1 && end !== -1) {
+        clean = clean.slice(start, end + 1);
+      }
       aiResult = JSON.parse(clean);
-      console.log('Parsed aiResult:', aiResult);
+      console.log('AI result OK:', Object.keys(aiResult));
     } catch(e) {
       console.error('Parse error:', e);
+      // Fallback: show raw text as interpretation
       const rawText = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || '';
+      // Try to extract interpretation from raw text
+      const interp = rawText.length > 10 ? rawText.replace(/[{}"]/g, '').slice(0, 300) : '말씀과 어울리는 찬양을 찾고 있습니다.';
       aiResult = {
-        verse_interpretation: rawText || '분석 중 오류가 발생했습니다. 다시 시도해주세요.',
-        keywords: [],
+        verse_interpretation: interp,
+        keywords: [
+          {word: book, color: '#E8F5E9', textColor: '#1B5E20', meaning: '말씀의 배경'},
+          {word: '찬양', color: '#E3F2FD', textColor: '#0D47A1', meaning: '경배와 찬양'},
+          {word: '은혜', color: '#FFF3E0', textColor: '#E65100', meaning: '하나님의 은혜'}
+        ],
         score_recommendations: [],
-        youtube_search_queries: [book + ' 찬양 CCM', ref + ' 찬양']
+        youtube_search_queries: [book + ' 찬양 CCM', ref + ' worship song']
       };
     }
 
