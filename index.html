@@ -655,7 +655,10 @@ nav{flex:1;padding:4px 8px;overflow-y:auto;}
 
           <!-- YouTube 추천 -->
           <div>
-            <div class="section-label" style="margin-bottom:10px;">▶️ YouTube 찬양 추천</div>
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+              <div class="section-label">▶️ YouTube 찬양 추천</div>
+              <span style="font-size:11px;color:var(--light);">말씀과 가장 어울리는 찬양팀 위주로 추천했어요</span>
+            </div>
             <div id="recYtResults" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;"></div>
           </div>
         </div>
@@ -2545,25 +2548,28 @@ JSON으로만 답하세요:
     // 로컬 본문 데이터 주입
     aiResult.verse_text = fullVerseText;
 
-    // 2단계: YouTube API 검색 - 단건 찬양 위주
+    // 2단계: YouTube API 검색 - 단건 찬양 위주 (항상 표시)
     const ytResults = [];
     if (YT_API_KEY !== 'YOUR_YOUTUBE_API_KEY') {
-      const kw0 = aiResult.keywords?.[0]?.word || book;
-      const kw1 = aiResult.keywords?.[1]?.word || '';
+      const kw0 = aiResult.keywords?.[0]?.word || '';
       const aiQueries = aiResult.youtube_search_queries || [];
-      // 아티스트별 단건 검색어 (구체적으로)
+
+      // 1순위: 말씀 키워드 기반 아티스트 검색
+      // 2순위: 키워드 없어도 아티스트 일반 찬양 검색 (항상 영상 보여주기)
       const ytQueries = [
-        `피아 ${kw0} 찬양 MV`,
-        `위러브 ${kw0} official`,
-        `아이자야61 ${kw0} 찬양`,
-        `어노인팅 ${kw0} 찬양`,
-        ...aiQueries.slice(0,2).map(q => q + ' 단건')
+        kw0 ? `피아 ${kw0} 찬양` : '피아 찬양 MV',
+        kw0 ? `위러브 ${kw0} official` : '위러브 찬양 official',
+        kw0 ? `아이자야61 ${kw0} 찬양` : '아이자야61 찬양',
+        '어노인팅 찬양 MV',
+        ...aiQueries.slice(0, 2)
       ];
+
       const EXCLUDE = ['설교','강해','강의','목사','주일예배','새벽기도','큐티','묵상',
         '모음','전곡','전집','앨범전체','찬양모음','메들리','medley','full album','playlist',
         '1시간','2시간','연속','모아보기','compilation','예배전체','실황전체'];
       const seenIds = new Set();
-      for (const q of ytQueries.slice(0, 5)) {
+
+      for (const q of ytQueries) {
         if (ytResults.length >= 6) break;
         try {
           const ytRes = await fetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=5&q=${encodeURIComponent(q)}&type=video&videoDuration=medium&key=${YT_API_KEY}`);
@@ -2574,7 +2580,14 @@ JSON으로만 답하세요:
             const title = item.snippet.title.toLowerCase();
             if (!EXCLUDE.some(w => title.includes(w))) {
               seenIds.add(item.id.videoId);
-              ytResults.push({ id: item.id.videoId, title: item.snippet.title, channel: item.snippet.channelTitle, thumbnail: item.snippet.thumbnails.medium?.url, query: q });
+              ytResults.push({
+                id: item.id.videoId,
+                title: item.snippet.title,
+                channel: item.snippet.channelTitle,
+                thumbnail: item.snippet.thumbnails.medium?.url,
+                query: q,
+                isRelated: !!kw0 && title.includes(kw0)
+              });
             }
           }
         } catch(e) { console.log('YT error:', e); }
@@ -2771,7 +2784,8 @@ function renderRecResults(ai, ytItems, ref) {
           <img src="${v.thumbnail}" style="width:100%;aspect-ratio:16/9;object-fit:cover;"/>
         </a>
         <div style="padding:10px;">
-          <div style="font-size:12px;font-weight:600;color:var(--text);line-height:1.4;margin-bottom:4px;">${v.title.slice(0,50)}${v.title.length>50?'...':''}</div>
+          ${v.isRelated ? '<span style="font-size:10px;background:#E8F5E9;color:#1B5E20;padding:1px 7px;border-radius:8px;font-weight:600;">🎯 관련 찬양</span>' : '<span style="font-size:10px;background:var(--olive-bg);color:var(--olive-d);padding:1px 7px;border-radius:8px;font-weight:600;">🎵 추천 찬양</span>'}
+          <div style="font-size:12px;font-weight:600;color:var(--text);line-height:1.4;margin:6px 0 4px;">${v.title.slice(0,50)}${v.title.length>50?'...':''}</div>
           <div style="font-size:11px;color:var(--light);margin-bottom:8px;">${v.channel}</div>
           <div style="display:flex;gap:6px;">
             <a href="https://youtube.com/watch?v=${v.id}" target="_blank" class="btn btn-sm" style="flex:1;justify-content:center;background:#FF0000;color:#fff;border-color:#FF0000;">▶ 재생</a>
