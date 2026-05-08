@@ -485,6 +485,10 @@ nav{flex:1;padding:4px 8px;overflow-y:auto;}
           </div>
         </div>
         <div class="sidebar-btns">
+        <button class="icon-btn" onclick="openNotifCenter()" id="notifBell" title="알림" style="position:relative;">
+          🔔
+          <span id="notifBadge" style="display:none;position:absolute;top:2px;right:2px;width:8px;height:8px;background:#FF3B30;border-radius:50%;"></span>
+        </button>
           <button class="icon-btn" id="themeBtn" onclick="toggleTheme()" title="다크/라이트">🌙</button>
           <button class="icon-btn" onclick="doLogout()" title="로그아웃">🚪</button>
         </div>
@@ -1205,6 +1209,46 @@ nav{flex:1;padding:4px 8px;overflow-y:auto;}
   </div>
 </div>
 
+<!-- 콘티 할당 모달 -->
+<div class="modal-bg" id="assignModal" onclick="bgClose(event,'assignModal')">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="modal-title">📤 콘티 할당</div>
+      <button class="modal-close" onclick="closeModal('assignModal')">✕</button>
+    </div>
+    <div id="assignWeeklyInfo" style="background:var(--olive-bg);border-radius:10px;padding:12px 14px;margin-bottom:16px;font-size:13px;font-weight:600;color:var(--olive-d);"></div>
+    <div class="form-group">
+      <label class="form-label">할당할 팀원 선택</label>
+      <div id="assignMemberList" style="display:flex;flex-direction:column;gap:6px;max-height:200px;overflow-y:auto;"></div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">메시지 (선택)</label>
+      <textarea class="form-textarea" id="assignMessage" rows="2" placeholder="예) 이번 주 콘티입니다. 악보 확인해주세요!"></textarea>
+    </div>
+    <div style="padding:10px;background:#EEF2FF;border-radius:8px;margin-bottom:12px;font-size:12px;color:#4338CA;">
+      💡 할당받은 팀원에게 앱 알림이 전송되며, 콘티 PDF를 굿노트/노타빌리티로 바로 가져갈 수 있어요.
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('assignModal')">취소</button>
+      <button class="btn btn-primary" onclick="submitAssignment()">📤 할당 & 알림 전송</button>
+    </div>
+  </div>
+</div>
+
+<!-- 알림 센터 모달 -->
+<div class="modal-bg" id="notifModal" onclick="bgClose(event,'notifModal')">
+  <div class="modal-box" style="max-width:420px;">
+    <div class="modal-header">
+      <div class="modal-title">🔔 알림</div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-sm" onclick="markAllRead()" style="font-size:11px;">모두 읽음</button>
+        <button class="modal-close" onclick="closeModal('notifModal')">✕</button>
+      </div>
+    </div>
+    <div id="notifList" style="display:flex;flex-direction:column;gap:8px;max-height:400px;overflow-y:auto;padding:4px 0;"></div>
+  </div>
+</div>
+
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
 
@@ -1599,6 +1643,8 @@ async function loginSuccess(sbUser) {
     loadAllData();
     updateUserUI();
     restoreTab();
+    checkNotifBadge();
+    setTimeout(requestPushPermission, 3000);
   });
 }
 
@@ -3900,6 +3946,184 @@ async function deleteScoreFromSupabase(id) {
   } catch(e) { console.log('Score delete error:', e); }
 }
 
+// ════════════════════════════════════════════
+// 콘티 할당 & 알림 시스템
+// ════════════════════════════════════════════
+let _assigningWeeklyIdx = null;
+let _selectedAssignees = new Set();
+
+async function openAssignModal(wi) {
+  _assigningWeeklyIdx = wi;
+  _selectedAssignees = new Set();
+  const w = weeklyContis[wi];
+  if (!w) return;
+
+  const date = w.date || w.worship_date || '';
+  const service = w.service || w.worship_type || '주일 예배';
+  const songs = Array.isArray(w.songs) ? w.songs : [];
+
+  document.getElementById('assignWeeklyInfo').innerHTML =
+    `📅 ${date} · ${service}<br/><span style="font-size:11px;color:var(--light);">찬양 ${songs.length}곡</span>`;
+  document.getElementById('assignMessage').value = `이번 주 콘티가 등록됐어요! 악보를 확인해주세요 🎵`;
+
+  // 멤버 목록 로드
+  const { data: profiles } = await sb.from('profiles').select('*').neq('id', currentUser?.id);
+  const memberEl = document.getElementById('assignMemberList');
+  if (!profiles?.length) {
+    memberEl.innerHTML = '<div style="font-size:12px;color:var(--light);">팀원이 없습니다</div>';
+  } else {
+    memberEl.innerHTML = profiles.map(p => `
+      <label style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--border);border-radius:10px;cursor:pointer;transition:all .15s;" 
+             onmouseover="this.style.background='var(--olive-bg)'" onmouseout="this.style.background=''">
+        <input type="checkbox" value="${p.id}" onchange="toggleAssignee('${p.id}')" style="width:16px;height:16px;accent-color:var(--olive);"/>
+        <div style="width:32px;height:32px;border-radius:50%;background:var(--olive);color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;">${(p.name||'?')[0]}</div>
+        <div>
+          <div style="font-size:13px;font-weight:600;">${p.name||'이름없음'}</div>
+          <div style="font-size:11px;color:var(--light);">${p.role==='admin'?'관리자':'멤버'}</div>
+        </div>
+      </label>`).join('');
+  }
+  openModal('assignModal');
+}
+
+function toggleAssignee(id) {
+  if (_selectedAssignees.has(id)) _selectedAssignees.delete(id);
+  else _selectedAssignees.add(id);
+}
+
+async function submitAssignment() {
+  if (_selectedAssignees.size === 0) { showToast('할당할 팀원을 선택해주세요'); return; }
+  const wi = _assigningWeeklyIdx;
+  const w = weeklyContis[wi];
+  if (!w) return;
+
+  const message = document.getElementById('assignMessage').value;
+  const date = w.date || w.worship_date || '';
+  const service = w.service || w.worship_type || '주일 예배';
+  const title = `${date} ${service} 콘티가 할당됐어요!`;
+
+  // Supabase에 알림 저장
+  const notifs = [..._selectedAssignees].map(uid => ({
+    user_id: uid,
+    type: 'assignment',
+    title,
+    body: message || `${service} 콘티를 확인해주세요`,
+    data: { weekly_idx: wi, date, service, song_count: (w.songs||[]).length },
+    is_read: false
+  }));
+
+  const { error } = await sb.from('notifications').insert(notifs);
+  if (error) { showToast('할당 중 오류가 발생했습니다'); return; }
+
+  // PWA 푸시 알림 (브라우저 허용 시)
+  if ('Notification' in window && Notification.permission === 'granted') {
+    new Notification(title, {
+      body: message,
+      icon: 'icon-192.png',
+      badge: 'icon-192.png',
+      tag: 'assignment'
+    });
+  }
+
+  closeModal('assignModal');
+  showToast(`✅ ${_selectedAssignees.size}명에게 콘티가 할당됐어요!`);
+}
+
+// ── 알림 센터
+async function openNotifCenter() {
+  await loadNotifications();
+  openModal('notifModal');
+}
+
+async function loadNotifications() {
+  const el = document.getElementById('notifList');
+  if (!el || !currentUser) return;
+
+  const { data } = await sb.from('notifications')
+    .select('*').eq('user_id', currentUser.id)
+    .order('created_at', { ascending: false }).limit(20);
+
+  // 뱃지 업데이트
+  const unread = (data||[]).filter(n => !n.is_read).length;
+  const badge = document.getElementById('notifBadge');
+  if (badge) badge.style.display = unread > 0 ? 'block' : 'none';
+
+  if (!data?.length) {
+    el.innerHTML = `<div style="text-align:center;padding:30px;">
+      <div style="font-size:32px;margin-bottom:10px;">🔔</div>
+      <div style="font-size:13px;color:var(--light);">새로운 알림이 없습니다</div>
+    </div>`;
+    return;
+  }
+
+  el.innerHTML = data.map(n => {
+    const date = new Date(n.created_at).toLocaleDateString('ko-KR', {month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
+    const TYPE_ICON = { assignment:'📤', suggestion:'📮', system:'🔔' };
+    return `<div onclick="readNotif('${n.id}',${JSON.stringify(n.data||{}).replace(/"/g,'&quot;')})" 
+      style="padding:14px;border-radius:12px;border:1px solid var(--border);background:${n.is_read?'var(--white)':'var(--olive-bg)'};cursor:pointer;transition:all .15s;"
+      onmouseover="this.style.transform='translateY(-1px)'" onmouseout="this.style.transform=''">
+      <div style="display:flex;align-items:flex-start;gap:10px;">
+        <span style="font-size:20px;flex-shrink:0;">${TYPE_ICON[n.type]||'🔔'}</span>
+        <div style="flex:1;">
+          <div style="font-size:13px;font-weight:${n.is_read?'400':'700'};color:var(--text);margin-bottom:4px;">${n.title}</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:6px;line-height:1.5;">${n.body||''}</div>
+          ${n.data?.song_count?`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px;">
+            <span style="font-size:10px;background:var(--olive);color:#fff;padding:2px 8px;border-radius:10px;">🎵 ${n.data.song_count}곡</span>
+            <span style="font-size:10px;background:#EEF2FF;color:#6366F1;padding:2px 8px;border-radius:10px;">📅 ${n.data.date||''}</span>
+          </div>`:''}
+          <div style="display:flex;align-items:center;justify-content:space-between;">
+            <span style="font-size:10px;color:var(--light);">${date}</span>
+            ${n.data?.weekly_idx !== undefined ? `<button class="btn btn-sm btn-primary" onclick="event.stopPropagation();goToWeeklyFromNotif(${n.data.weekly_idx},'${n.id}')" style="font-size:11px;">콘티 보기 + PDF</button>` : ''}
+          </div>
+        </div>
+        ${!n.is_read?'<div style="width:8px;height:8px;border-radius:50%;background:#FF3B30;flex-shrink:0;margin-top:4px;"></div>':''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function readNotif(id, data) {
+  await sb.from('notifications').update({ is_read: true }).eq('id', id);
+  loadNotifications();
+}
+
+async function goToWeeklyFromNotif(wi, notifId) {
+  await sb.from('notifications').update({ is_read: true }).eq('id', notifId);
+  closeModal('notifModal');
+  showPage('weekly', document.querySelector('.nav-item[onclick*="weekly"]'));
+  setTimeout(() => {
+    const cards = document.querySelectorAll('.week-card');
+    if (cards[wi]) {
+      cards[wi].scrollIntoView({ behavior:'smooth' });
+      // PDF 다운로드 안내
+      setTimeout(() => showToast('📄 카드 아래 PDF 다운로드 버튼으로 굿노트에 임포트하세요!'), 800);
+    }
+  }, 400);
+}
+
+async function markAllRead() {
+  await sb.from('notifications').update({ is_read: true }).eq('user_id', currentUser?.id);
+  loadNotifications();
+}
+
+// 앱 시작 시 알림 뱃지 체크
+async function checkNotifBadge() {
+  if (!currentUser) return;
+  const { data } = await sb.from('notifications')
+    .select('id').eq('user_id', currentUser.id).eq('is_read', false).limit(1);
+  const badge = document.getElementById('notifBadge');
+  if (badge) badge.style.display = data?.length ? 'block' : 'none';
+}
+
+// PWA 푸시 알림 권한 요청
+async function requestPushPermission() {
+  if (!('Notification' in window)) return;
+  if (Notification.permission === 'default') {
+    const perm = await Notification.requestPermission();
+    if (perm === 'granted') showToast('🔔 푸시 알림이 활성화됐어요!');
+  }
+}
+
 function updateDday() {
   const el=document.getElementById('ddayBadge');if(!el)return;
   const now=new Date();const day=now.getDay();const diff=day===0?7:7-day;
@@ -3968,6 +4192,26 @@ function esc(s){return (s||'').replace(/'/g,"\\'").replace(/"/g,'&quot;');}
   sb.auth.onAuthStateChange(async (event, session) => {
     if (event === 'SIGNED_IN' && session?.user) {
       await loginSuccess(session.user);
+      // 실시간 알림 구독
+      sb.channel('notifications')
+        .on('postgres_changes', {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'notifications',
+          filter: `user_id=eq.${session.user.id}`
+        }, payload => {
+          const n = payload.new;
+          // 앱 내 알림 뱃지
+          const badge = document.getElementById('notifBadge');
+          if (badge) badge.style.display = 'block';
+          // 토스트 알림
+          showToast(`🔔 ${n.title}`);
+          // PWA 푸시
+          if (Notification.permission === 'granted') {
+            new Notification(n.title, { body: n.body, icon: 'icon-192.png' });
+          }
+        })
+        .subscribe();
     } else if (event === 'SIGNED_OUT') {
       currentUser = null;
       document.getElementById('loginScreen').style.display='flex';
