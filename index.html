@@ -2576,26 +2576,45 @@ JSON으로만 답하세요:
         verse_interpretation: '말씀과 어울리는 찬양을 아래에서 확인해보세요. AI 분석은 잠시 후 다시 시도해주시면 더 자세한 내용을 드릴 수 있어요.',
         keywords: localKws,
         score_recommendations: [],
-        youtube_search_queries: [book+' 찬양 피아', '위러브 찬양 MR', '아이자야61 CCM']
+        youtube_search_queries: [book+' 찬양', ref+' 찬양 CCM', book+' worship']
       };
     }
     // 로컬 본문 데이터 주입
     aiResult.verse_text = fullVerseText;
 
-    // 2단계: YouTube API 검색 - 단건 찬양 위주 (항상 표시)
+    // 2단계: YouTube API 검색 - 말씀 구절 맞춤 검색
     const ytResults = [];
     if (YT_API_KEY !== 'YOUR_YOUTUBE_API_KEY') {
-      const kw0 = aiResult.keywords?.[0]?.word || '';
+      const kws = (aiResult.keywords||[]).map(k=>k.word||k).filter(Boolean);
       const aiQueries = aiResult.youtube_search_queries || [];
 
-      // 1순위: 말씀 키워드 기반 아티스트 검색
-      // 2순위: 키워드 없어도 아티스트 일반 찬양 검색 (항상 영상 보여주기)
+      // 말씀 맥락 기반 검색어 생성
+      // 키워드가 있으면 키워드 기반, 없으면 책 이름 기반
+      const mainKw = kws[0] || book;
+      const subKw  = kws[1] || '';
+
+      // 책별 주제 매핑 (키워드 없을 때 fallback)
+      const BOOK_THEME = {
+        '창세기':'창조 하나님', '출애굽기':'구원 해방', '시편':'찬양 경배',
+        '잠언':'지혜', '이사야':'위로 소망', '예레미야':'회복 소망',
+        '마태복음':'하나님나라', '마가복음':'복음', '누가복음':'은혜',
+        '요한복음':'사랑 생명', '사도행전':'성령', '로마서':'구원 은혜',
+        '고린도전서':'사랑', '갈라디아서':'자유 은혜', '에베소서':'교회',
+        '빌립보서':'기쁨', '골로새서':'그리스도', '히브리서':'믿음',
+        '야고보서':'행함', '요한계시록':'예배 영광'
+      };
+      const themeKw = BOOK_THEME[book] || book;
+      const searchKw = kws.length > 0 ? mainKw : themeKw;
+
       const ytQueries = [
-        kw0 ? `피아 ${kw0} 찬양` : '피아 찬양 MV',
-        kw0 ? `위러브 ${kw0} official` : '위러브 찬양 official',
-        kw0 ? `아이자야61 ${kw0} 찬양` : '아이자야61 찬양',
-        '어노인팅 찬양 MV',
-        ...aiQueries.slice(0, 2)
+        // AI가 준 검색어 우선 (가장 정확)
+        ...aiQueries.slice(0,2),
+        // 키워드 기반 아티스트 검색
+        `${searchKw} 찬양 피아`,
+        `${searchKw} 찬양 위러브`,
+        `${searchKw}${subKw?' '+subKw:''} 찬양`,
+        // 책 이름 직접 검색
+        `${book} 찬양 CCM`,
       ];
 
       const EXCLUDE = ['설교','강해','강의','목사','주일예배','새벽기도','큐티','묵상',
