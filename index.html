@@ -339,6 +339,7 @@ nav{flex:1;padding:4px 8px;overflow-y:auto;}
         <div class="nav-section">워크플로우</div>
         <button class="nav-item" onclick="showPage('conti',this)"><span class="nav-icon">✍️</span><span class="nav-label">빠른 콘티 짜기</span></button>
         <button class="nav-item" onclick="showPage('recommender',this)"><span class="nav-icon">🔮</span><span class="nav-label">찬양 추천기</span></button>
+        <button class="nav-item" onclick="showPage('learning',this)"><span class="nav-icon">🎓</span><span class="nav-label">찬양 배움터</span></button>
         <button class="nav-item" onclick="showPage('merge',this)"><span class="nav-icon">📋</span><span class="nav-label">악보 합치기</span></button>
         <div class="nav-section">마이</div>
         <button class="nav-item" onclick="showPage('mypage',this)"><span class="nav-icon">👤</span><span class="nav-label">마이 페이지</span></button>
@@ -375,6 +376,18 @@ nav{flex:1;padding:4px 8px;overflow-y:auto;}
         </div>
       </div>
       <div class="page-body">
+        <!-- Dev Note -->
+        <div class="card" id="devNoteCard" style="margin-bottom:14px;border-left:3px solid #6366F1;display:none;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span style="font-size:10px;font-weight:700;letter-spacing:1px;color:#6366F1;text-transform:uppercase;">📋 Dev Note</span>
+              <span id="devNoteVersion" style="background:#EEF2FF;color:#6366F1;font-size:10px;padding:1px 7px;border-radius:10px;font-weight:600;"></span>
+            </div>
+            ${isAdmin()?`<button class="ann-edit-btn" onclick="openDevNoteEdit()" style="background:#EEF2FF;color:#6366F1;border-color:#C7D2FE;">✏️ 수정</button>`:''}
+          </div>
+          <div id="devNoteContent" style="font-size:12px;color:var(--muted);line-height:1.8;white-space:pre-line;"></div>
+        </div>
+
         <!-- 전달사항 -->
         <div class="ann-card" id="annCard">
           <button class="ann-edit-btn" id="annEditBtn" style="display:none;" onclick="openAnnEdit()">✏️ 수정</button>
@@ -722,6 +735,26 @@ nav{flex:1;padding:4px 8px;overflow-y:auto;}
       </div>
     </div>
 
+    <!-- ══ LEARNING ══ -->
+    <div id="page-learning" class="page">
+      <div class="page-header">
+        <div><div class="page-title">🎓 찬양 배움터</div><div class="page-sub">새로운 찬양을 미리 듣고 배워보세요</div></div>
+        <button class="btn btn-primary" id="learningAddBtn" style="display:none;" onclick="openAddLearning()">＋ 찬양 추가</button>
+      </div>
+      <div class="page-body">
+        <div style="display:flex;gap:8px;margin-bottom:16px;">
+          <input class="search-input" type="text" placeholder="🔍 찬양 검색..." id="learningSearch" oninput="renderLearning()" style="flex:1;"/>
+          <select class="btn" id="learningFilter" onchange="renderLearning()" style="padding:8px 12px;">
+            <option value="">전체</option>
+            <option value="new">신곡</option>
+            <option value="practice">연습중</option>
+            <option value="ready">준비완료</option>
+          </select>
+        </div>
+        <div id="learningList" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px;"></div>
+      </div>
+    </div>
+
     <!-- ══ MEMBERS ══ -->
     <div id="page-members" class="page">
       <div class="page-header">
@@ -744,7 +777,7 @@ nav{flex:1;padding:4px 8px;overflow-y:auto;}
   <button class="mobile-nav-item active" onclick="showPage('dashboard',this)"><span class="mobile-nav-icon">🏠</span><span class="mobile-nav-label">홈</span></button>
   <button class="mobile-nav-item" onclick="showPage('weekly',this)"><span class="mobile-nav-icon">📅</span><span class="mobile-nav-label">주차</span></button>
   <button class="mobile-nav-item" onclick="showPage('library',this)"><span class="mobile-nav-icon">🎵</span><span class="mobile-nav-label">악보</span></button>
-  <button class="mobile-nav-item" onclick="showPage('conti',this)"><span class="mobile-nav-icon">✍️</span><span class="mobile-nav-label">콘티</span></button>
+  <button class="mobile-nav-item" onclick="showPage('learning',this)"><span class="mobile-nav-icon">🎓</span><span class="mobile-nav-label">배움터</span></button>
   <button class="mobile-nav-item" onclick="showPage('mypage',this)"><span class="mobile-nav-icon">👤</span><span class="mobile-nav-label">MY</span></button>
 </nav>
 
@@ -922,6 +955,38 @@ nav{flex:1;padding:4px 8px;overflow-y:auto;}
     </div>
     <div id="wvContent" style="flex:1;overflow:auto;display:flex;align-items:center;justify-content:center;padding:20px;"></div>
     <div id="wvNav" style="display:flex;gap:8px;justify-content:center;padding:12px;overflow-x:auto;"></div>
+  </div>
+</div>
+
+<!-- 찬양 배움터 추가 -->
+<div class="modal-bg" id="addLearningModal" onclick="bgClose(event,'addLearningModal')">
+  <div class="modal-box">
+    <div class="modal-header"><div class="modal-title">🎓 찬양 추가</div><button class="modal-close" onclick="closeModal('addLearningModal')">✕</button></div>
+    <div class="form-group"><label class="form-label">찬양 제목</label><input class="form-input" id="learnTitle" placeholder="예) 나의 피난처"/></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">아티스트</label><input class="form-input" id="learnArtist" placeholder="예) 피아"/></div>
+      <div class="form-group"><label class="form-label">Key</label><input class="form-input" id="learnKey" placeholder="예) G"/></div>
+    </div>
+    <div class="form-group"><label class="form-label">유튜브 링크</label><input class="form-input" id="learnYt" placeholder="https://youtube.com/..."/></div>
+    <div class="form-group"><label class="form-label">상태</label>
+      <select class="form-select" id="learnStatus">
+        <option value="new">🆕 신곡</option>
+        <option value="practice">🎵 연습중</option>
+        <option value="ready">✅ 준비완료</option>
+      </select>
+    </div>
+    <div class="form-group"><label class="form-label">메모 (인트로 방식, 특이사항 등)</label><textarea class="form-textarea" id="learnMemo" rows="3"></textarea></div>
+    <div class="modal-footer"><button class="btn" onclick="closeModal('addLearningModal')">취소</button><button class="btn btn-primary" onclick="saveLearning()">추가</button></div>
+  </div>
+</div>
+
+<!-- Dev Note 편집 -->
+<div class="modal-bg" id="devNoteModal" onclick="bgClose(event,'devNoteModal')">
+  <div class="modal-box">
+    <div class="modal-header"><div class="modal-title">📋 Dev Note 편집</div><button class="modal-close" onclick="closeModal('devNoteModal')">✕</button></div>
+    <div class="form-group"><label class="form-label">버전</label><input class="form-input" id="devNoteVer" placeholder="예) v0.7.17"/></div>
+    <div class="form-group"><label class="form-label">업데이트 내용</label><textarea class="form-textarea" id="devNoteText" rows="6" placeholder="• 새로운 기능&#10;• 버그 수정&#10;• 개선 사항"></textarea></div>
+    <div class="modal-footer"><button class="btn" onclick="closeModal('devNoteModal')">취소</button><button class="btn btn-primary" onclick="saveDevNote()">저장</button></div>
   </div>
 </div>
 
@@ -1157,6 +1222,8 @@ function renderAll() {
   renderCollections();
   renderMembers();
   renderStats();
+  renderDevNote();
+  renderLearning();
   updateDday();
 }
 
@@ -1178,7 +1245,7 @@ function showPage(id, btn) {
 
 function restoreTab() {
   const hash = location.hash.replace('#','');
-  const valid = ['dashboard','weekly','library','collections','conti','recommender','merge','mypage','members'];
+  const valid = ['dashboard','weekly','library','collections','conti','recommender','learning','merge','mypage','members'];
   if (hash && valid.includes(hash)) showPage(hash, null);
   else showPage('dashboard', null);
 }
@@ -2075,7 +2142,7 @@ Songs in our library:
 ${scoreList || '(none)'}
 
 Respond ONLY with valid JSON, no markdown, no explanation:
-{"verse_interpretation":"2-3 sentence Korean explanation of this verse theme and mood","keywords":[{"word":"한국어키워드1","color":"#E8F5E9","textColor":"#1B5E20","meaning":"이 키워드의 의미"},{"word":"키워드2","color":"#E3F2FD","textColor":"#0D47A1","meaning":"의미"},{"word":"키워드3","color":"#FFF3E0","textColor":"#E65100","meaning":"의미"}],"score_recommendations":[{"title":"exact song title from library","reason":"Korean reason","match_score":85,"keyword_connections":[{"keyword":"키워드","lyric_example":"관련 가사 예시"}]}],"youtube_search_queries":["찬양 검색어1","찬양 검색어2"]}`;
+{"verse_interpretation":"2-3 sentence Korean explanation of this verse theme and mood","keywords":[{"word":"한국어키워드1","color":"#E8F5E9","textColor":"#1B5E20","meaning":"이 키워드의 의미"},{"word":"키워드2","color":"#E3F2FD","textColor":"#0D47A1","meaning":"의미"},{"word":"키워드3","color":"#FFF3E0","textColor":"#E65100","meaning":"의미"}],"score_recommendations":[{"title":"exact song title from library","reason":"Korean reason","match_score":85,"keyword_connections":[{"keyword":"키워드","lyric_example":"관련 가사 예시"}]}],"youtube_search_queries":["피아 찬양","위러브 찬양","아이자야 61 찬양"]}`;
 
     const geminiRes = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`,
@@ -2129,14 +2196,19 @@ Respond ONLY with valid JSON, no markdown, no explanation:
     const ytResults = [];
     if (YT_API_KEY !== 'YOUR_YOUTUBE_API_KEY') {
       // 찬양 키워드 강제 추가로 설교 영상 필터링
+      // 한국 찬양 우선, 피아/위러브/아이자야 우선
+      const KOREAN_ARTISTS = ['피아', '위러브', '아이자야61', '아이자야 61', '소울시스터', '화이트', '어노인팅'];
       const rawQueries = aiResult.youtube_search_queries || [ref + ' 찬양'];
-      const queries = rawQueries.map(q => {
+      // 추천 쿼리 앞에 한국 아티스트 쿼리 추가
+      const artistQueries = KOREAN_ARTISTS.slice(0,2).map(a => a + ' ' + (aiResult.keywords?.[0]?.word||'찬양') + ' 찬양');
+      const allQueries = [...artistQueries, ...rawQueries].map(q => {
         const lower = q.toLowerCase();
         if (!lower.includes('찬양') && !lower.includes('ccm') && !lower.includes('worship')) {
-          return q + ' 찬양 CCM';
+          return q + ' 찬양';
         }
         return q;
       });
+      const queries = allQueries;
       for (const q of queries.slice(0, 2)) {
         try {
           const ytRes = await fetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=4&q=${encodeURIComponent(q)}&type=video&key=${YT_API_KEY}`);
@@ -2701,6 +2773,86 @@ function renderWv() {
 function wvNext() { if (_wvIdx < _wvSongs.length-1) { _wvIdx++; renderWv(); } }
 function wvPrev() { if (_wvIdx > 0) { _wvIdx--; renderWv(); } }
 
+
+// ════════════════════════════════════════════
+// DEV NOTE
+// ════════════════════════════════════════════
+function renderDevNote() {
+  const note = JSON.parse(localStorage.getItem('wm_devnote')||'null');
+  const card = document.getElementById('devNoteCard');
+  if (!card) return;
+  if (!note || !note.content) { card.style.display='none'; return; }
+  card.style.display='block';
+  const verEl = document.getElementById('devNoteVersion');
+  const contentEl = document.getElementById('devNoteContent');
+  if(verEl) verEl.textContent = note.version||'';
+  if(contentEl) contentEl.textContent = note.content;
+}
+function openDevNoteEdit() {
+  const note = JSON.parse(localStorage.getItem('wm_devnote')||'{}');
+  document.getElementById('devNoteVer').value = note.version||'v0.7.17';
+  document.getElementById('devNoteText').value = note.content||'';
+  openModal('devNoteModal');
+}
+function saveDevNote() {
+  const note = { version: document.getElementById('devNoteVer').value, content: document.getElementById('devNoteText').value, updatedAt: new Date().toISOString() };
+  localStorage.setItem('wm_devnote', JSON.stringify(note));
+  renderDevNote(); closeModal('devNoteModal'); showToast('Dev Note가 저장되었습니다');
+}
+
+// ════════════════════════════════════════════
+// LEARNING (찬양 배움터)
+// ════════════════════════════════════════════
+function openAddLearning() {
+  ['learnTitle','learnArtist','learnKey','learnYt','learnMemo'].forEach(id=>{ const el=document.getElementById(id); if(el)el.value=''; });
+  const s=document.getElementById('learnStatus'); if(s)s.value='new';
+  openModal('addLearningModal');
+}
+function saveLearning() {
+  const title = document.getElementById('learnTitle').value.trim();
+  if (!title) { showToast('찬양 제목을 입력해주세요'); return; }
+  const items = JSON.parse(localStorage.getItem('wm_learning')||'[]');
+  items.unshift({ id:'l'+Date.now(), title, artist:document.getElementById('learnArtist').value, key:document.getElementById('learnKey').value, yt:document.getElementById('learnYt').value, status:document.getElementById('learnStatus').value, memo:document.getElementById('learnMemo').value, addedBy:currentUser?.name||'', createdAt:new Date().toISOString() });
+  localStorage.setItem('wm_learning', JSON.stringify(items));
+  renderLearning(); closeModal('addLearningModal'); showToast('찬양이 추가되었습니다 🎓');
+}
+function renderLearning() {
+  const el = document.getElementById('learningList');
+  if (!el) return;
+  const q = (document.getElementById('learningSearch')?.value||'').toLowerCase();
+  const filter = document.getElementById('learningFilter')?.value||'';
+  const items = JSON.parse(localStorage.getItem('wm_learning')||'[]');
+  const filtered = items.filter(i => { const m=i.title.toLowerCase().includes(q)||(i.artist||'').toLowerCase().includes(q); return m&&(!filter||i.status===filter); });
+  const learningAddBtn=document.getElementById('learningAddBtn');
+  if(learningAddBtn) learningAddBtn.style.display=isAdmin()?'flex':'none';
+  if (!filtered.length) { el.innerHTML=`<div style="grid-column:1/-1;text-align:center;padding:40px;"><div style="font-size:36px;margin-bottom:12px;">🎓</div><div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:6px;">등록된 찬양이 없습니다</div><div style="font-size:12px;color:var(--light);">${isAdmin()?'상단 버튼으로 새 찬양을 추가해보세요!':'관리자가 찬양을 추가하면 여기서 배울 수 있어요!'}</div></div>`; return; }
+  const STATUS = { new:{label:'🆕 신곡',bg:'#EEF2FF',color:'#6366F1'}, practice:{label:'🎵 연습중',bg:'#FEF3C7',color:'#92400E'}, ready:{label:'✅ 준비완료',bg:'#F0FDF4',color:'#166534'} };
+  el.innerHTML = filtered.map(i => {
+    const s = STATUS[i.status]||STATUS.new;
+    const ytId = getYtId(i.yt||'');
+    return `<div style="background:var(--white);border:1px solid var(--border);border-radius:12px;overflow:hidden;">
+      ${ytId?`<div style="aspect-ratio:16/9;"><iframe src="https://www.youtube.com/embed/${ytId}" style="width:100%;height:100%;border:none;" allowfullscreen loading="lazy"></iframe></div>`:`<div style="aspect-ratio:16/9;background:var(--olive-bg);display:flex;align-items:center;justify-content:center;font-size:36px;">🎵</div>`}
+      <div style="padding:14px;">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;"><span style="background:${s.bg};color:${s.color};font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;">${s.label}</span>${i.key?`<span class="tag key">${i.key}</span>`:''}</div>
+        <div style="font-size:14px;font-weight:700;margin-bottom:3px;">${i.title}</div>
+        <div style="font-size:12px;color:var(--light);margin-bottom:8px;">${i.artist||'-'} · 추가: ${i.addedBy||'-'}</div>
+        ${i.memo?`<div style="font-size:12px;color:var(--muted);background:var(--cream);padding:8px;border-radius:6px;margin-bottom:8px;line-height:1.6;">${i.memo}</div>`:''}
+        <div style="display:flex;gap:6px;justify-content:space-between;align-items:center;">
+          <select class="btn btn-sm" onchange="updateLearningStatus('${i.id}',this.value)" style="font-size:11px;">
+            <option value="new" ${i.status==='new'?'selected':''}>🆕 신곡</option>
+            <option value="practice" ${i.status==='practice'?'selected':''}>🎵 연습중</option>
+            <option value="ready" ${i.status==='ready'?'selected':''}>✅ 준비완료</option>
+          </select>
+          ${isAdmin()?`<button class="btn btn-danger btn-sm" onclick="deleteLearning('${i.id}')">삭제</button>`:''}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+function getYtId(url) { const m=(url||'').match(/(?:v=|youtu\.be\/|embed\/)([^&?/]+)/); return m?m[1]:''; }
+function updateLearningStatus(id,status) { const items=JSON.parse(localStorage.getItem('wm_learning')||'[]'); const i=items.find(x=>x.id===id); if(i){i.status=status;localStorage.setItem('wm_learning',JSON.stringify(items));renderLearning();showToast('상태 변경됨');} }
+function deleteLearning(id) { if(!confirm('삭제할까요?'))return; localStorage.setItem('wm_learning',JSON.stringify(JSON.parse(localStorage.getItem('wm_learning')||'[]').filter(x=>x.id!==id))); renderLearning(); }
+
 function updateDday() {
   const el=document.getElementById('ddayBadge');if(!el)return;
   const now=new Date();const day=now.getDay();const diff=day===0?7:7-day;
@@ -2744,6 +2896,17 @@ function esc(s){return (s||'').replace(/'/g,"\\'").replace(/"/g,'&quot;');}
   // 로그인 화면 표시
   document.getElementById('loginScreen').style.display='flex';
   document.getElementById('mainApp').style.display='none';
+
+  // ESC로 모달 닫기
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') {
+      document.querySelectorAll('.modal-bg.open').forEach(m => {
+        // weeklyViewModal은 별도 처리
+        if (m.id === 'weeklyViewModal') { closeModal('weeklyViewModal'); document.onkeydown=null; }
+        else m.classList.remove('open');
+      });
+    }
+  });
 
   // outside click 드롭다운 닫기
   document.addEventListener('click',e=>{
