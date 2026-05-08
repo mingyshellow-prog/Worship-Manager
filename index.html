@@ -3560,67 +3560,128 @@ function downloadWeeklyPDF(wi) {
   const songs = Array.isArray(w.songs) ? w.songs : [];
   const memo = w.memo || w.notes || '';
 
-  // HTML → PDF (print 방식)
+  // 각 곡의 악보 데이터 찾기
+  const songData = songs.map((s, i) => {
+    const title = s.title || s.name || (typeof s === 'string' ? s : '');
+    const key = s.key || s.song_key || '';
+    const linked = scores.find(sc => sc.title === title);
+    return { num: i+1, title, key, score: linked };
+  });
+
   const pdfWin = window.open('', '_blank');
+
+  // 악보 페이지 HTML 생성
+  const scorePages = songData.map(s => {
+    let scoreContent = '';
+    if (s.score?.file) {
+      if (s.score.file.type === 'application/pdf') {
+        scoreContent = `<iframe src="${s.score.file.data}" style="width:100%;height:calc(100vh - 120px);border:none;"></iframe>`;
+      } else {
+        scoreContent = `<img src="${s.score.file.data}" style="width:100%;max-height:calc(100vh - 120px);object-fit:contain;display:block;"/>`;
+      }
+    } else {
+      scoreContent = `
+        <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#ccc;gap:12px;">
+          <div style="font-size:60px;">🎵</div>
+          <div style="font-size:16px;color:#999;">악보가 등록되지 않은 곡입니다</div>
+          <div style="font-size:13px;color:#bbb;">악보 창고에서 악보를 먼저 등록해주세요</div>
+        </div>`;
+    }
+
+    return `
+    <div class="page" style="page-break-before:always;">
+      <!-- 곡 헤더 -->
+      <div class="song-header">
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div class="song-num-badge">${s.num}</div>
+          <div>
+            <div class="song-title-text">${s.title}</div>
+            <div class="song-meta">${date} · ${service}${s.key ? ' · Key ' + s.key : ''}</div>
+          </div>
+        </div>
+        <div class="church-badge">함께하는교회</div>
+      </div>
+      <!-- 악보 콘텐츠 -->
+      <div class="score-area">
+        ${scoreContent}
+      </div>
+    </div>`;
+  }).join('');
+
+  // 표지 페이지
+  const coverPage = `
+    <div class="page cover-page">
+      <div class="cover-content">
+        <div class="cover-cross">✝</div>
+        <div class="cover-church">함께하는교회 안성</div>
+        <div class="cover-title">${service}</div>
+        <div class="cover-date">${date}</div>
+        <div class="cover-divider"></div>
+        <div class="cover-songlist">
+          ${songData.map(s => `
+            <div class="cover-song-row">
+              <span class="cover-song-num">${s.num}</span>
+              <span class="cover-song-title">${s.title}</span>
+              <span class="cover-song-key">${s.key ? 'Key ' + s.key : ''}</span>
+            </div>`).join('')}
+        </div>
+        ${memo ? `<div class="cover-memo">📝 ${memo}</div>` : ''}
+      </div>
+      <div class="cover-footer">Worship Manager · 함께하는교회 안성 찬양팀</div>
+    </div>`;
+
   const html = `<!DOCTYPE html>
 <html lang="ko">
 <head>
 <meta charset="UTF-8"/>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700&family=Noto+Serif+KR:wght@700&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;600;700&family=Noto+Serif+KR:wght@700&display=swap');
   *{margin:0;padding:0;box-sizing:border-box;}
-  body{font-family:'Noto Sans KR',sans-serif;padding:40px;color:#1a1a1a;background:#fff;}
-  .header{border-bottom:3px solid #6B7239;padding-bottom:20px;margin-bottom:24px;}
-  .church{font-family:'Noto Serif KR',serif;font-size:13px;color:#6B7239;letter-spacing:2px;margin-bottom:6px;}
-  .title{font-family:'Noto Serif KR',serif;font-size:24px;font-weight:700;color:#1a1a1a;margin-bottom:4px;}
-  .date{font-size:13px;color:#666;}
-  .section{margin-bottom:20px;}
-  .section-title{font-size:11px;font-weight:700;letter-spacing:2px;color:#6B7239;text-transform:uppercase;margin-bottom:10px;padding-bottom:4px;border-bottom:1px solid #e8e8e0;}
-  .song-row{display:flex;align-items:center;gap:12px;padding:10px 12px;border:1px solid #e8e8e0;border-radius:8px;margin-bottom:6px;background:#fafaf7;}
-  .song-num{width:24px;height:24px;border-radius:50%;background:#6B7239;color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
-  .song-title{flex:1;font-size:14px;font-weight:600;}
-  .song-key{font-size:12px;color:#6B7239;font-weight:700;background:#f0f1e8;padding:2px 8px;border-radius:6px;}
-  .memo{background:#fafaf7;border-left:3px solid #6B7239;padding:10px 14px;border-radius:0 8px 8px 0;font-size:12px;color:#555;line-height:1.7;}
-  .footer{margin-top:32px;padding-top:16px;border-top:1px solid #e8e8e0;text-align:center;font-size:10px;color:#999;letter-spacing:1px;}
-  @media print{body{padding:20px;} @page{margin:15mm;size:A4;}}
+  body{font-family:'Noto Sans KR',sans-serif;background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+
+  /* 페이지 공통 */
+  .page{width:100vw;height:100vh;display:flex;flex-direction:column;overflow:hidden;position:relative;}
+  @media print{
+    .page{width:210mm;height:297mm;page-break-after:always;}
+    @page{margin:0;size:A4 portrait;}
+  }
+
+  /* 표지 */
+  .cover-page{background:linear-gradient(160deg,#1C1F14 0%,#2d3418 50%,#1a1f10 100%);align-items:center;justify-content:center;}
+  .cover-content{text-align:center;color:#fff;padding:40px;}
+  .cover-cross{font-size:48px;color:#A7AF64;margin-bottom:16px;text-shadow:0 0 20px rgba(167,175,100,0.5);}
+  .cover-church{font-size:13px;letter-spacing:4px;color:rgba(255,255,255,0.5);text-transform:uppercase;margin-bottom:12px;}
+  .cover-title{font-family:'Noto Serif KR',serif;font-size:32px;font-weight:700;color:#fff;margin-bottom:6px;}
+  .cover-date{font-size:15px;color:rgba(255,255,255,0.6);margin-bottom:28px;}
+  .cover-divider{width:60px;height:2px;background:#A7AF64;margin:0 auto 24px;}
+  .cover-songlist{text-align:left;display:inline-block;min-width:260px;}
+  .cover-song-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.1);}
+  .cover-song-num{width:22px;height:22px;border-radius:50%;background:#A7AF64;color:#1C1F14;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .cover-song-title{flex:1;font-size:14px;color:#fff;}
+  .cover-song-key{font-size:11px;color:#A7AF64;font-weight:600;}
+  .cover-memo{margin-top:16px;font-size:12px;color:rgba(255,255,255,0.5);background:rgba(255,255,255,0.05);padding:10px 14px;border-radius:8px;text-align:left;}
+  .cover-footer{position:absolute;bottom:20px;font-size:10px;color:rgba(255,255,255,0.3);letter-spacing:2px;}
+
+  /* 악보 페이지 */
+  .song-header{display:flex;align-items:center;justify-content:space-between;padding:12px 20px;background:#f8f8f4;border-bottom:2px solid #6B7239;flex-shrink:0;}
+  .song-num-badge{width:32px;height:32px;border-radius:50%;background:#6B7239;color:#fff;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .song-title-text{font-family:'Noto Serif KR',serif;font-size:18px;font-weight:700;color:#1a1a1a;}
+  .song-meta{font-size:11px;color:#888;margin-top:2px;}
+  .church-badge{font-size:10px;color:#6B7239;letter-spacing:1px;opacity:0.7;}
+  .score-area{flex:1;display:flex;flex-direction:column;overflow:hidden;background:#fff;}
+  .score-area img{width:100%;height:100%;object-fit:contain;}
 </style>
 </head>
 <body>
-<div class="header">
-  <div class="church">함께하는교회 안성 · Worship Team</div>
-  <div class="title">${service}</div>
-  <div class="date">📅 ${date} ${w.practice?'· 연습 '+w.practice:''}</div>
-</div>
-
-${memo?`<div class="section">
-  <div class="section-title">📝 메모</div>
-  <div class="memo">${memo}</div>
-</div>`:''}
-
-<div class="section">
-  <div class="section-title">🎵 찬양 목록 (${songs.length}곡)</div>
-  ${songs.map((s,i)=>{
-    const title = s.title||s.name||(typeof s==='string'?s:'');
-    const key = s.key||s.song_key||'';
-    return `<div class="song-row">
-      <div class="song-num">${i+1}</div>
-      <div class="song-title">${title}</div>
-      ${key?`<div class="song-key">Key ${key}</div>`:''}
-    </div>`;
-  }).join('')}
-</div>
-
-<div class="footer">함께하는교회 안성 · Worship Manager · 이 문서는 예배 콘티입니다</div>
+  ${coverPage}
+  ${scorePages}
+  <scr` + `ipt>window.onload=()=>setTimeout(()=>window.print(),600);</scr` + `ipt>
 </body>
 </html>`;
 
   pdfWin.document.write(html);
   pdfWin.document.close();
-  pdfWin.focus();
-  setTimeout(() => {
-    pdfWin.print();
-  }, 500);
-  showToast('📄 PDF 저장 창이 열렸어요! 저장 → 굿노트/노타빌리티로 임포트하세요');
+  showToast('📄 PDF 생성 중... 저장 후 굿노트/노타빌리티로 임포트하세요!');
 }
 
 function wvNext() { if (_wvIdx < _wvSongs.length-1) { _wvIdx++; renderWv(); } }
