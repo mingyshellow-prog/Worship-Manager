@@ -376,6 +376,18 @@ nav{flex:1;padding:4px 8px;overflow-y:auto;}
         </div>
       </div>
       <div class="page-body">
+        <!-- 교회 신문고 -->
+        <div class="card" style="margin-bottom:14px;border-left:3px solid #F59E0B;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+            <div>
+              <div style="font-size:10px;font-weight:700;letter-spacing:1px;color:#92400E;text-transform:uppercase;">📮 교회 신문고</div>
+              <div style="font-size:11px;color:var(--light);margin-top:2px;">기능 요청 · 건의사항 · 기타 의견을 남겨주세요</div>
+            </div>
+            <button class="btn btn-sm" onclick="openSuggestion()" style="background:#FEF3C7;color:#92400E;border-color:#FDE68A;">✏️ 의견 남기기</button>
+          </div>
+          <div id="suggestionList" style="display:flex;flex-direction:column;gap:6px;max-height:200px;overflow-y:auto;"></div>
+        </div>
+
         <!-- Dev Note -->
         <div class="card" id="devNoteCard" style="margin-bottom:14px;border-left:3px solid #6366F1;display:none;">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
@@ -990,6 +1002,46 @@ nav{flex:1;padding:4px 8px;overflow-y:auto;}
   </div>
 </div>
 
+<!-- 교회 신문고 모달 -->
+<div class="modal-bg" id="suggestionModal" onclick="bgClose(event,'suggestionModal')">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="modal-title">📮 교회 신문고</div>
+      <button class="modal-close" onclick="closeModal('suggestionModal')">✕</button>
+    </div>
+    <div class="form-group">
+      <label class="form-label">카테고리</label>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <label style="display:flex;align-items:center;gap:5px;cursor:pointer;padding:7px 12px;border:1px solid var(--bs);border-radius:8px;font-size:13px;">
+          <input type="radio" name="suggCat" value="feature" checked/> 🚀 기능 요청
+        </label>
+        <label style="display:flex;align-items:center;gap:5px;cursor:pointer;padding:7px 12px;border:1px solid var(--bs);border-radius:8px;font-size:13px;">
+          <input type="radio" name="suggCat" value="bug"/> 🐛 버그 신고
+        </label>
+        <label style="display:flex;align-items:center;gap:5px;cursor:pointer;padding:7px 12px;border:1px solid var(--bs);border-radius:8px;font-size:13px;">
+          <input type="radio" name="suggCat" value="suggestion"/> 💡 건의사항
+        </label>
+        <label style="display:flex;align-items:center;gap:5px;cursor:pointer;padding:7px 12px;border:1px solid var(--bs);border-radius:8px;font-size:13px;">
+          <input type="radio" name="suggCat" value="etc"/> 📝 기타
+        </label>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">내용</label>
+      <textarea class="form-textarea" id="suggContent" rows="4" placeholder="자유롭게 의견을 남겨주세요..."></textarea>
+    </div>
+    <div class="form-group">
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:var(--muted);">
+        <input type="checkbox" id="suggAnon"/> 익명으로 남기기
+      </label>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('suggestionModal')">취소</button>
+      <button class="btn btn-primary" onclick="submitSuggestion()">📮 제출</button>
+    </div>
+  </div>
+</div>
+
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
 
@@ -1197,18 +1249,18 @@ function updateUserUI() {
 // ════════════════════════════════════════════
 // DATA LOAD/SAVE
 // ════════════════════════════════════════════
-function loadAllData() {
+async function loadAllData() {
   scores = JSON.parse(localStorage.getItem('wm_scores')||'[]');
   weeklyContis = JSON.parse(localStorage.getItem('wm_weekly')||'[]');
   savedContis = JSON.parse(localStorage.getItem('wm_saved_contis')||'[]');
   announcement = JSON.parse(localStorage.getItem('wm_announcement')||'null');
   if (currentUser && currentUser.id !== 'guest') {
-    const users = JSON.parse(localStorage.getItem('wm_users')||'[]');
-    const u = users.find(x=>x.id===currentUser.id);
-    if (u) { currentUser = u; }
     collections = JSON.parse(localStorage.getItem(`wm_collections_${currentUser.id}`)||'{}');
   }
+  // Supabase에서 악보 로드 (전체 공유)
+  await loadScoresFromSupabase();
   renderAll();
+  renderSuggestions();
 }
 
 function saveData(key, val) { localStorage.setItem(key, JSON.stringify(val)); }
@@ -1580,7 +1632,7 @@ function handleScoreFile(input) {
   if (!document.getElementById('scoreTitle').value) document.getElementById('scoreTitle').value = name;
 }
 
-function saveScore() {
+async function saveScore() {
   const title = document.getElementById('scoreTitle').value.trim();
   if (!title) { showToast('곡 제목을 입력해주세요'); return; }
   const score = {
@@ -1595,6 +1647,7 @@ function saveScore() {
   };
   scores.push(score);
   saveData('wm_scores', scores);
+  await saveScoreToSupabase(score);
   renderScores(); updateArtistFilter();
   closeModal('addScoreModal');
   showToast('악보가 추가되었습니다 🎵');
@@ -1679,6 +1732,7 @@ function deleteScore(id) {
   if (!confirm('삭제할까요?')) return;
   scores = scores.filter(s=>s.id!==id);
   saveData('wm_scores', scores);
+  deleteScoreFromSupabase(id);
   renderScores(); updateArtistFilter();
   showToast('삭제되었습니다');
 }
@@ -2882,6 +2936,145 @@ function renderLearning() {
 function getYtId(url) { const m=(url||'').match(/(?:v=|youtu\.be\/|embed\/)([^&?/]+)/); return m?m[1]:''; }
 function updateLearningStatus(id,status) { const items=JSON.parse(localStorage.getItem('wm_learning')||'[]'); const i=items.find(x=>x.id===id); if(i){i.status=status;localStorage.setItem('wm_learning',JSON.stringify(items));renderLearning();showToast('상태 변경됨');} }
 function deleteLearning(id) { if(!confirm('삭제할까요?'))return; localStorage.setItem('wm_learning',JSON.stringify(JSON.parse(localStorage.getItem('wm_learning')||'[]').filter(x=>x.id!==id))); renderLearning(); }
+
+// ════════════════════════════════════════════
+// 교회 신문고
+// ════════════════════════════════════════════
+function openSuggestion() {
+  document.getElementById('suggContent').value = '';
+  document.getElementById('suggAnon').checked = false;
+  openModal('suggestionModal');
+}
+
+async function submitSuggestion() {
+  const content = document.getElementById('suggContent').value.trim();
+  if (!content) { showToast('내용을 입력해주세요'); return; }
+  const cat = document.querySelector('input[name="suggCat"]:checked')?.value || 'etc';
+  const isAnon = document.getElementById('suggAnon').checked;
+  const { error } = await sb.from('suggestions').insert({
+    category: cat,
+    content,
+    is_anonymous: isAnon,
+    author_name: isAnon ? '익명' : (currentUser?.name || '익명'),
+    user_id: isAnon ? null : currentUser?.id
+  });
+  if (error) { showToast('제출 중 오류가 발생했습니다'); return; }
+  closeModal('suggestionModal');
+  showToast('의견이 제출되었습니다! 감사합니다 🙏');
+  renderSuggestions();
+}
+
+async function renderSuggestions() {
+  const el = document.getElementById('suggestionList');
+  if (!el) return;
+  const { data } = await sb.from('suggestions').select('*').order('created_at', { ascending: false }).limit(5);
+  if (!data?.length) {
+    el.innerHTML = '<div style="font-size:12px;color:var(--light);text-align:center;padding:8px;">아직 등록된 의견이 없습니다</div>';
+    return;
+  }
+  const CAT = { feature:'🚀', bug:'🐛', suggestion:'💡', etc:'📝' };
+  const STATUS = { pending:{label:'검토중',bg:'#FEF3C7',color:'#92400E'}, done:{label:'완료',bg:'#F0FDF4',color:'#166534'}, rejected:{label:'보류',bg:'#FEE2E2',color:'#CC2200'} };
+  el.innerHTML = data.map(s => {
+    const st = STATUS[s.status] || STATUS.pending;
+    const date = new Date(s.created_at).toLocaleDateString('ko-KR', {month:'short', day:'numeric'});
+    return `<div style="display:flex;align-items:flex-start;gap:8px;padding:9px 12px;background:var(--cream);border-radius:8px;border:1px solid var(--border);">
+      <span style="font-size:14px;flex-shrink:0;">${CAT[s.category]||'📝'}</span>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:12px;color:var(--text);line-height:1.5;">${s.content}</div>
+        <div style="display:flex;align-items:center;gap:6px;margin-top:4px;">
+          <span style="font-size:10px;color:var(--light);">${s.author_name||'익명'} · ${date}</span>
+          <span style="font-size:10px;font-weight:600;padding:1px 6px;border-radius:8px;background:${st.bg};color:${st.color};">${st.label}</span>
+        </div>
+      </div>
+      ${isAdmin()&&s.status==='pending'?`<button class="btn btn-sm" onclick="resolveSuggestion('${s.id}')" style="font-size:10px;padding:2px 7px;">완료</button>`:''}
+    </div>`;
+  }).join('');
+}
+
+async function resolveSuggestion(id) {
+  await sb.from('suggestions').update({ status: 'done' }).eq('id', id);
+  renderSuggestions();
+  showToast('완료 처리되었습니다');
+}
+
+// ════════════════════════════════════════════
+// 악보 Supabase 전체 공유
+// ════════════════════════════════════════════
+async function loadScoresFromSupabase() {
+  try {
+    const { data, error } = await sb.from('scores').select('*').order('created_at', { ascending: false });
+    if (error) throw error;
+    if (data?.length) {
+      // Supabase 데이터를 로컬 형식으로 변환
+      scores = data.map(s => ({
+        id: s.id,
+        title: s.title,
+        key: s.key||'',
+        artist: s.artist||'',
+        yt: s.yt||'',
+        ref: s.ref||'',
+        memo: s.memo||'',
+        lastEdit: s.last_edit||'',
+        uploadedBy: s.uploaded_by,
+        file: s.file_data ? { data: s.file_data, type: s.file_type, name: s.title } : null
+      }));
+      saveData('wm_scores', scores); // 로컬 캐시
+    } else {
+      // Supabase에 없으면 localStorage 데이터를 Supabase로 마이그레이션
+      const localScores = JSON.parse(localStorage.getItem('wm_scores')||'[]');
+      if (localScores.length) await migrateScoresToSupabase(localScores);
+    }
+  } catch(e) {
+    console.log('Supabase scores fallback to localStorage:', e);
+    scores = JSON.parse(localStorage.getItem('wm_scores')||'[]');
+  }
+}
+
+async function migrateScoresToSupabase(localScores) {
+  for (const s of localScores) {
+    try {
+      await sb.from('scores').upsert({
+        id: s.id,
+        title: s.title,
+        key: s.key,
+        artist: s.artist,
+        yt: s.yt,
+        ref: s.ref,
+        memo: s.memo,
+        file_data: s.file?.data || null,
+        file_type: s.file?.type || null,
+        last_edit: s.lastEdit,
+        uploaded_by: currentUser?.id
+      }, { onConflict: 'id' });
+    } catch(e) { console.log('migrate error:', e); }
+  }
+  showToast('악보 데이터가 전체 공유로 마이그레이션되었습니다!');
+}
+
+async function saveScoreToSupabase(score) {
+  try {
+    const { error } = await sb.from('scores').insert({
+      id: score.id,
+      title: score.title,
+      key: score.key,
+      artist: score.artist,
+      yt: score.yt,
+      ref: score.ref,
+      memo: score.memo,
+      file_data: score.file?.data || null,
+      file_type: score.file?.type || null,
+      last_edit: score.lastEdit,
+      uploaded_by: currentUser?.id
+    });
+    if (error) throw error;
+  } catch(e) { console.log('Score save error:', e); }
+}
+
+async function deleteScoreFromSupabase(id) {
+  try {
+    await sb.from('scores').delete().eq('id', id);
+  } catch(e) { console.log('Score delete error:', e); }
+}
 
 function updateDday() {
   const el=document.getElementById('ddayBadge');if(!el)return;
