@@ -2209,6 +2209,62 @@ function updateBibleVerses() {
   document.getElementById('recVersePreview').textContent=`📖 ${book} ${chapter}장 — 절을 선택해주세요 (총 ${verseCount}절)`;
 }
 
+
+// ════════════════════════════════════════════
+// 성경 API - getbible.net
+// ════════════════════════════════════════════
+const BOOK_NUM = {"창세기":1,"출애굽기":2,"레위기":3,"민수기":4,"신명기":5,"여호수아":6,"사사기":7,"룻기":8,"사무엘상":9,"사무엘하":10,"열왕기상":11,"열왕기하":12,"역대상":13,"역대하":14,"에스라":15,"느헤미야":16,"에스더":17,"욥기":18,"시편":19,"잠언":20,"전도서":21,"아가":22,"이사야":23,"예레미야":24,"예레미야애가":25,"에스겔":26,"다니엘":27,"호세아":28,"요엘":29,"아모스":30,"오바댜":31,"요나":32,"미가":33,"나훔":34,"하박국":35,"스바냐":36,"학개":37,"스가랴":38,"말라기":39,"마태복음":40,"마가복음":41,"누가복음":42,"요한복음":43,"사도행전":44,"로마서":45,"고린도전서":46,"고린도후서":47,"갈라디아서":48,"에베소서":49,"빌립보서":50,"골로새서":51,"데살로니가전서":52,"데살로니가후서":53,"디모데전서":54,"디모데후서":55,"디도서":56,"빌레몬서":57,"히브리서":58,"야고보서":59,"베드로전서":60,"베드로후서":61,"요한일서":62,"요한이서":63,"요한삼서":64,"유다서":65,"요한계시록":66};
+
+async function fetchVerseFromAPI(book, chapter, verseStart, verseEnd) {
+  const bookNum = BOOK_NUM[book];
+  if (!bookNum) return '';
+  try {
+    // getbible.net v2 API - 개역한글 (kor)
+    const url = `https://getbible.net/v2/kor/${bookNum}/${chapter}.json`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('API error');
+    const data = await res.json();
+    // 절 범위 추출
+    const vs = parseInt(verseStart);
+    const ve = verseEnd ? parseInt(verseEnd) : vs;
+    let text = '';
+    for (let v = vs; v <= ve; v++) {
+      const verseData = data.verses?.find(x => x.verse === v);
+      if (verseData?.text) text += (text ? ' ' : '') + verseData.text.trim();
+    }
+    return text;
+  } catch(e) {
+    console.log('Bible API error:', e);
+    return '';
+  }
+}
+
+async function getVerseText(book, chapter, verseStart, verseEnd) {
+  // 1. 로컬 캐시 먼저 확인
+  const vs = parseInt(verseStart);
+  const ve = verseEnd ? parseInt(verseEnd) : vs;
+  let localText = '';
+  for (let v = vs; v <= ve; v++) {
+    const key = `${book} ${chapter}:${v}`;
+    if (BIBLE_VERSES[key]) localText += (localText ? ' ' : '') + BIBLE_VERSES[key];
+  }
+  if (localText) return localText;
+
+  // 2. API로 가져오기
+  const apiText = await fetchVerseFromAPI(book, chapter, verseStart, verseEnd);
+  if (apiText) {
+    // 로컬 캐시에 저장
+    for (let v = vs; v <= ve; v++) {
+      const key = `${book} ${chapter}:${v}`;
+      if (!BIBLE_VERSES[key] && apiText) {
+        BIBLE_VERSES[key] = apiText; // 간략히 전체를 첫절에 저장
+      }
+    }
+    return apiText;
+  }
+  return '';
+}
+
 function updateVerseText() {
   const book = document.getElementById('recBook').value;
   const ch = document.getElementById('recChapter').value;
@@ -2227,7 +2283,7 @@ function updateVerseText() {
 const YT_API_KEY = 'AIzaSyCPquphGLZsFRmi6tvBQztGawqlhIWwZiU';
 const GEMINI_API_KEY = 'AIzaSyA4mXPwmm8tv7s0Eo2-fDruS7Tv5SUoG4s';
 
-function updateVerseText() {
+async function updateVerseText() {
   const book  = document.getElementById('recBook')?.value;
   const ch    = document.getElementById('recChapter')?.value;
   const vs    = document.getElementById('recVerseStart')?.value;
@@ -2239,8 +2295,14 @@ function updateVerseText() {
     return;
   }
   const ref = ve && ve !== vs ? `${book} ${ch}:${vs}-${ve}` : `${book} ${ch}:${vs}`;
-  const known = BIBLE_VERSES[`${book} ${ch}:${vs}`];
-  el.innerHTML = `<span style="font-weight:700;color:var(--olive-d);">📖 ${ref}</span><br/>${known ? `"${known}"` : '(선택된 구절)'}`;
+  el.innerHTML = `<span style="font-weight:700;color:var(--olive-d);">📖 ${ref}</span><br/><span style="color:var(--light);font-size:12px;">불러오는 중...</span>`;
+
+  const text = await getVerseText(book, ch, vs, ve);
+  if (text) {
+    el.innerHTML = `<span style="font-weight:700;color:var(--olive-d);">📖 ${ref}</span><br/>"${text}"`;
+  } else {
+    el.innerHTML = `<span style="font-weight:700;color:var(--olive-d);">📖 ${ref}</span><br/><span style="color:var(--light);font-size:12px;">(선택된 구절)</span>`;
+  }
 }
 
 async function runRecommend() {
@@ -2309,21 +2371,24 @@ Reply ONLY with this exact JSON structure, no markdown, no extra text:
 "youtube_search_queries": ["피아 단일곡 검색어", "위러브 단일곡 검색어", "아이자야61 단일곡 검색어"]
 }`;
 
-    // ── 로컬에서 성경 본문 즉시 가져오기
-    // A절~B절 범위 본문 조합
-    const vsNum = parseInt(vs);
-    const veNum = ve ? parseInt(ve) : vsNum;
-    let fullVerseText = '';
-    for (let v = vsNum; v <= veNum; v++) {
-      const key = `${book} ${ch}:${v}`;
-      if (BIBLE_VERSES[key]) fullVerseText += (fullVerseText ? ' ' : '') + BIBLE_VERSES[key];
-    }
-    if (!fullVerseText) fullVerseText = BIBLE_VERSES[`${book} ${ch}:${vs}`] || '';
-
-    // 본문 즉시 미리보기에 표시
+    // ── 성경 본문 가져오기 (로컬 캐시 → API 순서)
     const previewEl = document.getElementById('recVersePreview');
-    if (previewEl && fullVerseText) {
-      previewEl.innerHTML = `<span style="font-weight:700;color:var(--olive-d);">📖 ${ref}</span><br/>"${fullVerseText}"`;
+    if (previewEl) {
+      previewEl.innerHTML = `<span style="font-weight:700;color:var(--olive-d);">📖 ${ref}</span><br/><span style="color:var(--light);font-size:12px;">말씀 불러오는 중...</span>`;
+    }
+
+    document.getElementById('recLoadingMsg').textContent = '📖 성경 본문 불러오는 중...';
+    document.getElementById('recLoadingBar').style.width = '20%';
+
+    const fullVerseText = await getVerseText(book, ch, vs, ve);
+
+    // 본문 미리보기 표시
+    if (previewEl) {
+      if (fullVerseText) {
+        previewEl.innerHTML = `<span style="font-weight:700;color:var(--olive-d);">📖 ${ref}</span><br/>"${fullVerseText}"`;
+      } else {
+        previewEl.innerHTML = `<span style="font-weight:700;color:var(--olive-d);">📖 ${ref}</span><br/><span style="color:var(--light);font-size:12px;">(본문을 불러올 수 없습니다)</span>`;
+      }
     }
 
     document.getElementById('recLoadingMsg').textContent = '🔍 핵심 키워드 분석 중...';
