@@ -2111,30 +2111,50 @@ ${scoreList || '(등록된 악보 없음)'}
     );
 
     const geminiData = await geminiRes.json();
+    console.log('Gemini raw:', JSON.stringify(geminiData).slice(0,300));
     let aiResult;
     try {
       const raw = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
-      const clean = raw.replace(/```json|```/g, '').trim();
+      // Gemini sometimes wraps in ```json ... ``` or just returns plain JSON
+      const jsonMatch = raw.match(/\{[\s\S]*\}/);
+      const clean = jsonMatch ? jsonMatch[0] : raw.replace(/```json|```/g, '').trim();
       aiResult = JSON.parse(clean);
+      console.log('Parsed aiResult:', aiResult);
     } catch(e) {
+      console.error('Parse error:', e);
+      const rawText = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || '';
       aiResult = {
-        verse_interpretation: geminiData.candidates?.[0]?.content?.parts?.[0]?.text || '분석 중 오류가 발생했습니다.',
+        verse_interpretation: rawText || '분석 중 오류가 발생했습니다. 다시 시도해주세요.',
         keywords: [],
         score_recommendations: [],
-        youtube_search_queries: [book + ' 찬양']
+        youtube_search_queries: [book + ' 찬양 CCM', ref + ' 찬양']
       };
     }
 
     // 2단계: YouTube API 검색
     const ytResults = [];
     if (YT_API_KEY !== 'YOUR_YOUTUBE_API_KEY') {
-      const queries = aiResult.youtube_search_queries || [ref + ' 찬양'];
+      // 찬양 키워드 강제 추가로 설교 영상 필터링
+      const rawQueries = aiResult.youtube_search_queries || [ref + ' 찬양'];
+      const queries = rawQueries.map(q => {
+        const lower = q.toLowerCase();
+        if (!lower.includes('찬양') && !lower.includes('ccm') && !lower.includes('worship')) {
+          return q + ' 찬양 CCM';
+        }
+        return q;
+      });
       for (const q of queries.slice(0, 2)) {
         try {
-          const ytRes = await fetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=3&q=${encodeURIComponent(q)}&type=video&videoCategoryId=29&key=${YT_API_KEY}`);
+          const ytRes = await fetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=4&q=${encodeURIComponent(q)}&type=video&key=${YT_API_KEY}`);
           const ytData = await ytRes.json();
           if (ytData.items) {
-            ytResults.push(...ytData.items.map(item => ({
+            // 설교/강해 영상 필터링
+            const EXCLUDE = ['설교','강해','강의','말씀','목사','강사','주일예배','새벽기도','QT','묵상'];
+            const filtered = ytData.items.filter(item => {
+              const title = item.snippet.title.toLowerCase();
+              return !EXCLUDE.some(kw => title.includes(kw));
+            });
+            ytResults.push(...(filtered.length ? filtered : ytData.items.slice(0,2)).map(item => ({
               id: item.id.videoId,
               title: item.snippet.title,
               channel: item.snippet.channelTitle,
