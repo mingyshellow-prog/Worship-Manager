@@ -109,6 +109,7 @@ nav{flex:1;padding:4px 8px;overflow-y:auto;}
 .badge-member{background:var(--olive-bg);color:var(--olive-d);font-size:10px;padding:2px 7px;border-radius:10px;font-weight:600;}
 .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--text);color:var(--cream);padding:10px 20px;border-radius:20px;font-size:13px;z-index:9000;opacity:0;transition:opacity .3s;pointer-events:none;}
 .toast.show{opacity:1;}
+@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
 
 /* ── MODAL ── */
 .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1000;display:none;align-items:center;justify-content:center;padding:16px;}
@@ -622,9 +623,12 @@ nav{flex:1;padding:4px 8px;overflow-y:auto;}
 
         <!-- 로딩 -->
         <div id="recLoading" style="display:none;text-align:center;padding:30px;">
-          <div style="font-size:28px;margin-bottom:10px;">🔮</div>
-          <div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:6px;">AI가 분석 중입니다...</div>
-          <div style="font-size:12px;color:var(--light);">말씀 구절과 찬양 가사를 비교하고 있어요</div>
+          <div style="font-size:28px;margin-bottom:10px;animation:spin 2s linear infinite;display:inline-block;">🔮</div>
+          <div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:6px;" id="recLoadingMsg">말씀을 분석하고 있습니다...</div>
+          <div style="width:200px;height:4px;background:var(--border);border-radius:2px;margin:12px auto;overflow:hidden;">
+            <div id="recLoadingBar" style="height:100%;width:0%;background:var(--olive);border-radius:2px;transition:width .5s;"></div>
+          </div>
+          <div style="font-size:12px;color:var(--light);">Gemini AI가 성경 본문을 인용하고 찬양을 매칭하고 있어요</div>
         </div>
 
         <!-- 결과 -->
@@ -2184,23 +2188,54 @@ async function runRecommend() {
   document.getElementById('recBtn').disabled = true;
   document.getElementById('recBtn').textContent = '분석 중...';
 
+  // 로딩 바 애니메이션
+  const msgs = ['📖 성경 본문 인용 중...', '🔍 키워드 추출 중...', '🎵 찬양 매칭 중...', '▶️ YouTube 검색 중...'];
+  let msgIdx = 0;
+  const loadingInterval = setInterval(() => {
+    const bar = document.getElementById('recLoadingBar');
+    const msg = document.getElementById('recLoadingMsg');
+    if (bar) bar.style.width = Math.min((msgIdx+1)*25, 90) + '%';
+    if (msg && msgs[msgIdx]) msg.textContent = msgs[msgIdx];
+    msgIdx++;
+  }, 800);
+
   try {
     // 1단계: Claude API로 말씀 분석 + 악보 창고 매칭
     const scoreList = scores.map(s => `• ${s.title}${s.artist?' ('+s.artist+')':''}${s.key?' Key '+s.key:''}`).join('\n');
-    const prompt = `당신은 교회 찬양팀을 위한 전문 찬양 추천 AI입니다.
+    // 핵심 주제 키워드 미리 추출
+    const keywordColors = [
+      {color:"#E8F5E9",textColor:"#1B5E20"},
+      {color:"#E3F2FD",textColor:"#0D47A1"},
+      {color:"#FFF3E0",textColor:"#E65100"},
+      {color:"#F3E5F5",textColor:"#4A148C"},
+      {color:"#FCE4EC",textColor:"#880E4F"}
+    ];
 
-요청 말씀: ${ref}
+    const prompt = `You are a Korean church worship AI assistant.
 
-다음을 순서대로 수행하세요:
-1. ${ref} 의 한국어 성경 본문(개역개정)을 정확히 인용하세요
-2. 본문에서 핵심 키워드 3-5개를 추출하세요 (본문에 실제로 있는 단어 위주)
-3. 악보 창고 곡들과 매칭하세요
+Task: Analyze Bible verse ${ref} and recommend worship songs.
 
-악보 창고:
-${scoreList || '(없음)'}
+Step 1 - Write the exact Korean Bible text (개역개정) for ${ref}
+Step 2 - Extract 3-5 keywords that actually appear in the verse text
+Step 3 - Match songs from library
 
-반드시 아래 JSON 형식으로만 답하세요 (마크다운 없이):
-{"verse_text":"${ref} 의 실제 한국어 성경 본문을 여기에 정확히 인용 (예: 하나님이 세상을 이처럼 사랑하사...)","verse_interpretation":"이 말씀의 핵심 주제와 예배 적용점을 2문장으로","keywords":[{"word":"본문속단어1","color":"#E8F5E9","textColor":"#1B5E20","meaning":"이 단어가 본문에서 갖는 의미"},{"word":"본문속단어2","color":"#E3F2FD","textColor":"#0D47A1","meaning":"의미"},{"word":"본문속단어3","color":"#FFF3E0","textColor":"#E65100","meaning":"의미"},{"word":"본문속단어4","color":"#F3E5F5","textColor":"#4A148C","meaning":"의미"}],"score_recommendations":[{"title":"악보창고 곡 제목","reason":"이 곡을 추천하는 이유","match_score":85,"keyword_connections":[{"keyword":"본문키워드","lyric_example":"곡의 가사 중 연관 구절"}]}],"youtube_search_queries":["피아 찬양 검색어","위러브 찬양 검색어","아이자야61 찬양 검색어"]}`;
+Song library:
+${scoreList || '(empty)'}
+
+Reply ONLY with this exact JSON structure, no markdown, no extra text:
+{
+"verse_text": "exact Korean Bible text here (개역개정 version)",
+"verse_interpretation": "2 sentences about theme and worship application in Korean",
+"keywords": [
+  {"word": "keyword1_from_verse", "color": "#E8F5E9", "textColor": "#1B5E20", "meaning": "Korean meaning"},
+  {"word": "keyword2_from_verse", "color": "#E3F2FD", "textColor": "#0D47A1", "meaning": "Korean meaning"},
+  {"word": "keyword3_from_verse", "color": "#FFF3E0", "textColor": "#E65100", "meaning": "Korean meaning"}
+],
+"score_recommendations": [
+  {"title": "song title from library", "reason": "Korean reason", "match_score": 85, "keyword_connections": [{"keyword": "kw", "lyric_example": "lyric"}]}
+],
+"youtube_search_queries": ["피아 단일곡 검색어", "위러브 단일곡 검색어", "아이자야61 단일곡 검색어"]
+}`;
 
     const geminiRes = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`,
@@ -2254,26 +2289,27 @@ ${scoreList || '(없음)'}
     const ytResults = [];
     if (YT_API_KEY !== 'YOUR_YOUTUBE_API_KEY') {
       // 찬양 키워드 강제 추가로 설교 영상 필터링
-      // 한국 찬양 우선, 피아/위러브/아이자야 우선
-      const KOREAN_ARTISTS = ['피아', '위러브', '아이자야61', '아이자야 61', '소울시스터', '화이트', '어노인팅'];
-      const rawQueries = aiResult.youtube_search_queries || [ref + ' 찬양'];
-      // 추천 쿼리 앞에 한국 아티스트 쿼리 추가
-      const artistQueries = KOREAN_ARTISTS.slice(0,2).map(a => a + ' ' + (aiResult.keywords?.[0]?.word||'찬양') + ' 찬양');
-      const allQueries = [...artistQueries, ...rawQueries].map(q => {
-        const lower = q.toLowerCase();
-        if (!lower.includes('찬양') && !lower.includes('ccm') && !lower.includes('worship')) {
-          return q + ' 찬양';
-        }
-        return q;
-      });
-      const queries = allQueries;
+      // 한국 찬양 우선 검색 - 단일곡 위주
+      const kw0 = aiResult.keywords?.[0]?.word || '찬양';
+      const kw1 = aiResult.keywords?.[1]?.word || '';
+      const baseQueries = aiResult.youtube_search_queries || [];
+      // 아티스트별 단일곡 검색어 생성
+      const artistQueries = [
+        `피아 ${kw0} 찬양 official`,
+        `위러브 ${kw0} MR`,
+        `아이자야61 ${kw0} 찬양`,
+        `어노인팅 ${kw0}${kw1?' '+kw1:''} 찬양`,
+      ];
+      const queries = [...artistQueries, ...baseQueries.slice(0,1)];
       for (const q of queries.slice(0, 2)) {
         try {
           const ytRes = await fetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=4&q=${encodeURIComponent(q)}&type=video&key=${YT_API_KEY}`);
           const ytData = await ytRes.json();
           if (ytData.items) {
-            // 설교/강해 영상 필터링
-            const EXCLUDE = ['설교','강해','강의','말씀','목사','강사','주일예배','새벽기도','QT','묵상'];
+            // 모음집/플레이리스트/설교 필터링 - 단일 찬양곡만
+            const EXCLUDE = ['설교','강해','강의','말씀','목사','강사','주일예배','새벽기도','QT','묵상',
+              'playlist','모음','전곡','전집','앨범전체','찬양모음','메들리','medley','full album',
+              '1시간','2시간','연속재생','모아보기'];
             const filtered = ytData.items.filter(item => {
               const title = item.snippet.title.toLowerCase();
               return !EXCLUDE.some(kw => title.includes(kw));
@@ -2301,7 +2337,12 @@ ${scoreList || '(없음)'}
     console.error('Recommend error:', err);
     showToast('추천 중 오류가 발생했습니다. 다시 시도해주세요.');
   } finally {
-    document.getElementById('recLoading').style.display = 'none';
+    clearInterval(loadingInterval);
+    const bar = document.getElementById('recLoadingBar');
+    if (bar) bar.style.width = '100%';
+    setTimeout(() => {
+      document.getElementById('recLoading').style.display = 'none';
+    }, 300);
     document.getElementById('recBtn').disabled = false;
     document.getElementById('recBtn').textContent = '✨ AI 추천 받기';
   }
