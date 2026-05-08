@@ -1,0 +1,28 @@
+{
+  "name": "함께하는교회 워십매니저",
+  "short_name": "워십매니저",
+  "description": "함께하는교회 안성 악보/콘티 매니저",
+  "start_url": "/Worship-Manager/",
+  "scope": "/Worship-Manager/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "theme_color": "#1C1F14",
+  "background_color": "#1C1F14",
+  "lang": "ko",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["productivity", "utilities"],
+  "screenshots": []
+}

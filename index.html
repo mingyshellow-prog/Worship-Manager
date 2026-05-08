@@ -2,7 +2,14 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+<meta name="theme-color" content="#1C1F14"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="워십매니저"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<link rel="manifest" href="manifest.json"/>
+<link rel="apple-touch-icon" href="icon-192.png"/>
 <title>악보/콘티 매니저 — 함께하는교회 안성</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=Noto+Serif+KR:wght@600;700&display=swap" rel="stylesheet"/>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -302,17 +309,29 @@ nav{flex:1;padding:4px 8px;overflow-y:auto;}
 
 /* ── MOBILE ── */
 .mobile-nav{display:none;}
+/* 아이패드 (768px ~ 1024px) */
+@media(min-width:769px) and (max-width:1024px){
+  :root{--sw:200px;}
+  .page-body{padding:16px 20px;}
+  .dash-grid{grid-template-columns:repeat(2,1fr);}
+}
+/* 모바일 (768px 이하) */
 @media(max-width:768px){
   .sidebar{display:none;}
   .mobile-nav{display:flex;position:fixed;bottom:0;left:0;right:0;background:var(--white);border-top:1px solid var(--border);z-index:100;padding:6px 0 calc(6px + env(safe-area-inset-bottom));}
   .mobile-nav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 4px;cursor:pointer;border:none;background:none;font-family:'Noto Sans KR',sans-serif;}
-  .mobile-nav-icon{font-size:20px;}
+  .mobile-nav-icon{font-size:22px;}
   .mobile-nav-label{font-size:9px;color:var(--light);}
-  .mobile-nav-item.active .mobile-nav-label{color:var(--olive);}
-  .page-body{padding:14px 16px 70px;}
+  .mobile-nav-item.active .mobile-nav-icon{filter:drop-shadow(0 0 4px rgba(107,114,57,0.8));}
+  .mobile-nav-item.active .mobile-nav-label{color:var(--olive);font-weight:600;}
+  .page-body{padding:14px 16px 80px;}
   .dash-grid{grid-template-columns:1fr;}
   .conti-grid{grid-template-columns:1fr;}
   .form-row{grid-template-columns:1fr;}
+  .page-header{padding:12px 16px 10px;}
+  .page-title{font-size:15px;}
+  .modal-box{border-radius:20px 20px 0 0;max-height:92vh;margin-top:auto;}
+  .modal-bg{align-items:flex-end;}
   .bible-selects{grid-template-columns:1fr 1fr;}
 }
 </style>
@@ -902,10 +921,36 @@ nav{flex:1;padding:4px 8px;overflow-y:auto;}
 <nav class="mobile-nav">
   <button class="mobile-nav-item active" onclick="showPage('dashboard',this)"><span class="mobile-nav-icon">🏠</span><span class="mobile-nav-label">홈</span></button>
   <button class="mobile-nav-item" onclick="showPage('weekly',this)"><span class="mobile-nav-icon">📅</span><span class="mobile-nav-label">주차</span></button>
-  <button class="mobile-nav-item" onclick="showPage('library',this)"><span class="mobile-nav-icon">🎵</span><span class="mobile-nav-label">악보</span></button>
+  <button class="mobile-nav-item" onclick="showPage('recommender',this)"><span class="mobile-nav-icon">🔮</span><span class="mobile-nav-label">추천기</span></button>
   <button class="mobile-nav-item" onclick="showPage('learning',this)"><span class="mobile-nav-icon">🎓</span><span class="mobile-nav-label">배움터</span></button>
-  <button class="mobile-nav-item" onclick="showPage('mypage',this)"><span class="mobile-nav-icon">👤</span><span class="mobile-nav-label">MY</span></button>
+  <button class="mobile-nav-item" onclick="toggleMobileMenu()"><span class="mobile-nav-icon">☰</span><span class="mobile-nav-label">더보기</span></button>
 </nav>
+
+<!-- 모바일 더보기 메뉴 -->
+<div id="mobileMenuOverlay" onclick="toggleMobileMenu()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:200;"></div>
+<div id="mobileMenuSheet" style="display:none;position:fixed;bottom:0;left:0;right:0;background:var(--white);border-radius:20px 20px 0 0;z-index:201;padding:16px 16px calc(16px + env(safe-area-inset-bottom));box-shadow:0 -4px 20px rgba(0,0,0,.15);">
+  <div style="width:36px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 16px;"></div>
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">
+    <button onclick="showPage('library',null);toggleMobileMenu()" style="display:flex;flex-direction:column;align-items:center;gap:6px;padding:14px 8px;border:1px solid var(--border);border-radius:12px;background:var(--cream);cursor:pointer;font-family:'Noto Sans KR',sans-serif;">
+      <span style="font-size:22px;">🎵</span><span style="font-size:11px;color:var(--muted);">악보 창고</span>
+    </button>
+    <button onclick="showPage('collections',null);toggleMobileMenu()" style="display:flex;flex-direction:column;align-items:center;gap:6px;padding:14px 8px;border:1px solid var(--border);border-radius:12px;background:var(--cream);cursor:pointer;font-family:'Noto Sans KR',sans-serif;">
+      <span style="font-size:22px;">📂</span><span style="font-size:11px;color:var(--muted);">Playlist</span>
+    </button>
+    <button onclick="showPage('conti',null);toggleMobileMenu()" style="display:flex;flex-direction:column;align-items:center;gap:6px;padding:14px 8px;border:1px solid var(--border);border-radius:12px;background:var(--cream);cursor:pointer;font-family:'Noto Sans KR',sans-serif;">
+      <span style="font-size:22px;">✍️</span><span style="font-size:11px;color:var(--muted);">콘티 짜기</span>
+    </button>
+    <button onclick="showPage('merge',null);toggleMobileMenu()" style="display:flex;flex-direction:column;align-items:center;gap:6px;padding:14px 8px;border:1px solid var(--border);border-radius:12px;background:var(--cream);cursor:pointer;font-family:'Noto Sans KR',sans-serif;">
+      <span style="font-size:22px;">📋</span><span style="font-size:11px;color:var(--muted);">악보 합치기</span>
+    </button>
+    <button onclick="showPage('mypage',null);toggleMobileMenu()" style="display:flex;flex-direction:column;align-items:center;gap:6px;padding:14px 8px;border:1px solid var(--border);border-radius:12px;background:var(--cream);cursor:pointer;font-family:'Noto Sans KR',sans-serif;">
+      <span style="font-size:22px;">👤</span><span style="font-size:11px;color:var(--muted);">마이페이지</span>
+    </button>
+    <button id="mobileMenuMember" onclick="showPage('members',null);toggleMobileMenu()" style="display:none;flex-direction:column;align-items:center;gap:6px;padding:14px 8px;border:1px solid var(--border);border-radius:12px;background:var(--cream);cursor:pointer;font-family:'Noto Sans KR',sans-serif;">
+      <span style="font-size:22px;">⚙️</span><span style="font-size:11px;color:var(--muted);">멤버 관리</span>
+    </button>
+  </div>
+</div>
 
 <!-- ════ MODALS ════ -->
 
@@ -1443,6 +1488,18 @@ function goToDashboard() {
   const dashBtn = document.querySelector('.nav-item[onclick*="dashboard"]');
   if (dashBtn) dashBtn.classList.add('active');
   showPage('dashboard', dashBtn);
+}
+
+function toggleMobileMenu() {
+  const overlay = document.getElementById('mobileMenuOverlay');
+  const sheet = document.getElementById('mobileMenuSheet');
+  const memberBtn = document.getElementById('mobileMenuMember');
+  if (!overlay || !sheet) return;
+  const isOpen = overlay.style.display === 'flex';
+  overlay.style.display = isOpen ? 'none' : 'flex';
+  sheet.style.display = isOpen ? 'none' : 'block';
+  // 어드민만 멤버 관리 보이기
+  if (memberBtn && isAdmin()) memberBtn.style.display = 'flex';
 }
 
 // 권한 체크 헬퍼
