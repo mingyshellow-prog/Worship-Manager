@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>악보/콘티 매니저 — 함께하는교회 안성</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=Noto+Serif+KR:wght@600;700&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
 :root{
@@ -899,11 +900,11 @@ const BIBLE_VERSES = {
 // STATE
 // ════════════════════════════════════════════
 let currentUser = null;
-let scores = [];        // 악보 창고
-let weeklyContis = [];  // 주차별 찬양
-let savedContis = [];   // 저장된 콘티
-let collections = {};   // 모음집 {id:{name,icon,songs:[]}}
-let currentConti = [];  // 빠른 콘티 짜기
+let scores = [];
+let weeklyContis = [];
+let savedContis = [];
+let collections = {};
+let currentConti = [];
 let announcement = null;
 let importFiles = [];
 let qcSongs = [];
@@ -912,55 +913,50 @@ let currentCollId = null;
 let mergeSlot = {1:null, 2:null};
 
 // ════════════════════════════════════════════
-// AUTH
+// SUPABASE INIT
 // ════════════════════════════════════════════
-function switchLoginTab(tab, btn) {
-  document.querySelectorAll('.login-tab').forEach(t=>t.classList.remove('active'));
-  btn.classList.add('active');
-  document.getElementById('loginForm').style.display = tab==='login'?'flex':'none';
-  document.getElementById('signupForm').style.display = tab==='signup'?'flex':'none';
-}
+const SUPABASE_URL = 'https://uvyahitvpuvtwcejavqj.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV2eWFoaXR2cHV2dHdjZWphdnFqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgwNDQ2MTYsImV4cCI6MjA5MzYyMDYxNn0.1HAaTNyKRoJb5jRR30PUkFO9Eubh9Io6Gao02UFTkTQ';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-function doSignup() {
-  const name = document.getElementById('signupName').value.trim();
-  const email = document.getElementById('signupEmail').value.trim();
-  const pw = document.getElementById('signupPw').value;
-  const pw2 = document.getElementById('signupPw2').value;
-  const err = document.getElementById('signupErr');
-  if (!name || !email || !pw) { err.textContent='모든 항목을 입력해주세요.'; return; }
-  if (pw.length < 6) { err.textContent='비밀번호는 6자 이상이어야 합니다.'; return; }
-  if (pw !== pw2) { err.textContent='비밀번호가 일치하지 않습니다.'; return; }
-  const users = JSON.parse(localStorage.getItem('wm_users')||'[]');
-  if (users.find(u=>u.email===email)) { err.textContent='이미 사용 중인 이메일입니다.'; return; }
-  const isFirst = users.length === 0;
-  const user = {id:'u'+Date.now(), name, email, pw: btoa(unescape(encodeURIComponent(pw))), role: isFirst?'admin':'member', createdAt: new Date().toISOString(), lastLogin: new Date().toISOString(), avatar:null, sessions:[], wishes:[], memos:{}};
-  users.push(user);
-  localStorage.setItem('wm_users', JSON.stringify(users));
-  loginSuccess(user);
-}
-
-function doLogin() {
+// ════════════════════════════════════════════
+// AUTH — Supabase 기반
+// ════════════════════════════════════════════
+async function doLogin() {
   const email = document.getElementById('loginEmail').value.trim();
   const pw = document.getElementById('loginPw').value;
   const err = document.getElementById('loginErr');
-  const users = JSON.parse(localStorage.getItem('wm_users')||'[]');
-  const user = users.find(u=>u.email===email);
-  if (!user) { err.textContent='이메일을 찾을 수 없습니다.'; return; }
-  let encoded;
-  try { encoded = btoa(unescape(encodeURIComponent(pw))); } catch(e) { encoded = btoa(pw); }
-  if (user.pw !== encoded) { err.textContent='비밀번호가 올바르지 않습니다.'; return; }
-  user.lastLogin = new Date().toISOString();
-  localStorage.setItem('wm_users', JSON.stringify(users));
-  loginSuccess(user);
+  err.textContent = '로그인 중...';
+  const { data, error } = await sb.auth.signInWithPassword({ email, password: pw });
+  if (error) {
+    err.textContent = '이메일 또는 비밀번호가 올바르지 않습니다.';
+    return;
+  }
+  await loginSuccess(data.user);
 }
 
-function doGuest() {
-  loginSuccess({id:'guest', name:'게스트', email:'', role:'member', avatar:null, sessions:[], wishes:[], memos:{}});
-}
+async function loginSuccess(sbUser) {
+  // profiles 테이블에서 추가 정보 조회
+  const { data: profile } = await sb.from('profiles').select('*').eq('id', sbUser.id).single();
+  currentUser = {
+    id: sbUser.id,
+    email: sbUser.email,
+    name: profile?.name || sbUser.email.split('@')[0],
+    role: profile?.role || 'member',
+    avatar: profile?.avatar || null,
+    sessions: profile?.sessions || [],
+    wishes: profile?.wishes || [],
+    memos: profile?.memos || {},
+  };
+  // last_login 업데이트
+  await sb.from('profiles').upsert({
+    id: sbUser.id,
+    email: sbUser.email,
+    name: currentUser.name,
+    role: currentUser.role,
+    last_login: new Date().toISOString(),
+  }, {onConflict: 'id'});
 
-function loginSuccess(user) {
-  currentUser = user;
-  localStorage.setItem('wm_session', JSON.stringify({id:user.id, at: Date.now()}));
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('mainApp').style.display = 'flex';
   loadAllData();
@@ -968,11 +964,36 @@ function loginSuccess(user) {
   restoreTab();
 }
 
-function doLogout() {
-  localStorage.removeItem('wm_session');
+async function doLogout() {
+  await sb.auth.signOut();
   currentUser = null;
   document.getElementById('loginScreen').style.display = 'flex';
   document.getElementById('mainApp').style.display = 'none';
+}
+
+// 프로필 저장 (sessions, wishes, memos 등)
+async function saveProfile_sb() {
+  if (!currentUser) return;
+  await sb.from('profiles').upsert({
+    id: currentUser.id,
+    name: currentUser.name,
+    role: currentUser.role,
+    avatar: currentUser.avatar,
+    sessions: currentUser.sessions,
+    wishes: currentUser.wishes,
+    memos: currentUser.memos,
+  }, {onConflict: 'id'});
+}
+
+// localStorage fallback (profiles 테이블 없을 때)
+function updateUserInStorage() {
+  saveProfile_sb().catch(()=>{
+    // fallback to localStorage
+    if (!currentUser || currentUser.id==='guest') return;
+    const users = JSON.parse(localStorage.getItem('wm_users')||'[]');
+    const idx = users.findIndex(u=>u.id===currentUser.id);
+    if (idx>=0) { users[idx]=currentUser; localStorage.setItem('wm_users',JSON.stringify(users)); }
+  });
 }
 
 function updateUserUI() {
@@ -2060,31 +2081,99 @@ function saveProfile(){
 // ════════════════════════════════════════════
 // MEMBERS
 // ════════════════════════════════════════════
-function renderMembers() {
-  const el = document.getElementById('memberList');
-  if (!el) return;
-  const q = (document.getElementById('memberSearch')?.value||'').toLowerCase();
-  const users = JSON.parse(localStorage.getItem('wm_users')||'[]');
-  const filtered = users.filter(u=>u.name.toLowerCase().includes(q)||u.email.toLowerCase().includes(q));
-  if (!filtered.length) { el.innerHTML='<div style="text-align:center;padding:20px;font-size:13px;color:var(--light);">등록된 멤버가 없습니다<br><br>상단 "＋ 계정 생성" 버튼으로 계정을 만들어주세요</div>'; return; }
-  el.innerHTML = filtered.map(u=>{
-    const lastLogin = u.lastLogin ? new Date(u.lastLogin).toLocaleDateString('ko-KR',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}) : '미접속';
-    const isOnline = u.lastLogin && (Date.now()-new Date(u.lastLogin).getTime()) < 3600000;
-    const isMe = u.id === currentUser?.id;
+async function createAccount() {
+  const name=document.getElementById('caName').value.trim();
+  const email=document.getElementById('caEmail').value.trim();
+  const role=document.getElementById('caRole').value;
+  const pw=document.getElementById('caTempPw').value;
+  if(!name||!email||!pw){showToast('모든 항목을 입력해주세요');return;}
+  if(pw.length<6){showToast('비밀번호는 6자 이상이어야 합니다');return;}
+
+  // Supabase Auth로 계정 생성 (admin API 필요하므로 signUp 사용)
+  const {data, error} = await sb.auth.signUp({email, password:pw});
+  if(error){showToast('계정 생성 실패: '+error.message);return;}
+
+  // profiles 테이블에 저장
+  await sb.from('profiles').upsert({
+    id: data.user.id,
+    email, name, role,
+    created_at: new Date().toISOString(),
+    last_login: null,
+  }, {onConflict:'id'});
+
+  const res=document.getElementById('caResult');
+  res.style.display='block';
+  res.innerHTML=`✅ 계정이 생성되었습니다!<br><br>
+    📧 이메일: <strong>${email}</strong><br>
+    🔑 임시 비밀번호: <strong>${pw}</strong><br>
+    👤 권한: <strong>${role==='admin'?'관리자':'멤버'}</strong><br><br>
+    위 정보를 해당 팀원에게 전달해주세요.<br>
+    <small style="color:var(--light);">팀원이 첫 로그인 시 이메일 인증이 필요할 수 있습니다.</small>`;
+  renderMembers();renderStats();
+  showToast(`${name} 계정이 생성되었습니다`);
+}
+
+async function renderMembers() {
+  const el=document.getElementById('memberList');
+  if(!el)return;
+  const q=(document.getElementById('memberSearch')?.value||'').toLowerCase();
+
+  // Supabase profiles 조회
+  const {data:profiles, error} = await sb.from('profiles').select('*').order('created_at',{ascending:false});
+
+  if(error||!profiles||!profiles.length){
+    el.innerHTML='<div style="text-align:center;padding:20px;font-size:13px;color:var(--light);">등록된 멤버가 없습니다<br><br>상단 "＋ 계정 생성" 버튼으로 계정을 만들어주세요</div>';
+    return;
+  }
+
+  const filtered = profiles.filter(u=>
+    (u.name||'').toLowerCase().includes(q)||(u.email||'').toLowerCase().includes(q)
+  );
+
+  el.innerHTML=filtered.map(u=>{
+    const lastLogin=u.last_login?new Date(u.last_login).toLocaleDateString('ko-KR',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}):'미접속';
+    const isOnline=u.last_login&&(Date.now()-new Date(u.last_login).getTime())<3600000;
+    const isMe=u.id===currentUser?.id;
     return `<div class="member-row">
-      <div class="member-avatar">${u.avatar?`<img src="${u.avatar}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;"/>`:(u.name.charAt(0))}</div>
+      <div class="member-avatar">${u.avatar?`<img src="${u.avatar}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;"/>`:(u.name||'?').charAt(0)}</div>
       <div class="member-info">
-        <div class="member-name">${u.name} ${isMe?'<span style="font-size:10px;color:var(--olive);">(나)</span>':''}</div>
+        <div class="member-name">${u.name||u.email} ${isMe?'<span style="font-size:10px;color:var(--olive);">(나)</span>':''}</div>
         <div class="member-sub">${u.email} · Last login: ${lastLogin}</div>
       </div>
       ${isOnline?'<div class="online-dot" title="최근 접속"></div>':''}
       <span class="${u.role==='admin'?'badge-admin':'badge-member'}">${u.role==='admin'?'관리자':'멤버'}</span>
       ${currentUser?.role==='admin'&&!isMe?`
         <button class="btn btn-sm" onclick="toggleMemberRole('${u.id}','${u.role}')">${u.role==='admin'?'멤버로':'관리자로'}</button>
-        <button class="btn btn-sm" onclick="resetMemberPw('${u.id}')">🔑 비번초기화</button>
         <button class="btn btn-danger btn-sm" onclick="deleteMember('${u.id}')">삭제</button>
       `:''}
-    </div>`;}).join('');
+    </div>`;
+  }).join('');
+}
+
+async function toggleMemberRole(id,role) {
+  const newRole=role==='admin'?'member':'admin';
+  await sb.from('profiles').update({role:newRole}).eq('id',id);
+  renderMembers();
+  showToast('권한이 변경되었습니다');
+}
+
+async function deleteMember(id) {
+  if(!confirm('계정을 삭제할까요?')) return;
+  await sb.from('profiles').delete().eq('id',id);
+  renderMembers();renderStats();
+  showToast('계정이 삭제되었습니다');
+}
+
+async function renderStats() {
+  const s=document.getElementById('statSongs');
+  const w=document.getElementById('statWeeks');
+  const m=document.getElementById('statMembers');
+  if(s)s.textContent=scores.length;
+  if(w)w.textContent=weeklyContis.length;
+  if(m){
+    const {count}=await sb.from('profiles').select('*',{count:'exact',head:true});
+    m.textContent=count||0;
+  }
 }
 
 function openCreateAccount() {
@@ -2101,71 +2190,6 @@ function genTempPw() {
   let pw='';
   for(let i=0;i<10;i++) pw+=chars[Math.floor(Math.random()*chars.length)];
   document.getElementById('caTempPw').value=pw;
-}
-
-function createAccount() {
-  const name=document.getElementById('caName').value.trim();
-  const email=document.getElementById('caEmail').value.trim();
-  const role=document.getElementById('caRole').value;
-  const pw=document.getElementById('caTempPw').value;
-  if(!name||!email||!pw){showToast('모든 항목을 입력해주세요');return;}
-  const users=JSON.parse(localStorage.getItem('wm_users')||'[]');
-  if(users.find(u=>u.email===email)){showToast('이미 존재하는 이메일입니다');return;}
-  let encoded;
-  try{encoded=btoa(unescape(encodeURIComponent(pw)));}catch(e){encoded=btoa(pw);}
-  const user={id:'u'+Date.now(),name,email,pw:encoded,role,createdAt:new Date().toISOString(),lastLogin:null,avatar:null,sessions:[],wishes:[],memos:{}};
-  users.push(user);
-  localStorage.setItem('wm_users',JSON.stringify(users));
-  // 결과 표시
-  const res=document.getElementById('caResult');
-  res.style.display='block';
-  res.innerHTML=`✅ 계정이 생성되었습니다!<br><br>
-    📧 이메일: <strong>${email}</strong><br>
-    🔑 임시 비밀번호: <strong>${pw}</strong><br>
-    👤 권한: <strong>${role==='admin'?'관리자':'멤버'}</strong><br><br>
-    위 정보를 해당 팀원에게 전달해주세요.<br>
-    <small style="color:var(--light);">이 창을 닫으면 비밀번호를 다시 확인할 수 없습니다.</small>`;
-  renderMembers();renderStats();
-  showToast(`${name} 계정이 생성되었습니다`);
-}
-
-function resetMemberPw(id) {
-  if(!confirm('임시 비밀번호를 초기화할까요?')) return;
-  const chars='ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#';
-  let pw='';
-  for(let i=0;i<10;i++) pw+=chars[Math.floor(Math.random()*chars.length)];
-  const users=JSON.parse(localStorage.getItem('wm_users')||'[]');
-  const u=users.find(x=>x.id===id);
-  if(!u) return;
-  let encoded;
-  try{encoded=btoa(unescape(encodeURIComponent(pw)));}catch(e){encoded=btoa(pw);}
-  u.pw=encoded;
-  localStorage.setItem('wm_users',JSON.stringify(users));
-  alert(`비밀번호가 초기화되었습니다.\n\n임시 비밀번호: ${pw}\n\n해당 팀원에게 전달해주세요.`);
-}
-
-function deleteMember(id) {
-  if(!confirm('계정을 삭제할까요? 이 작업은 되돌릴 수 없습니다.')) return;
-  let users=JSON.parse(localStorage.getItem('wm_users')||'[]');
-  users=users.filter(u=>u.id!==id);
-  localStorage.setItem('wm_users',JSON.stringify(users));
-  renderMembers();renderStats();
-  showToast('계정이 삭제되었습니다');
-}
-  const users=JSON.parse(localStorage.getItem('wm_users')||'[]');
-  const u=users.find(x=>x.id===id);
-  if(u){u.role=role==='admin'?'member':'admin';localStorage.setItem('wm_users',JSON.stringify(users));renderMembers();showToast('권한이 변경되었습니다');}
-}
-
-// ════════════════════════════════════════════
-// STATS / DDAY
-// ════════════════════════════════════════════
-function renderStats() {
-  const users=JSON.parse(localStorage.getItem('wm_users')||'[]');
-  const s=document.getElementById('statSongs');const w=document.getElementById('statWeeks');const m=document.getElementById('statMembers');
-  if(s)s.textContent=scores.length;
-  if(w)w.textContent=weeklyContis.length;
-  if(m)m.textContent=users.length;
 }
 
 function updateDday() {
@@ -2194,48 +2218,41 @@ function esc(s){return (s||'').replace(/'/g,"\\'").replace(/"/g,'&quot;');}
 // ════════════════════════════════════════════
 // INIT
 // ════════════════════════════════════════════
-(function init(){
+(async function init(){
   // theme
   const theme=localStorage.getItem('wm_theme');
   if(theme==='dark'){document.documentElement.setAttribute('data-theme','dark');const b=document.getElementById('themeBtn');if(b)b.textContent='☀️';}
   // sidebar
   if(localStorage.getItem('wm_sidebar')==='1'){const s=document.getElementById('sidebar');if(s){s.classList.add('collapsed');const b=document.getElementById('collapseBtn');if(b)b.textContent='›';}}
-  // session restore
-  const sess=JSON.parse(localStorage.getItem('wm_session')||'null');
-  if(sess&&sess.id){
-    if(sess.id==='guest'){
-      // 게스트 세션 무효화
-      localStorage.removeItem('wm_session');
-    } else {
-      const users=JSON.parse(localStorage.getItem('wm_users')||'[]');
-      const u=users.find(x=>x.id===sess.id);
-      if(u&&(Date.now()-sess.at)<86400000*7){loginSuccess(u);return;}
-    }
+
+  // Supabase 세션 복원
+  const { data: { session } } = await sb.auth.getSession();
+  if (session?.user) {
+    await loginSuccess(session.user);
+    return;
   }
-  // 등록된 유저가 없으면 첫 관리자 생성 안내
-  const users=JSON.parse(localStorage.getItem('wm_users')||'[]');
-  if(users.length===0){
-    document.getElementById('loginErr').textContent='';
-    // 첫 실행 시 임시 관리자 계정 자동 생성 안내
-    const notice=document.createElement('div');
-    notice.style.cssText='font-size:11px;color:var(--olive-d);text-align:center;margin-top:8px;padding:8px;background:var(--olive-bg);border-radius:6px;line-height:1.6;';
-    notice.innerHTML='처음 사용하시나요?<br><strong>admin@church.com / admin1234</strong> 로 첫 로그인 후<br>멤버 관리에서 계정을 생성해주세요.';
-    document.getElementById('loginForm').appendChild(notice);
-    // 기본 관리자 계정 자동 생성
-    let encoded;try{encoded=btoa(unescape(encodeURIComponent('admin1234')));}catch(e){encoded=btoa('admin1234');}
-    const admin={id:'u_admin',name:'관리자',email:'admin@church.com',pw:encoded,role:'admin',createdAt:new Date().toISOString(),lastLogin:null,avatar:null,sessions:[],wishes:[],memos:{}};
-    localStorage.setItem('wm_users',JSON.stringify([admin]));
-  }
-  // show login
+
+  // 로그인 화면 표시
   document.getElementById('loginScreen').style.display='flex';
   document.getElementById('mainApp').style.display='none';
 
-  // close dropdown on outside click
+  // outside click 드롭다운 닫기
   document.addEventListener('click',e=>{
     ['qcSongDrop','wkSongDrop'].forEach(id=>{
       const el=document.getElementById(id);
       if(el&&!el.contains(e.target))el.style.display='none';
     });
+  });
+
+  // Supabase auth state 변화 감지
+  sb.auth.onAuthStateChange(async (event, session) => {
+    if (event === 'SIGNED_IN' && session?.user) {
+      await loginSuccess(session.user);
+    } else if (event === 'SIGNED_OUT') {
+      currentUser = null;
+      document.getElementById('loginScreen').style.display='flex';
+      document.getElementById('mainApp').style.display='none';
+    }
   });
 })();
 </script>
