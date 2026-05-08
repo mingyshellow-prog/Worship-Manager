@@ -338,6 +338,7 @@ nav{flex:1;padding:4px 8px;overflow-y:auto;}
         <button class="nav-item" onclick="showPage('collections',this)"><span class="nav-icon">📂</span><span class="nav-label">Playlist</span></button>
         <div class="nav-section">워크플로우</div>
         <button class="nav-item" onclick="showPage('conti',this)"><span class="nav-icon">✍️</span><span class="nav-label">빠른 콘티 짜기</span></button>
+        <button class="nav-item" onclick="showPage('recommender',this)"><span class="nav-icon">🔮</span><span class="nav-label">찬양 추천기</span></button>
         <button class="nav-item" onclick="showPage('merge',this)"><span class="nav-icon">📋</span><span class="nav-label">악보 합치기</span></button>
         <div class="nav-section">마이</div>
         <button class="nav-item" onclick="showPage('mypage',this)"><span class="nav-icon">👤</span><span class="nav-label">마이 페이지</span></button>
@@ -523,8 +524,8 @@ nav{flex:1;padding:4px 8px;overflow-y:auto;}
           <button class="btn btn-primary" onclick="saveConti()">💾 저장</button>
         </div>
       </div>
-      <div class="page-body" style="display:flex;flex-direction:column;">
-        <div class="conti-grid" style="flex:1;min-height:0;margin-bottom:12px;">
+      <div class="page-body" style="display:flex;flex-direction:column;height:100%;">
+        <div class="conti-grid" style="flex:1;min-height:0;">
           <div class="conti-panel">
             <div class="panel-header">악보 목록 <span style="font-weight:400;color:var(--light);font-size:10px;text-transform:none;">클릭하여 추가</span></div>
             <div style="padding:6px 8px 0;flex-shrink:0;">
@@ -537,39 +538,89 @@ nav{flex:1;padding:4px 8px;overflow-y:auto;}
             <div class="panel-body" id="contiList"><div class="drop-hint">왼쪽에서 곡을 선택하세요</div></div>
           </div>
         </div>
-        <!-- 추천기 -->
-        <div class="rec-section">
-          <div class="rec-title">🔮 찬양 추천기 <span style="background:#FEF3C7;color:#92400E;font-size:9px;padding:1px 6px;border-radius:8px;font-weight:600;">Beta</span></div>
-          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:6px;">
-            <select class="form-select" id="recTestament" onchange="updateBibleBooks()" style="font-size:12px;padding:7px;">
+      </div>
+    </div>
+
+    <!-- ══ RECOMMENDER ══ -->
+    <div id="page-recommender" class="page">
+      <div class="page-header">
+        <div>
+          <div class="page-title">🔮 찬양 추천기</div>
+          <div class="page-sub">말씀 구절을 선택하면 AI가 어울리는 찬양을 추천해드립니다</div>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <div id="recApiStatus" style="font-size:11px;color:var(--light);display:flex;align-items:center;gap:5px;padding:6px 10px;background:var(--olive-bg);border-radius:8px;">
+            <span id="recStatusDot" style="width:7px;height:7px;border-radius:50%;background:#22C55E;display:inline-block;"></span>
+            <span id="recStatusText">AI 연결됨</span>
+          </div>
+        </div>
+      </div>
+      <div class="page-body">
+        <!-- 성경 구절 선택 -->
+        <div class="card" style="margin-bottom:14px;">
+          <div class="card-title">📖 말씀 구절 선택</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px;">
+            <select class="form-select" id="recTestament" onchange="updateBibleBooks()">
               <option value="">구약 / 신약</option>
               <option value="구약">구약</option>
               <option value="신약">신약</option>
             </select>
-            <select class="form-select" id="recBook" onchange="updateBibleChapters()" style="font-size:12px;padding:7px;">
+            <select class="form-select" id="recBook" onchange="updateBibleChapters()">
               <option value="">책 선택</option>
             </select>
-            <select class="form-select" id="recChapter" onchange="updateBibleVerses()" style="font-size:12px;padding:7px;">
+            <select class="form-select" id="recChapter" onchange="updateBibleVerses()">
               <option value="">장 선택</option>
             </select>
           </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px;">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">
             <div>
-              <div style="font-size:10px;color:var(--light);margin-bottom:3px;font-weight:600;">A절 (시작)</div>
-              <select class="form-select" id="recVerseStart" onchange="updateVerseText()" style="font-size:12px;padding:7px;width:100%;">
+              <div style="font-size:10px;color:var(--light);margin-bottom:3px;font-weight:700;">A절 (시작)</div>
+              <select class="form-select" id="recVerseStart" onchange="updateVerseText()">
                 <option value="">절 선택</option>
               </select>
             </div>
             <div>
-              <div style="font-size:10px;color:var(--light);margin-bottom:3px;font-weight:600;">B절 (끝, 선택사항)</div>
-              <select class="form-select" id="recVerseEnd" onchange="updateVerseText()" style="font-size:12px;padding:7px;width:100%;">
+              <div style="font-size:10px;color:var(--light);margin-bottom:3px;font-weight:700;">B절 (끝, 선택사항)</div>
+              <select class="form-select" id="recVerseEnd" onchange="updateVerseText()">
                 <option value="">절 선택</option>
               </select>
             </div>
           </div>
-          <div class="bible-verse-text" id="recVerseText">말씀 구절을 선택하면 찬양을 추천해드립니다</div>
-          <button class="btn btn-primary btn-sm" onclick="runRecommend()" style="margin-bottom:10px;">✨ 추천받기</button>
-          <div class="rec-result" id="recResult"></div>
+          <!-- 구절 미리보기 -->
+          <div id="recVersePreview" style="background:var(--olive-bg);border-left:3px solid var(--olive);padding:12px 14px;border-radius:8px;font-size:13px;color:var(--muted);line-height:1.8;margin-bottom:12px;min-height:50px;">
+            말씀 구절을 선택해주세요
+          </div>
+          <button class="btn btn-primary" onclick="runRecommend()" id="recBtn">
+            ✨ AI 추천 받기
+          </button>
+        </div>
+
+        <!-- 로딩 -->
+        <div id="recLoading" style="display:none;text-align:center;padding:30px;">
+          <div style="font-size:28px;margin-bottom:10px;">🔮</div>
+          <div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:6px;">AI가 분석 중입니다...</div>
+          <div style="font-size:12px;color:var(--light);">말씀 구절과 찬양 가사를 비교하고 있어요</div>
+        </div>
+
+        <!-- 결과 -->
+        <div id="recResults" style="display:none;">
+          <!-- AI 해석 -->
+          <div class="card" style="margin-bottom:14px;" id="recAiCard">
+            <div class="card-title">🤖 AI 말씀 해석</div>
+            <div id="recAiText" style="font-size:13px;color:var(--muted);line-height:1.8;"></div>
+          </div>
+
+          <!-- 악보 창고 추천 -->
+          <div style="margin-bottom:14px;">
+            <div class="section-label" style="margin-bottom:10px;">🎵 악보 창고에서 추천</div>
+            <div id="recScoreResults" style="display:flex;flex-direction:column;gap:8px;"></div>
+          </div>
+
+          <!-- YouTube 추천 -->
+          <div>
+            <div class="section-label" style="margin-bottom:10px;">▶️ YouTube 찬양 추천</div>
+            <div id="recYtResults" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;"></div>
+          </div>
         </div>
       </div>
     </div>
@@ -1127,7 +1178,7 @@ function showPage(id, btn) {
 
 function restoreTab() {
   const hash = location.hash.replace('#','');
-  const valid = ['dashboard','weekly','library','collections','conti','merge','mypage','members'];
+  const valid = ['dashboard','weekly','library','collections','conti','recommender','merge','mypage','members'];
   if (hash && valid.includes(hash)) showPage(hash, null);
   else showPage('dashboard', null);
 }
@@ -1927,7 +1978,7 @@ function updateBibleBooks() {
   document.getElementById('recChapter').innerHTML='<option value="">장 선택</option>';
   document.getElementById('recVerseStart').innerHTML='<option value="">절 선택</option>';
   document.getElementById('recVerseEnd').innerHTML='<option value="">절 선택</option>';
-  document.getElementById('recVerseText').textContent='말씀 구절을 선택하면 찬양을 추천해드립니다';
+  document.getElementById('recVersePreview').textContent='말씀 구절을 선택하면 찬양을 추천해드립니다';
 }
 
 function updateBibleChapters() {
@@ -1940,7 +1991,7 @@ function updateBibleChapters() {
   for (let i=1; i<=chapters; i++) chapSel.innerHTML+=`<option value="${i}">${i}장</option>`;
   document.getElementById('recVerseStart').innerHTML='<option value="">절 선택</option>';
   document.getElementById('recVerseEnd').innerHTML='<option value="">절 선택</option>';
-  document.getElementById('recVerseText').textContent='장을 선택하면 절을 선택할 수 있습니다';
+  document.getElementById('recVersePreview').textContent='장을 선택하면 절을 선택할 수 있습니다';
 }
 
 function updateBibleVerses() {
@@ -1958,7 +2009,7 @@ function updateBibleVerses() {
     startSel.innerHTML+=`<option value="${i}">${i}절</option>`;
     endSel.innerHTML+=`<option value="${i}">${i}절</option>`;
   }
-  document.getElementById('recVerseText').textContent=`📖 ${book} ${chapter}장 — 절을 선택해주세요 (총 ${verseCount}절)`;
+  document.getElementById('recVersePreview').textContent=`📖 ${book} ${chapter}장 — 절을 선택해주세요 (총 ${verseCount}절)`;
 }
 
 function updateVerseText() {
@@ -1966,62 +2017,213 @@ function updateVerseText() {
   const ch = document.getElementById('recChapter').value;
   const vs = document.getElementById('recVerseStart').value;
   const ve = document.getElementById('recVerseEnd').value;
-  const el = document.getElementById('recVerseText');
+  const el = document.getElementById('recVersePreview');
   if (!book||!ch||!vs) return;
   const ref = ve && ve!==vs ? `${book} ${ch}:${vs}-${ve}` : `${book} ${ch}:${vs}`;
   const known = BIBLE_VERSES[`${book} ${ch}:${vs}`];
   el.textContent = known ? `📖 ${ref}\n"${known}"` : `📖 ${ref}`;
 }
 
-function runRecommend() {
-  const book = document.getElementById('recBook').value;
-  const ch = document.getElementById('recChapter').value;
-  const vs = document.getElementById('recVerseStart').value;
-  const ve = document.getElementById('recVerseEnd').value;
-  if (!book) { showToast('말씀 구절을 선택해주세요'); return; }
-  const ref = ve && ve!==vs ? `${book} ${ch}:${vs}-${ve}` : `${book} ${ch}:${vs||''}`;
-  const verseText = BIBLE_VERSES[`${book} ${ch}:${vs}`] || (book+ch+vs);
+// ════════════════════════════════════════════
+// RECOMMENDER — Claude API + YouTube API
+// ════════════════════════════════════════════
+const YT_API_KEY = 'AIzaSyCPquphGLZsFRmi6tvBQztGawqlhIWwZiU';
 
-  // 키워드 매칭
-  const KEYWORDS = {
-    '사랑':['사랑','love','주님의사랑','하나님의사랑'],
-    '찬양':['찬양','예배','경배','worship'],
-    '십자가':['십자가','보혈','피','죄','용서'],
-    '구원':['구원','은혜','믿음','구속'],
-    '승리':['승리','능력','강함','힘'],
-    '평안':['평안','위로','안식','쉼'],
-    '생명':['생명','부활','영생','영원'],
-    '왕':['왕','주권','통치','만왕의왕'],
-    '감사':['감사','찬송','영광'],
-    '성령':['성령','불','임하심'],
-  };
+function updateVerseText() {
+  const book  = document.getElementById('recBook')?.value;
+  const ch    = document.getElementById('recChapter')?.value;
+  const vs    = document.getElementById('recVerseStart')?.value;
+  const ve    = document.getElementById('recVerseEnd')?.value;
+  const el    = document.getElementById('recVersePreview');
+  if (!el) return;
+  if (!book || !ch || !vs) {
+    el.textContent = '말씀 구절을 선택해주세요';
+    return;
+  }
+  const ref = ve && ve !== vs ? `${book} ${ch}:${vs}-${ve}` : `${book} ${ch}:${vs}`;
+  const known = BIBLE_VERSES[`${book} ${ch}:${vs}`];
+  el.innerHTML = `<span style="font-weight:700;color:var(--olive-d);">📖 ${ref}</span><br/>${known ? `"${known}"` : '(선택된 구절)'}`;
+}
 
-  const text = verseText + book;
-  const matchedKeywords = new Set();
-  Object.entries(KEYWORDS).forEach(([kw, variants])=>{
-    if (variants.some(v=>text.includes(v)||book.includes(v))) matchedKeywords.add(kw);
-  });
+async function runRecommend() {
+  const book = document.getElementById('recBook')?.value;
+  const ch   = document.getElementById('recChapter')?.value;
+  const vs   = document.getElementById('recVerseStart')?.value;
+  const ve   = document.getElementById('recVerseEnd')?.value;
 
-  let scored = scores.map(s=>{
-    const scoreText = (s.title+s.artist+s.memo).toLowerCase();
-    let pts = 0;
-    matchedKeywords.forEach(kw=>{ if(scoreText.includes(kw)||scoreText.includes(kw.toLowerCase())) pts+=30; });
-    ['사랑','주님','하나님','예수','찬양','경배','구원','십자가'].forEach(kw=>{ if(scoreText.includes(kw)) pts+=10; });
-    return {...s, pts};
-  }).filter(s=>s.pts>0).sort((a,b)=>b.pts-a.pts).slice(0,3);
+  if (!book || !ch || !vs) { showToast('말씀 구절을 선택해주세요'); return; }
 
-  const el = document.getElementById('recResult');
-  if (!scored.length) { el.innerHTML='<div style="font-size:12px;color:var(--light);text-align:center;">악보 창고에 등록된 악보가 없거나 매칭되는 곡이 없습니다</div>'; return; }
+  const ref       = ve && ve !== vs ? `${book} ${ch}:${vs}-${ve}` : `${book} ${ch}:${vs}`;
+  const verseText = BIBLE_VERSES[`${book} ${ch}:${vs}`] || `${book} ${ch}장 ${vs}절`;
 
-  el.innerHTML = scored.map(s=>`
-    <div class="rec-card">
-      <div style="flex:1;">
-        <div style="font-size:13px;font-weight:600;">${s.title}</div>
-        <div style="font-size:11px;color:var(--light);">Key ${s.key} · ${s.artist||'-'}</div>
-        <div class="rec-score-bar"><div class="rec-score-fill" style="width:${Math.min(s.pts,100)}%;"></div></div>
+  // UI 로딩
+  document.getElementById('recResults').style.display = 'none';
+  document.getElementById('recLoading').style.display = 'block';
+  document.getElementById('recBtn').disabled = true;
+  document.getElementById('recBtn').textContent = '분석 중...';
+
+  try {
+    // 1단계: Claude API로 말씀 분석 + 악보 창고 매칭
+    const scoreList = scores.map(s => `• ${s.title}${s.artist?' ('+s.artist+')':''}${s.key?' Key '+s.key:''}`).join('\n');
+    const prompt = `당신은 교회 찬양팀을 위한 전문 찬양 추천 AI입니다.
+
+말씀 구절: ${ref}
+구절 내용: "${verseText}"
+
+현재 악보 창고에 있는 찬양 목록:
+${scoreList || '(등록된 악보 없음)'}
+
+다음 형식으로 JSON만 응답해주세요 (다른 텍스트 없이):
+{
+  "verse_interpretation": "이 말씀 구절의 핵심 주제와 분위기를 2-3문장으로 설명",
+  "keywords": ["키워드1", "키워드2", "키워드3", "키워드4", "키워드5"],
+  "score_recommendations": [
+    {"title": "악보창고에서 일치하는 곡 제목", "reason": "추천 이유 1문장", "match_score": 85},
+    {"title": "두번째 곡", "reason": "추천 이유", "match_score": 72}
+  ],
+  "youtube_search_queries": ["유튜브 검색어1 찬양", "유튜브 검색어2 찬양", "유튜브 검색어3"]
+}`;
+
+    const claudeRes = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+
+    const claudeData = await claudeRes.json();
+    let aiResult;
+    try {
+      const raw = claudeData.content?.[0]?.text || '{}';
+      const clean = raw.replace(/```json|```/g, '').trim();
+      aiResult = JSON.parse(clean);
+    } catch(e) {
+      aiResult = { verse_interpretation: claudeData.content?.[0]?.text || '분석 중 오류가 발생했습니다.', keywords: [], score_recommendations: [], youtube_search_queries: [book + ' 찬양'] };
+    }
+
+    // 2단계: YouTube API 검색
+    const ytResults = [];
+    if (YT_API_KEY !== 'YOUR_YOUTUBE_API_KEY') {
+      const queries = aiResult.youtube_search_queries || [ref + ' 찬양'];
+      for (const q of queries.slice(0, 2)) {
+        try {
+          const ytRes = await fetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=3&q=${encodeURIComponent(q)}&type=video&videoCategoryId=29&key=${YT_API_KEY}`);
+          const ytData = await ytRes.json();
+          if (ytData.items) {
+            ytResults.push(...ytData.items.map(item => ({
+              id: item.id.videoId,
+              title: item.snippet.title,
+              channel: item.snippet.channelTitle,
+              thumbnail: item.snippet.thumbnails.medium?.url,
+              query: q
+            })));
+          }
+        } catch(e) { console.log('YT error:', e); }
+      }
+    } else {
+      // API 키 없을 때 — 키워드로 YouTube 검색 링크만 제공
+      const queries = aiResult.youtube_search_queries || [ref + ' 찬양'];
+      queries.slice(0,3).forEach(q => ytResults.push({ id: null, title: q, query: q }));
+    }
+
+    // UI 렌더링
+    renderRecResults(aiResult, ytResults, ref);
+
+  } catch(err) {
+    console.error('Recommend error:', err);
+    showToast('추천 중 오류가 발생했습니다. 다시 시도해주세요.');
+  } finally {
+    document.getElementById('recLoading').style.display = 'none';
+    document.getElementById('recBtn').disabled = false;
+    document.getElementById('recBtn').textContent = '✨ AI 추천 받기';
+  }
+}
+
+function renderRecResults(ai, ytItems, ref) {
+  document.getElementById('recResults').style.display = 'block';
+
+  // AI 해석
+  document.getElementById('recAiText').innerHTML = `
+    <p style="margin-bottom:10px;">${ai.verse_interpretation || '-'}</p>
+    ${ai.keywords?.length ? `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;">${ai.keywords.map(k=>`<span class="tag">#${k}</span>`).join('')}</div>` : ''}`;
+
+  // 악보 창고 추천
+  const scoreEl = document.getElementById('recScoreResults');
+  const recScores = ai.score_recommendations || [];
+  const matchedScores = recScores.map(r => ({
+    ...r,
+    score: scores.find(s => s.title === r.title)
+  })).filter(r => r.score);
+
+  // AI 추천 없으면 키워드 매칭으로 fallback
+  const displayScores = matchedScores.length > 0 ? matchedScores :
+    scores.filter(s => (ai.keywords||[]).some(k =>
+      (s.title+s.artist+s.memo).toLowerCase().includes(k.toLowerCase())
+    )).slice(0,3).map(s => ({score: s, title: s.title, reason: '키워드 매칭', match_score: 60}));
+
+  if (!displayScores.length) {
+    scoreEl.innerHTML = '<div style="font-size:12px;color:var(--light);padding:10px;">악보 창고에 매칭되는 곡이 없습니다. 악보를 더 등록해보세요!</div>';
+  } else {
+    scoreEl.innerHTML = displayScores.map(r => `
+      <div style="background:var(--white);border:1px solid var(--border);border-radius:10px;padding:13px;display:flex;align-items:center;gap:12px;">
+        <div style="flex:1;">
+          <div style="font-weight:600;font-size:13px;margin-bottom:3px;">${r.title}</div>
+          <div style="font-size:11px;color:var(--light);margin-bottom:6px;">${r.score?.artist||'-'} · Key ${r.score?.key||'-'}</div>
+          <div style="font-size:12px;color:var(--muted);">💡 ${r.reason}</div>
+          <div style="margin-top:6px;height:4px;background:var(--olive-bg);border-radius:2px;overflow:hidden;">
+            <div style="height:100%;width:${r.match_score||60}%;background:var(--olive);border-radius:2px;transition:width .5s;"></div>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:6px;">
+          ${r.score?.file ? `<button class="btn btn-sm" onclick="viewScore('${r.score.id}')">악보</button>` : ''}
+          ${r.score?.yt ? `<a href="${r.score.yt}" target="_blank" class="yt-icon-btn"><svg viewBox="0 0 24 24" fill="white" width="12" height="12"><path d="M8 5v14l11-7z"/></svg></a>` : ''}
+          <button class="btn btn-primary btn-sm" onclick="addToConti('${r.score?.id}')">＋ 추가</button>
+        </div>
+      </div>`).join('');
+  }
+
+  // YouTube 결과
+  const ytEl = document.getElementById('recYtResults');
+  if (!ytItems.length) {
+    ytEl.innerHTML = '<div style="font-size:12px;color:var(--light);">YouTube API 키를 설정하면 영상 추천이 활성화됩니다.</div>';
+  } else if (ytItems[0].id) {
+    // 실제 YouTube 영상
+    ytEl.innerHTML = ytItems.slice(0,6).map(v => `
+      <div style="background:var(--white);border:1px solid var(--border);border-radius:10px;overflow:hidden;">
+        <a href="https://youtube.com/watch?v=${v.id}" target="_blank">
+          <img src="${v.thumbnail}" style="width:100%;aspect-ratio:16/9;object-fit:cover;"/>
+        </a>
+        <div style="padding:10px;">
+          <div style="font-size:12px;font-weight:600;color:var(--text);line-height:1.4;margin-bottom:4px;">${v.title.slice(0,50)}${v.title.length>50?'...':''}</div>
+          <div style="font-size:11px;color:var(--light);margin-bottom:8px;">${v.channel}</div>
+          <div style="display:flex;gap:6px;">
+            <a href="https://youtube.com/watch?v=${v.id}" target="_blank" class="btn btn-sm" style="flex:1;justify-content:center;background:#FF0000;color:#fff;border-color:#FF0000;">▶ 재생</a>
+          </div>
+        </div>
+      </div>`).join('');
+  } else {
+    // API 키 없음 — 검색 링크
+    ytEl.innerHTML = `<div style="background:var(--white);border:1px solid var(--border);border-radius:10px;padding:16px;grid-column:1/-1;">
+      <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:10px;">🔍 YouTube에서 직접 검색하기</div>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        ${ytItems.map(v=>`
+          <a href="https://www.youtube.com/results?search_query=${encodeURIComponent(v.query)}" target="_blank"
+             style="display:flex;align-items:center;gap:8px;padding:10px;background:var(--cream);border-radius:8px;text-decoration:none;color:var(--text);">
+            <div style="width:32px;height:32px;background:#FF0000;border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+              <svg viewBox="0 0 24 24" fill="white" width="14" height="14"><path d="M8 5v14l11-7z"/></svg>
+            </div>
+            <div style="flex:1;font-size:13px;">${v.query}</div>
+            <span style="font-size:11px;color:var(--light);">검색 →</span>
+          </a>`).join('')}
       </div>
-      <button class="btn btn-sm" onclick="addToConti('${s.id}')">＋ 추가</button>
-    </div>`).join('');
+      <div style="margin-top:12px;padding:10px;background:#FEF3C7;border-radius:8px;font-size:11px;color:#92400E;">
+        💡 YouTube API 키를 설정하면 썸네일과 영상이 바로 표시됩니다!
+      </div>
+    </div>`;
+  }
 }
 
 // ════════════════════════════════════════════
