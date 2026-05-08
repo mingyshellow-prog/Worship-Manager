@@ -2255,16 +2255,32 @@ Reply ONLY with this exact JSON structure, no markdown, no extra text:
     document.getElementById('recLoadingMsg').textContent = '🔍 말씀 분석 중...';
     document.getElementById('recLoadingBar').style.width = '40%';
 
-    const geminiRes = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`,
-      { method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ contents:[{parts:[{text:combinedPrompt}]}], generationConfig:{temperature:0.5, maxOutputTokens:1200} }) }
-    );
+    // Rate limit 방지: 재시도 로직
+    let geminiData, lastErr;
+    for (let attempt = 0; attempt < 2; attempt++) {
+      if (attempt > 0) {
+        document.getElementById('recLoadingMsg').textContent = '⏳ 잠시 후 재시도 중...';
+        await new Promise(r => setTimeout(r, 3000));
+      }
+      try {
+        const geminiRes = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`,
+          { method:'POST', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({ contents:[{parts:[{text:combinedPrompt}]}], generationConfig:{temperature:0.5, maxOutputTokens:1200} }) }
+        );
+        if (geminiRes.status === 429) {
+          lastErr = '429';
+          continue;
+        }
+        geminiData = await geminiRes.json();
+        break;
+      } catch(e) { lastErr = e; }
+    }
 
     document.getElementById('recLoadingBar').style.width = '70%';
-    const geminiData = await geminiRes.json();
     let aiResult;
     try {
+      if (!geminiData) throw new Error('Rate limited');
       const raw = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || '';
       console.log('Gemini raw:', raw.slice(0,200));
       const start = raw.indexOf('{'); const end = raw.lastIndexOf('}');
@@ -2273,9 +2289,10 @@ Reply ONLY with this exact JSON structure, no markdown, no extra text:
       console.log('verse_text:', aiResult.verse_text?.slice(0,50));
     } catch(e) {
       console.error('Parse error:', e);
+      const is429 = lastErr === '429' || !geminiData;
       aiResult = {
-        verse_text: '',
-        verse_interpretation: '말씀과 어울리는 찬양을 찾고 있습니다.',
+        verse_text: is429 ? '⚠️ AI 요청이 너무 많습니다. 1분 후 다시 시도해주세요.' : '',
+        verse_interpretation: is429 ? 'Gemini API 호출 한도를 초과했습니다. 잠시 후 다시 시도해주세요.' : '말씀과 어울리는 찬양을 찾고 있습니다.',
         keywords:[
           {word:book, color:'#E8F5E9', textColor:'#1B5E20', meaning:'말씀 배경'},
           {word:'하나님', color:'#E3F2FD', textColor:'#0D47A1', meaning:'창조주'},
