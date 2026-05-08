@@ -795,6 +795,7 @@ nav{flex:1;padding:4px 8px;overflow-y:auto;}
       <div class="form-group"><label class="form-label">아티스트</label><input class="form-input" id="scoreArtist" placeholder="예) FIA ver."/></div>
       <div class="form-group"><label class="form-label">유튜브 링크</label><input class="form-input" id="scoreYt" placeholder="https://youtube.com/..."/></div>
     </div>
+    <div class="form-group"><label class="form-label">레퍼런스 링크 (악보 출처 등)</label><input class="form-input" id="scoreRef" placeholder="https://..."/></div>
     <div class="form-group"><label class="form-label">메모 / 송폼</label><input class="form-input" id="scoreMemo" placeholder="예) INTRO / VERSE / CHORUS"/></div>
     <div class="modal-footer"><button class="btn" onclick="closeModal('addScoreModal')">취소</button><button class="btn btn-primary" onclick="saveScore()">저장</button></div>
   </div>
@@ -1294,10 +1295,10 @@ function renderWeekly() {
     <div class="week-card">
       <div class="week-card-header" onclick="toggleWeek(this)">
         <div style="display:flex;align-items:center;flex:1;min-width:0;">
-          <span class="week-date-badge">${w.date}</span>
+          <span class="week-date-badge">${w.date||w.worship_date||'-'}</span>
           <div>
-            <div class="week-title">${w.service}${w.title?' — '+w.title:''}</div>
-            <div class="week-meta">찬양 ${w.songs.length}곡${w.practice?' · 연습 '+w.practice:''}</div>
+            <div class="week-title">${w.service||w.worship_type||'주일 예배'}${w.title||w.conti_title?' — '+(w.title||w.conti_title):''}</div>
+            <div class="week-meta">찬양 ${(w.songs||[]).length}곡${w.practice||w.practice_time?' · 연습 '+(w.practice||w.practice_time):''}</div>
           </div>
         </div>
         <div style="display:flex;align-items:center;gap:8px;">
@@ -1307,7 +1308,7 @@ function renderWeekly() {
       </div>
       <div class="week-body">
         <div class="week-detail">
-          ${w.memo?`<div style="font-size:12px;color:var(--light);margin-bottom:10px;padding:8px 12px;background:var(--olive-bg);border-radius:8px;">📝 ${w.memo}</div>`:''}
+          ${(w.memo||w.notes)?`<div style="font-size:12px;color:var(--light);margin-bottom:10px;padding:8px 12px;background:var(--olive-bg);border-radius:8px;">📝 ${w.memo||w.notes}</div>`:''}
           ${w.ref?`<div style="margin-bottom:10px;"><a href="${w.ref}" target="_blank" class="link-btn yt"><svg viewBox="0 0 24 24" fill="currentColor" width="10" height="10"><path d="M8 5v14l11-7z"/></svg> 레퍼런스 링크</a></div>`:''}
           ${w.songs.map((s,i)=>`
             <div class="week-song-row">
@@ -1376,7 +1377,7 @@ function handleScoreFile(input) {
 function saveScore() {
   const title = document.getElementById('scoreTitle').value.trim();
   if (!title) { showToast('곡 제목을 입력해주세요'); return; }
-  const score = {id:'s'+Date.now(), title, key:document.getElementById('scoreKey').value, artist:document.getElementById('scoreArtist').value, yt:document.getElementById('scoreYt').value, memo:document.getElementById('scoreMemo').value, file:window._pendingScoreFile||null, lastEdit:new Date().toISOString().split('T')[0]};
+  const score = {id:'s'+Date.now(), title, key:document.getElementById('scoreKey').value, artist:document.getElementById('scoreArtist').value, yt:document.getElementById('scoreYt').value, ref:document.getElementById('scoreRef').value, memo:document.getElementById('scoreMemo').value, file:window._pendingScoreFile||null, lastEdit:new Date().toISOString().split('T')[0]};
   scores.push(score);
   saveData('wm_scores', scores);
   renderScores(); updateArtistFilter();
@@ -1425,7 +1426,10 @@ function viewScore(id) {
       imgEl.innerHTML=`<img src="${s.file.data}" style="width:100%;border-radius:8px;border:1px solid var(--border);"/>`;
     }
   } else imgEl.innerHTML='<div style="text-align:center;padding:30px;font-size:13px;color:var(--light);">악보 이미지가 없습니다</div>';
-  document.getElementById('scoreViewLinks').innerHTML = s.yt?`<a href="${s.yt}" target="_blank" class="link-btn yt"><svg viewBox="0 0 24 24" fill="currentColor" width="10" height="10"><path d="M8 5v14l11-7z"/></svg> 유튜브</a>`:'';
+  document.getElementById('scoreViewLinks').innerHTML = [
+    s.yt ? `<a href="${s.yt}" target="_blank" class="link-btn yt"><svg viewBox="0 0 24 24" fill="currentColor" width="10" height="10"><path d="M8 5v14l11-7z"/></svg> 유튜브</a>` : '',
+    s.ref ? `<a href="${s.ref}" target="_blank" class="link-btn">🔗 레퍼런스</a>` : ''
+  ].join('');
   openModal('scoreViewModal');
 }
 
@@ -2129,8 +2133,14 @@ async function renderMembers() {
   if(!el)return;
   const q=(document.getElementById('memberSearch')?.value||'').toLowerCase();
 
-  // Supabase profiles 조회
+  // Supabase profiles 조회 (email은 auth.users에서 가져오므로 별도 처리)
   const {data:profiles, error} = await sb.from('profiles').select('*').order('created_at',{ascending:false});
+  // 현재 유저의 email 보완
+  if (profiles) {
+    profiles.forEach(p => {
+      if (!p.email && p.id === currentUser?.id) p.email = currentUser.email;
+    });
+  }
 
   if(error||!profiles||!profiles.length){
     el.innerHTML='<div style="text-align:center;padding:20px;font-size:13px;color:var(--light);">등록된 멤버가 없습니다<br><br>상단 "＋ 계정 생성" 버튼으로 계정을 만들어주세요</div>';
@@ -2145,16 +2155,21 @@ async function renderMembers() {
     const lastLogin=u.last_login?new Date(u.last_login).toLocaleDateString('ko-KR',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}):'미접속';
     const isOnline=u.last_login&&(Date.now()-new Date(u.last_login).getTime())<3600000;
     const isMe=u.id===currentUser?.id;
+    const email = u.email || '-';
+    const isSA = u.role==='super_admin';
+    const isAd = u.role==='admin'||isSA;
+    const badgeClass = isSA?'badge-super':isAd?'badge-admin':'badge-member';
+    const badgeText = isSA?'슈퍼관리자':isAd?'관리자':'멤버';
     return `<div class="member-row">
       <div class="member-avatar">${u.avatar?`<img src="${u.avatar}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;"/>`:(u.name||'?').charAt(0)}</div>
       <div class="member-info">
-        <div class="member-name">${u.name||u.email} ${isMe?'<span style="font-size:10px;color:var(--olive);">(나)</span>':''}</div>
-        <div class="member-sub">${u.email} · Last login: ${lastLogin}</div>
+        <div class="member-name">${u.name||email} ${isMe?'<span style="font-size:10px;color:var(--olive);">(나)</span>':''}</div>
+        <div class="member-sub">${email} · Last login: ${lastLogin}</div>
       </div>
       ${isOnline?'<div class="online-dot" title="최근 접속"></div>':''}
-      <span class="${u.role==='admin'||u.role==='super_admin'?'badge-admin':'badge-member'}">${u.role==='admin'||u.role==='super_admin'?'관리자':'멤버'}</span>
-      ${isAdmin()&&!isMe?`
-        <button class="btn btn-sm" onclick="toggleMemberRole('${u.id}','${u.role}')">${u.role==='admin'||u.role==='super_admin'?'멤버로':'관리자로'}</button>
+      <span class="${badgeClass}">${badgeText}</span>
+      ${isAdmin()&&!isMe&&!isSA?`
+        <button class="btn btn-sm" onclick="toggleMemberRole('${u.id}','${u.role}')">${isAd?'멤버로':'관리자로'}</button>
         <button class="btn btn-danger btn-sm" onclick="deleteMember('${u.id}')">삭제</button>
       `:''}
     </div>`;
