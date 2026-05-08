@@ -383,9 +383,9 @@ nav{flex:1;padding:4px 8px;overflow-y:auto;}
               <span style="font-size:10px;font-weight:700;letter-spacing:1px;color:#6366F1;text-transform:uppercase;">📋 Dev Note</span>
               <span id="devNoteVersion" style="background:#EEF2FF;color:#6366F1;font-size:10px;padding:1px 7px;border-radius:10px;font-weight:600;"></span>
             </div>
-            ${isAdmin()?`<button class="ann-edit-btn" onclick="openDevNoteEdit()" style="background:#EEF2FF;color:#6366F1;border-color:#C7D2FE;">✏️ 수정</button>`:''}
+            <button onclick="openDevNoteEdit()" style="display:none;font-size:11px;padding:3px 10px;background:#EEF2FF;color:#6366F1;border:1px solid #C7D2FE;border-radius:6px;cursor:pointer;font-family:'Noto Sans KR',sans-serif;">✏️ 수정</button>
           </div>
-          <div id="devNoteContent" style="font-size:12px;color:var(--muted);line-height:1.8;white-space:pre-line;"></div>
+          <div id="devNoteContent" style="font-size:12px;color:var(--muted);line-height:1.9;white-space:pre-line;"></div>
         </div>
 
         <!-- 전달사항 -->
@@ -2778,15 +2778,45 @@ function wvPrev() { if (_wvIdx > 0) { _wvIdx--; renderWv(); } }
 // DEV NOTE
 // ════════════════════════════════════════════
 function renderDevNote() {
-  const note = JSON.parse(localStorage.getItem('wm_devnote')||'null');
   const card = document.getElementById('devNoteCard');
   if (!card) return;
-  if (!note || !note.content) { card.style.display='none'; return; }
-  card.style.display='block';
+
+  // 기본 Dev Note — 배포 시 자동 설정
+  const DEFAULT_NOTE = {
+    version: 'v0.7.18',
+    content: `🎓 찬양 배움터 신규 오픈
+새로운 찬양을 유튜브로 미리 듣고 배울 수 있는 공간이 생겼어요! 신곡/연습중/준비완료 상태 관리 가능합니다.
+
+📋 Dev Note 게시판
+업데이트 소식을 대시보드에서 바로 확인할 수 있어요.
+
+🔮 찬양 추천기 개선
+피아, 위러브, 아이자야61 위주로 한국 찬양을 추천합니다.
+
+⌨️ ESC 단축키
+모든 팝업창을 ESC 키로 닫을 수 있어요.
+
+🎵 악보 창고
+PDF 업로드, 다운로드, 전체화면 기능이 추가되었습니다.`,
+    updatedAt: '2026-05-08'
+  };
+
+  let note = JSON.parse(localStorage.getItem('wm_devnote')||'null');
+  // 저장된 노트가 없거나 버전이 다르면 기본값 사용
+  if (!note || note.version !== DEFAULT_NOTE.version) {
+    note = DEFAULT_NOTE;
+    localStorage.setItem('wm_devnote', JSON.stringify(note));
+  }
+
+  card.style.display = 'block';
   const verEl = document.getElementById('devNoteVersion');
   const contentEl = document.getElementById('devNoteContent');
-  if(verEl) verEl.textContent = note.version||'';
-  if(contentEl) contentEl.textContent = note.content;
+  if (verEl) verEl.textContent = note.version||'';
+  if (contentEl) contentEl.textContent = note.content;
+
+  // 어드민 편집 버튼
+  const editBtn = card.querySelector('button');
+  if (editBtn) editBtn.style.display = isAdmin() ? 'block' : 'none';
 }
 function openDevNoteEdit() {
   const note = JSON.parse(localStorage.getItem('wm_devnote')||'{}');
