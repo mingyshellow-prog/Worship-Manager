@@ -2316,6 +2316,46 @@ function highlightKeywords(text, keywords) {
   return result;
 }
 
+// YouTube 영상 담기
+function addYtToLearning(ytId, title) {
+  const items = JSON.parse(localStorage.getItem('wm_learning')||'[]');
+  if (items.find(i=>i.yt && i.yt.includes(ytId))) { showToast('이미 배움터에 있어요!'); return; }
+  items.unshift({
+    id: 'l'+Date.now(), title: title.slice(0,50),
+    artist: '', key: '',
+    yt: `https://youtube.com/watch?v=${ytId}`,
+    status: 'new',
+    memo: '찬양 추천기에서 추가됨',
+    addedBy: currentUser?.name||'',
+    createdAt: new Date().toISOString()
+  });
+  localStorage.setItem('wm_learning', JSON.stringify(items));
+  showToast('🎓 찬양 배움터에 추가됐어요!');
+}
+
+function addYtToPlaylist(ytId, title) {
+  // 현재 폴더 선택 팝업
+  const collNames = Object.entries(collections);
+  if (!collNames.length) {
+    showToast('먼저 Playlist 폴더를 만들어주세요!');
+    showPage('collections', null);
+    return;
+  }
+  const opts = collNames.map(([id,c])=>`${c.name}`).join('\n');
+  const idx = collNames.findIndex(([id,c]) => {
+    // 가장 최근 폴더에 자동 추가
+    return true;
+  });
+  // 간단한 선택 - 첫번째 폴더에 추가하고 토스트
+  const [firstId, firstColl] = collNames[0];
+  if (!firstColl.songs) firstColl.songs = [];
+  if (firstColl.songs.find(s=>s.ytId===ytId)) { showToast('이미 Playlist에 있어요!'); return; }
+  firstColl.songs.push({ id:'yt_'+ytId, title: title.slice(0,50), key:'', ytId, yt:`https://youtube.com/watch?v=${ytId}` });
+  collections[firstId] = firstColl;
+  saveColl();
+  showToast(`📂 "${firstColl.name}" Playlist에 추가됐어요!`);
+}
+
 function renderRecResults(ai, ytItems, ref) {
   document.getElementById('recResults').style.display = 'block';
 
@@ -2332,10 +2372,32 @@ function renderRecResults(ai, ytItems, ref) {
     return `<span style="display:inline-flex;align-items:center;gap:4px;background:${bg};color:${tc};padding:4px 10px;border-radius:20px;font-size:12px;font-weight:600;cursor:help;" title="${meaning}">#${word}${meaning?` 💬`:''}</span>`;
   }).join('');
 
+  // 성경 절 전문 가져오기
+  const book2  = document.getElementById('recBook')?.value;
+  const ch2    = document.getElementById('recChapter')?.value;
+  const vs2    = document.getElementById('recVerseStart')?.value;
+  const ve2    = document.getElementById('recVerseEnd')?.value;
+  const refKey = `${book2} ${ch2}:${vs2}`;
+  const fullVerse = BIBLE_VERSES[refKey] || '';
+
+  // 절 전문 하이라이팅
+  const verseHighlighted = fullVerse ? highlightKeywords(fullVerse, keywords) : '';
+
+  // AI 해석 하이라이팅
+  const interpHighlighted2 = highlightKeywords(ai.verse_interpretation || '', keywords);
+
   document.getElementById('recAiText').innerHTML = `
-    <p style="margin-bottom:12px;line-height:1.8;">${interpHighlighted}</p>
-    ${kwChips ? `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px;">${kwChips}</div>` : ''}
-    ${kwIsObj ? `<div style="font-size:11px;color:var(--light);margin-top:8px;">💡 키워드에 마우스를 올리면 의미를 확인할 수 있어요</div>` : ''}`;
+    ${fullVerse ? `
+    <div style="margin-bottom:14px;padding:14px;background:linear-gradient(135deg,var(--olive-bg),#F8F7F0);border-left:3px solid var(--olive);border-radius:8px;">
+      <div style="font-size:10px;font-weight:700;color:var(--olive-d);letter-spacing:1px;margin-bottom:8px;">📖 ${ref}</div>
+      <div style="font-size:14px;line-height:2;color:var(--text);font-family:'Noto Serif KR',serif;">"${verseHighlighted}"</div>
+    </div>` : `<div style="margin-bottom:10px;padding:10px;background:var(--olive-bg);border-radius:8px;font-size:13px;color:var(--muted);">📖 ${ref} — (절 내용 준비 중)</div>`}
+    ${interpHighlighted2 ? `<p style="font-size:13px;line-height:1.8;color:var(--muted);margin-bottom:10px;">${interpHighlighted2}</p>` : ''}
+    ${kwChips ? `
+    <div style="margin-top:4px;">
+      <div style="font-size:10px;font-weight:700;color:var(--light);letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;">핵심 키워드</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;">${kwChips}</div>
+    </div>` : ''}`;
 
   // 악보 창고 추천
   const scoreEl = document.getElementById('recScoreResults');
@@ -2416,6 +2478,8 @@ function renderRecResults(ai, ytItems, ref) {
           <div style="font-size:11px;color:var(--light);margin-bottom:8px;">${v.channel}</div>
           <div style="display:flex;gap:6px;">
             <a href="https://youtube.com/watch?v=${v.id}" target="_blank" class="btn btn-sm" style="flex:1;justify-content:center;background:#FF0000;color:#fff;border-color:#FF0000;">▶ 재생</a>
+            <button class="btn btn-sm" onclick="addYtToLearning('${v.id}','${v.title.replace(/'/g,String.fromCharCode(39))}')" title="배움터에 추가">🎓</button>
+            <button class="btn btn-sm" onclick="addYtToPlaylist('${v.id}','${v.title.replace(/'/g,String.fromCharCode(39))}')" title="Playlist 추가">📂</button>
           </div>
         </div>
       </div>`).join('');
