@@ -2237,53 +2237,69 @@ Reply ONLY with this exact JSON structure, no markdown, no extra text:
 "youtube_search_queries": ["피아 단일곡 검색어", "위러브 단일곡 검색어", "아이자야61 단일곡 검색어"]
 }`;
 
+    // Step 1: 성경 본문 직접 가져오기
+    const versePrompt = `다음 성경 구절의 개역개정 본문을 정확히 인용해주세요: ${ref}
+반드시 아래 JSON 형식으로만 답하세요:
+{"text":"성경본문내용"}`;
+
+    let fetchedVerse = '';
+    try {
+      const vRes = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`,
+        { method:'POST', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ contents:[{parts:[{text:versePrompt}]}], generationConfig:{temperature:0.1, maxOutputTokens:300} }) }
+      );
+      const vData = await vRes.json();
+      const vRaw = vData.candidates?.[0]?.content?.parts?.[0]?.text || '';
+      const vJson = vRaw.slice(vRaw.indexOf('{'), vRaw.lastIndexOf('}')+1);
+      const vParsed = JSON.parse(vJson);
+      fetchedVerse = vParsed.text || '';
+    } catch(e) { console.log('verse fetch error:', e); }
+
+    document.getElementById('recLoadingMsg').textContent = '🔍 키워드 추출 중...';
+    document.getElementById('recLoadingBar').style.width = '50%';
+
+    // Step 2: 분석 및 추천
+    const verseForAnalysis = fetchedVerse || verseText;
+    const analysisPrompt = `교회 찬양팀 AI입니다.
+
+성경 구절: ${ref}
+본문: "${verseForAnalysis}"
+
+악보 창고:
+${scoreList || '(없음)'}
+
+JSON으로만 답하세요 (마크다운 없이):
+{"keywords":[{"word":"본문핵심단어1","color":"#E8F5E9","textColor":"#1B5E20","meaning":"의미"},{"word":"단어2","color":"#E3F2FD","textColor":"#0D47A1","meaning":"의미"},{"word":"단어3","color":"#FFF3E0","textColor":"#E65100","meaning":"의미"}],"verse_interpretation":"예배 적용 2문장","score_recommendations":[{"title":"악보곡제목","reason":"추천이유","match_score":85,"keyword_connections":[{"keyword":"키워드","lyric_example":"가사예시"}]}],"youtube_search_queries":["피아 단일곡","위러브 단일곡","아이자야61 단일곡"]}`;
+
     const geminiRes = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: { temperature: 0.7, maxOutputTokens: 1000 }
-        })
-      }
+      { method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ contents:[{parts:[{text:analysisPrompt}]}], generationConfig:{temperature:0.7, maxOutputTokens:1000} }) }
     );
 
     const geminiData = await geminiRes.json();
     let aiResult;
     try {
       const raw = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || '';
-      console.log('Gemini response:', raw.slice(0,200));
-      if (!raw) throw new Error('Empty response');
-      // Try multiple extraction strategies
-      let clean = raw;
-      // Remove markdown code blocks
-      clean = clean.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
-      // Find JSON object
-      const start = clean.indexOf('{');
-      const end = clean.lastIndexOf('}');
-      if (start !== -1 && end !== -1) {
-        clean = clean.slice(start, end + 1);
-      }
-      aiResult = JSON.parse(clean);
-      console.log('AI result OK:', Object.keys(aiResult));
+      console.log('Gemini analysis:', raw.slice(0,150));
+      const start = raw.indexOf('{'); const end = raw.lastIndexOf('}');
+      aiResult = JSON.parse(start>-1 ? raw.slice(start, end+1) : raw);
     } catch(e) {
       console.error('Parse error:', e);
-      // Fallback: show raw text as interpretation
-      const rawText = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || '';
-      // Try to extract interpretation from raw text
-      const interp = rawText.length > 10 ? rawText.replace(/[{}"]/g, '').slice(0, 300) : '말씀과 어울리는 찬양을 찾고 있습니다.';
       aiResult = {
-        verse_interpretation: interp,
-        keywords: [
-          {word: book, color: '#E8F5E9', textColor: '#1B5E20', meaning: '말씀의 배경'},
-          {word: '찬양', color: '#E3F2FD', textColor: '#0D47A1', meaning: '경배와 찬양'},
-          {word: '은혜', color: '#FFF3E0', textColor: '#E65100', meaning: '하나님의 은혜'}
+        keywords:[
+          {word:book, color:'#E8F5E9', textColor:'#1B5E20', meaning:'말씀 배경'},
+          {word:'하나님', color:'#E3F2FD', textColor:'#0D47A1', meaning:'하나님'},
+          {word:'은혜', color:'#FFF3E0', textColor:'#E65100', meaning:'은혜'}
         ],
-        score_recommendations: [],
-        youtube_search_queries: [book + ' 찬양 CCM', ref + ' worship song']
+        verse_interpretation:'말씀과 어울리는 찬양을 찾고 있습니다.',
+        score_recommendations:[],
+        youtube_search_queries:[book+' 찬양 피아', '위러브 찬양 CCM']
       };
     }
+    // verse_text는 Step1에서 가져온 값 사용
+    aiResult.verse_text = fetchedVerse;
 
     // 2단계: YouTube API 검색
     const ytResults = [];
