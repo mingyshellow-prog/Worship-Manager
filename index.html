@@ -1530,6 +1530,8 @@ function importData(input) {
   reader.readAsText(file);
   input.value='';
 }
+
+function downloadTemplate() {
   const csv='곡 제목,Key,아티스트,유튜브 링크,메모\n예시곡,G,아티스트명,https://youtube.com/...,INTRO/VERSE/CHORUS\n';
   const a=document.createElement('a');
   a.href='data:text/csv;charset=utf-8,\uFEFF'+encodeURIComponent(csv);
