@@ -2238,9 +2238,7 @@ Reply ONLY with this exact JSON structure, no markdown, no extra text:
 }`;
 
     // Step 1: 성경 본문 직접 가져오기
-    const versePrompt = `다음 성경 구절의 개역개정 본문을 정확히 인용해주세요: ${ref}
-반드시 아래 JSON 형식으로만 답하세요:
-{"text":"성경본문내용"}`;
+    const versePrompt = `${ref} 개역개정 성경 본문을 정확히 인용해주세요. 본문 텍스트만 답하세요. 다른 설명 없이 성경 구절만.`;
 
     let fetchedVerse = '';
     try {
@@ -2251,9 +2249,22 @@ Reply ONLY with this exact JSON structure, no markdown, no extra text:
       );
       const vData = await vRes.json();
       const vRaw = vData.candidates?.[0]?.content?.parts?.[0]?.text || '';
-      const vJson = vRaw.slice(vRaw.indexOf('{'), vRaw.lastIndexOf('}')+1);
-      const vParsed = JSON.parse(vJson);
-      fetchedVerse = vParsed.text || '';
+      console.log('Verse raw:', vRaw.slice(0,150));
+      // JSON 파싱 시도
+      try {
+        const vStart = vRaw.indexOf('{'); const vEnd = vRaw.lastIndexOf('}');
+        if (vStart > -1) {
+          const vParsed = JSON.parse(vRaw.slice(vStart, vEnd+1));
+          fetchedVerse = vParsed.text || vParsed.verse || vParsed.content || '';
+        }
+      } catch(je) { /* JSON 아니면 텍스트 그대로 사용 */ }
+      // JSON 파싱 실패 시 텍스트 자체를 본문으로 사용
+      if (!fetchedVerse && vRaw.length > 5) {
+        fetchedVerse = vRaw.replace(/```json|```|\{.*?\}|\[.*?\]/gs, '').replace(/["{}]/g,'').trim();
+        // "text:" 같은 키 제거
+        fetchedVerse = fetchedVerse.replace(/^(text|verse|content)\s*:\s*/i, '').trim();
+      }
+      console.log('Fetched verse:', fetchedVerse.slice(0,80));
     } catch(e) { console.log('verse fetch error:', e); }
 
     document.getElementById('recLoadingMsg').textContent = '🔍 키워드 추출 중...';
