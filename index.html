@@ -337,7 +337,6 @@ nav{flex:1;padding:4px 8px;overflow-y:auto;}
         <div class="nav-section">워크플로우</div>
         <button class="nav-item" onclick="showPage('conti',this)"><span class="nav-icon">✍️</span><span class="nav-label">빠른 콘티 짜기</span></button>
         <button class="nav-item" onclick="showPage('merge',this)"><span class="nav-icon">📋</span><span class="nav-label">악보 합치기</span></button>
-        <button class="nav-item" onclick="showPage('kakao',this)"><span class="nav-icon">💬</span><span class="nav-label">카톡 발송</span></button>
         <div class="nav-section">마이</div>
         <button class="nav-item" onclick="showPage('mypage',this)"><span class="nav-icon">👤</span><span class="nav-label">마이 페이지</span></button>
         <button class="nav-item" id="adminNavBtn" style="display:none;" onclick="showPage('members',this)"><span class="nav-icon">⚙️</span><span class="nav-label">멤버 관리</span></button>
@@ -394,7 +393,6 @@ nav{flex:1;padding:4px 8px;overflow-y:auto;}
           <div class="quick-card" onclick="showPage('library',null)"><div class="quick-card-icon">🎵</div><div class="quick-card-label">악보 창고</div></div>
           <div class="quick-card" onclick="showPage('conti',null)"><div class="quick-card-icon">✍️</div><div class="quick-card-label">콘티 짜기</div></div>
           <div class="quick-card" onclick="showPage('weekly',null)"><div class="quick-card-icon">📅</div><div class="quick-card-label">주차 기록</div></div>
-          <div class="quick-card" onclick="showPage('kakao',null)"><div class="quick-card-icon">💬</div><div class="quick-card-label">카톡 발송</div></div>
           <div class="quick-card" onclick="showPage('mypage',null)"><div class="quick-card-icon">👤</div><div class="quick-card-label">마이 페이지</div></div>
           <div class="quick-card" onclick="showPage('merge',null)"><div class="quick-card-icon">📋</div><div class="quick-card-label">악보 합치기</div></div>
         </div>
@@ -413,19 +411,8 @@ nav{flex:1;padding:4px 8px;overflow-y:auto;}
               <div class="dday-badge" id="ddayBadge">계산 중...</div>
             </div>
           </div>
-          <!-- 드림찬양단 -->
+          <!-- 이번주 콘티 미리보기 -->
           <div style="display:flex;flex-direction:column;gap:12px;">
-            <div class="dream-card">
-              <div class="dream-icon">🎶</div>
-              <div class="dream-info">
-                <div class="dream-title">드림찬양단</div>
-                <div class="dream-sub">최신 찬양 영상 보기</div>
-              </div>
-              <a href="https://www.youtube.com/@dreamchurch" target="_blank" class="yt-icon-btn">
-                <svg viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>
-              </a>
-            </div>
-            <!-- 이번주 콘티 미리보기 -->
             <div class="card" id="thisWeekCard">
               <div class="card-title">🎵 이번 주 콘티</div>
               <div id="thisWeekList" style="font-size:12px;color:var(--light);text-align:center;padding:10px 0;">등록된 콘티가 없습니다</div>
@@ -488,6 +475,15 @@ nav{flex:1;padding:4px 8px;overflow-y:auto;}
           </div>
           <div style="margin-top:16px;padding:13px;background:var(--olive-bg);border-radius:8px;font-size:12px;color:var(--muted);line-height:1.7;">
             💡 <strong>Template 사용법:</strong> Template 다운로드 → 곡 정보 입력 → 파일과 함께 임포트하면 악보 창고에 일괄 등록됩니다.
+          </div>
+          <div style="margin-top:10px;padding:13px;background:#FEF3C7;border:1px solid #FDE68A;border-radius:8px;font-size:12px;color:#92400E;line-height:1.7;">
+            ⚠️ <strong>데이터 보관 안내:</strong> 현재 악보 데이터는 이 기기 브라우저에만 저장됩니다. 데이터 백업을 위해 정기적으로 아래 "데이터 내보내기"를 사용해주세요.
+            <div style="display:flex;gap:8px;margin-top:8px;">
+              <button class="btn btn-sm" onclick="exportData()">📥 데이터 내보내기</button>
+              <button class="btn btn-sm" onclick="document.getElementById('importDataInput').click()">📤 데이터 가져오기
+                <input type="file" id="importDataInput" accept=".json" style="display:none;" onchange="importData(this)"/>
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -620,27 +616,6 @@ nav{flex:1;padding:4px 8px;overflow-y:auto;}
         <div class="card">
           <div id="mergePreview" style="background:var(--cream);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:12px;text-align:center;font-size:13px;color:var(--muted);">악보를 선택하면 미리보기가 표시됩니다</div>
           <div style="display:flex;justify-content:flex-end;"><button class="btn btn-primary">📥 PDF 내보내기</button></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ══ KAKAO ══ -->
-    <div id="page-kakao" class="page">
-      <div class="page-header">
-        <div><div class="page-title">카톡 발송</div><div class="page-sub">메시지를 복사해서 단톡방에 붙여넣으세요</div></div>
-      </div>
-      <div class="page-body">
-        <div class="section-label" style="margin-bottom:8px;">단톡방 선택</div>
-        <div class="kakao-room sel" onclick="selKakaoRoom(this)">
-          <div style="width:36px;height:36px;border-radius:8px;background:#FEE500;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">💬</div>
-          <div style="flex:1;"><div style="font-size:13px;font-weight:500;">찬양팀 단톡방</div><div style="font-size:11px;color:var(--light);">멤버 12명</div></div>
-          <span style="color:var(--olive);font-weight:700;font-size:13px;">✓</span>
-        </div>
-        <div class="section-label" style="margin-bottom:8px;margin-top:14px;">메시지 미리보기</div>
-        <div class="kakao-preview" id="kakaoPreview">콘티 등록 후 메시지가 생성됩니다.</div>
-        <div style="display:flex;gap:8px;justify-content:flex-end;">
-          <button class="btn" onclick="editKakaoMsg()">✏️ 편집</button>
-          <button class="btn btn-primary" onclick="copyKakaoMsg()">📋 메시지 복사</button>
         </div>
       </div>
     </div>
@@ -1091,7 +1066,7 @@ function showPage(id, btn) {
 
 function restoreTab() {
   const hash = location.hash.replace('#','');
-  const valid = ['dashboard','weekly','library','collections','conti','merge','kakao','mypage','members'];
+  const valid = ['dashboard','weekly','library','collections','conti','merge','mypage','members'];
   if (hash && valid.includes(hash)) showPage(hash, null);
   else showPage('dashboard', null);
 }
@@ -1490,7 +1465,50 @@ function confirmImport() {
   readNext(0);
 }
 
-function downloadTemplate() {
+function exportData() {
+  const data = {
+    version: '0.7.3',
+    exportedAt: new Date().toISOString(),
+    scores: JSON.parse(localStorage.getItem('wm_scores')||'[]'),
+    weekly: JSON.parse(localStorage.getItem('wm_weekly')||'[]'),
+    savedContis: JSON.parse(localStorage.getItem('wm_saved_contis')||'[]'),
+    announcement: JSON.parse(localStorage.getItem('wm_announcement')||'null'),
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `worship-manager-backup-${new Date().toISOString().split('T')[0]}.json`;
+  a.click();
+  showToast('데이터가 내보내기 되었습니다');
+}
+
+function importData(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (!data.version) { showToast('올바른 백업 파일이 아닙니다'); return; }
+      if (!confirm(`백업 데이터를 가져오시겠습니까?\n악보 ${data.scores?.length||0}개, 주차 ${data.weekly?.length||0}개\n\n⚠️ 현재 데이터에 추가됩니다.`)) return;
+      // 기존 데이터에 병합 (중복 id 제외)
+      const existScores = JSON.parse(localStorage.getItem('wm_scores')||'[]');
+      const existIds = new Set(existScores.map(s=>s.id));
+      const newScores = (data.scores||[]).filter(s=>!existIds.has(s.id));
+      localStorage.setItem('wm_scores', JSON.stringify([...existScores, ...newScores]));
+      const existWeekly = JSON.parse(localStorage.getItem('wm_weekly')||'[]');
+      const existWIds = new Set(existWeekly.map(w=>w.id));
+      const newWeekly = (data.weekly||[]).filter(w=>!existWIds.has(w.id));
+      localStorage.setItem('wm_weekly', JSON.stringify([...existWeekly, ...newWeekly]));
+      loadAllData();
+      showToast(`악보 ${newScores.length}개, 주차 ${newWeekly.length}개가 추가되었습니다`);
+    } catch(err) {
+      showToast('파일을 읽는 중 오류가 발생했습니다');
+    }
+  };
+  reader.readAsText(file);
+  input.value='';
+}
   const csv='곡 제목,Key,아티스트,유튜브 링크,메모\n예시곡,G,아티스트명,https://youtube.com/...,INTRO/VERSE/CHORUS\n';
   const a=document.createElement('a');
   a.href='data:text/csv;charset=utf-8,\uFEFF'+encodeURIComponent(csv);
