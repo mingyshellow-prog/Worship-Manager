@@ -2312,6 +2312,23 @@ function extractLocalKeywords(text) {
   return sorted.map(([word], i) => ({ word, ...COLORS[i%COLORS.length], meaning:'' }));
 }
 
+// 가까운 구절 찾기 (같은 책, 비슷한 장/절)
+function findNearbyVerse(book, chapter, verse) {
+  // 같은 책의 구절들 찾기
+  const candidates = Object.entries(BIBLE_VERSES)
+    .filter(([k]) => k.startsWith(book + ' '))
+    .map(([k, v]) => {
+      const m = k.match(/(\d+):(\d+)/);
+      if (!m) return null;
+      const ch = parseInt(m[1]), vs = parseInt(m[2]);
+      const dist = Math.abs(ch - chapter) * 100 + Math.abs(vs - verse);
+      return { ref: k, text: v, dist };
+    })
+    .filter(Boolean)
+    .sort((a, b) => a.dist - b.dist);
+  return candidates[0] || null;
+}
+
 async function fetchVerseFromAPI(book, chapter, verseStart, verseEnd) {
   // getbible.net은 CORS 차단됨 - 로컬 데이터만 사용
   return '';
@@ -2364,7 +2381,12 @@ async function updateVerseText() {
   if (text) {
     el.innerHTML = `<span style="font-weight:700;color:var(--olive-d);">📖 ${ref}</span><br/>"${text}"`;
   } else {
-    el.innerHTML = `<span style="font-weight:700;color:var(--olive-d);">📖 ${ref}</span><br/><span style="color:var(--light);font-size:12px;">(선택된 구절)</span>`;
+    const nearby = findNearbyVerse(book, parseInt(ch), parseInt(vs));
+    if (nearby) {
+      el.innerHTML = `<span style="font-weight:700;color:var(--olive-d);">📖 ${ref}</span><br/><div style="font-size:11px;color:var(--light);margin-bottom:4px;">📌 Beta 버전에서는 이 구절을 직접 제공하기 어려워 가장 가까운 본문을 가져왔어요.</div>"${nearby.text}" <span style="font-size:11px;color:var(--light);">(${nearby.ref})</span>`;
+    } else {
+      el.innerHTML = `<span style="font-weight:700;color:var(--olive-d);">📖 ${ref}</span><br/><span style="font-size:12px;color:var(--light);">📌 Beta 버전에서는 이 구절의 본문을 직접 보여드리기 어렵지만, AI가 말씀에 맞는 찬양을 추천해드릴게요.</span>`;
+    }
   }
 }
 
@@ -2450,7 +2472,14 @@ Reply ONLY with this exact JSON structure, no markdown, no extra text:
       if (fullVerseText) {
         previewEl.innerHTML = `<span style="font-weight:700;color:var(--olive-d);">📖 ${ref}</span><br/>"${fullVerseText}"`;
       } else {
-        previewEl.innerHTML = `<span style="font-weight:700;color:var(--olive-d);">📖 ${ref}</span><br/><span style="color:var(--light);font-size:12px;">(본문을 불러올 수 없습니다)</span>`;
+        // 같은 책의 가까운 구절 찾기
+        const nearbyVerse = findNearbyVerse(book, parseInt(ch), parseInt(vs));
+        if (nearbyVerse) {
+          previewEl.innerHTML = `<span style="font-weight:700;color:var(--olive-d);">📖 ${ref}</span><br/><div style="font-size:11px;color:var(--light);margin-bottom:6px;padding:5px 8px;background:rgba(255,255,255,0.05);border-radius:6px;">📌 Beta 버전에서는 일부 구절을 직접 제공하기 어려워, 같은 말씀 맥락에서 가장 가까운 본문을 가져왔어요.</div>"${nearbyVerse.text}"<span style="font-size:11px;color:var(--light);margin-left:6px;">(${nearbyVerse.ref})</span>`;
+          fullVerseText = nearbyVerse.text;
+        } else {
+          previewEl.innerHTML = `<span style="font-weight:700;color:var(--olive-d);">📖 ${ref}</span><br/><div style="font-size:12px;color:var(--light);padding:8px;background:rgba(255,255,255,0.05);border-radius:6px;">📌 Beta 버전에서는 이 구절의 본문을 직접 보여드리기 어렵지만, 아래에서 말씀과 어울리는 찬양을 추천해드릴게요.</div>`;
+        }
       }
     }
 
@@ -2499,7 +2528,7 @@ JSON으로만 답하세요:
       // 로컬 키워드 추출 fallback (Gemini 없이도 동작)
       const localKws = extractLocalKeywords(fullVerseText || verseText);
       aiResult = {
-        verse_interpretation: is429 ? '잠시 후 다시 시도하거나, 아래 YouTube 찬양을 참고해주세요.' : '말씀과 어울리는 찬양을 찾고 있습니다.',
+        verse_interpretation: '말씀과 어울리는 찬양을 아래에서 확인해보세요. AI 분석은 잠시 후 다시 시도해주시면 더 자세한 내용을 드릴 수 있어요.',
         keywords: localKws,
         score_recommendations: [],
         youtube_search_queries: [book+' 찬양 피아', '위러브 찬양 MR', '아이자야61 CCM']
