@@ -1321,14 +1321,34 @@ function saveWeekly() {
 function renderWeekly() {
   const el = document.getElementById('weeklyList');
   if (!weeklyContis.length) { el.innerHTML='<div style="text-align:center;padding:30px;font-size:13px;color:var(--light);">등록된 주차가 없습니다</div>'; return; }
-  el.innerHTML = weeklyContis.map((w,wi)=>`
+
+  // 헤더 버튼 (Collapse All / Expand All)
+  const header = `
+    <div style="display:flex;justify-content:flex-end;gap:8px;margin-bottom:10px;">
+      <button class="btn btn-sm" onclick="collapseAllWeeks()">− 전체 접기</button>
+      <button class="btn btn-sm" onclick="expandAllWeeks()">+ 전체 펼치기</button>
+    </div>`;
+
+  const cards = weeklyContis.map((w,wi)=>{
+    // 데이터 정규화 — 구버전/신버전 필드명 모두 처리
+    const date    = w.date || w.worship_date || '';
+    const service = w.service || w.worship_type || w.worship_service || '주일 예배';
+    const title   = w.title || w.conti_title || w.sermon_title || '';
+    const practice= w.practice || w.practice_time || w.rehearsal_time || '';
+    const memo    = w.memo || w.notes || w.message || '';
+    const ref     = w.ref || w.ref_link || w.reference_link || '';
+    const songs   = Array.isArray(w.songs) ? w.songs :
+                    Array.isArray(w.song_list) ? w.song_list :
+                    Array.isArray(w.song_ids) ? w.song_ids.map(id=>({title:id,key:''})) : [];
+
+    return `
     <div class="week-card">
       <div class="week-card-header" onclick="toggleWeek(this)">
         <div style="display:flex;align-items:center;flex:1;min-width:0;">
-          <span class="week-date-badge">${w.date||w.worship_date||'-'}</span>
+          <span class="week-date-badge">${date||'날짜없음'}</span>
           <div>
-            <div class="week-title">${w.service||w.worship_type||'주일 예배'}${w.title||w.conti_title?' — '+(w.title||w.conti_title):''}</div>
-            <div class="week-meta">찬양 ${(w.songs||[]).length}곡${w.practice||w.practice_time?' · 연습 '+(w.practice||w.practice_time):''}</div>
+            <div class="week-title">${service}${title?' — '+title:''}</div>
+            <div class="week-meta">찬양 ${songs.length}곡${practice?' · 연습 '+practice:''}</div>
           </div>
         </div>
         <div style="display:flex;align-items:center;gap:8px;">
@@ -1338,28 +1358,43 @@ function renderWeekly() {
       </div>
       <div class="week-body">
         <div class="week-detail">
-          ${(w.memo||w.notes)?`<div style="font-size:12px;color:var(--light);margin-bottom:10px;padding:8px 12px;background:var(--olive-bg);border-radius:8px;">📝 ${w.memo||w.notes}</div>`:''}
-          ${w.ref?`<div style="margin-bottom:10px;"><a href="${w.ref}" target="_blank" class="link-btn yt"><svg viewBox="0 0 24 24" fill="currentColor" width="10" height="10"><path d="M8 5v14l11-7z"/></svg> 레퍼런스 링크</a></div>`:''}
-          ${(w.songs||[]).map((s,i)=>{
-            const linked = scores.find(sc=>sc.title===s.title);
+          ${memo?`<div style="font-size:12px;color:var(--light);margin-bottom:10px;padding:8px 12px;background:var(--olive-bg);border-radius:8px;">📝 ${memo}</div>`:''}
+          ${ref?`<div style="margin-bottom:10px;"><a href="${ref}" target="_blank" class="link-btn">🔗 레퍼런스</a></div>`:''}
+          ${songs.map((s,i)=>{
+            const songTitle = s.title || s.name || (typeof s==='string'?s:'');
+            const songKey   = s.key || s.song_key || '';
+            const songYt    = s.yt || s.youtube_link || '';
+            const linked    = scores.find(sc=>sc.title===songTitle);
             return `<div class="week-song-row">
               <div class="week-song-num">${i+1}</div>
               <div class="week-song-info">
-                <div class="week-song-name">${s.title}</div>
-                <div class="week-song-sub">Key ${s.key||'-'}</div>
+                <div class="week-song-name">${songTitle||'(제목없음)'}</div>
+                <div class="week-song-sub">Key ${songKey||'-'}</div>
               </div>
               <div style="display:flex;gap:6px;align-items:center;">
                 ${linked?.file?`<button class="btn btn-sm" onclick="viewScore('${linked.id}')">악보</button>`:''}
-                ${s.yt?`<a href="${s.yt}" target="_blank" class="yt-icon-btn"><svg viewBox="0 0 24 24" fill="white" width="12" height="12"><path d="M8 5v14l11-7z"/></svg></a>`:''}
+                ${songYt?`<a href="${songYt}" target="_blank" class="yt-icon-btn"><svg viewBox="0 0 24 24" fill="white" width="12" height="12"><path d="M8 5v14l11-7z"/></svg></a>`:''}
               </div>
             </div>`;
           }).join('')}
-          ${(w.songs||[]).length>0?`<div style="margin-top:10px;text-align:right;"><button class="btn btn-primary btn-sm" onclick="openWeeklyViewMode(${wi})">📱 View Mode</button></div>`:''}
+          ${songs.length>0?`<div style="margin-top:10px;text-align:right;"><button class="btn btn-primary btn-sm" onclick="openWeeklyViewMode(${wi})">📱 View Mode</button></div>`:''}
         </div>
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
+
+  el.innerHTML = header + cards;
 }
 
+function collapseAllWeeks() {
+  document.querySelectorAll('.week-body').forEach(b=>b.classList.remove('open'));
+  document.querySelectorAll('.week-arrow').forEach(a=>a.classList.remove('open'));
+}
+
+function expandAllWeeks() {
+  document.querySelectorAll('.week-body').forEach(b=>b.classList.add('open'));
+  document.querySelectorAll('.week-arrow').forEach(a=>a.classList.add('open'));
+}
 function toggleWeek(h) {
   const b=h.nextElementSibling, a=h.querySelector('.week-arrow');
   b.classList.toggle('open'); a.classList.toggle('open');
