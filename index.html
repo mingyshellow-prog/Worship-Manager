@@ -948,15 +948,18 @@ async function loginSuccess(sbUser) {
     wishes: profile?.wishes || [],
     memos: profile?.memos || {},
   };
-  // last_login 업데이트
-  await sb.from('profiles').upsert({
-    id: sbUser.id,
-    email: sbUser.email,
-    name: currentUser.name,
-    role: currentUser.role,
-    last_login: new Date().toISOString(),
-  }, {onConflict: 'id'});
-
+  // last_login 업데이트 (존재하는 row만 update)
+  if (profile) {
+    await sb.from('profiles').update({ last_login: new Date().toISOString() }).eq('id', sbUser.id);
+  } else {
+    // 처음 로그인 시 insert
+    await sb.from('profiles').insert({
+      id: sbUser.id,
+      name: currentUser.name,
+      role: 'member',
+      last_login: new Date().toISOString(),
+    });
+  }
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('mainApp').style.display = 'flex';
   loadAllData();
