@@ -4205,12 +4205,18 @@ async function submitAssignment() {
 
   // PWA 푸시 알림 (브라우저 허용 시)
   if ('Notification' in window && Notification.permission === 'granted') {
-    new Notification(title, {
-      body: message,
+    const notif = new Notification(title, {
+      body: message || '콘티를 확인해주세요 🎵',
       icon: 'icon-192.png',
       badge: 'icon-192.png',
       tag: 'assignment'
     });
+    // 알림 클릭 시 앱으로 포커스 + 주차별 찬양 탭으로 이동
+    notif.onclick = function() {
+      window.focus();
+      showPage('weekly', null);
+      this.close();
+    };
   }
 
   closeModal('assignModal');
@@ -4396,7 +4402,15 @@ function esc(s){return (s||'').replace(/'/g,"\\'").replace(/"/g,'&quot;');}
           showToast(`🔔 ${n.title}`);
           // PWA 푸시
           if (Notification.permission === 'granted') {
-            new Notification(n.title, { body: n.body, icon: 'icon-192.png' });
+            const rn = new Notification(n.title, { body: n.body, icon: 'icon-192.png', tag: n.type || 'general' });
+            rn.onclick = function() {
+              window.focus();
+              // 알림 타입별 이동
+              if (n.type === 'assignment') showPage('weekly', null);
+              else if (n.type === 'role_change') showPage('mypage', null);
+              else showPage('dashboard', null);
+              this.close();
+            };
           }
         })
         .subscribe();
