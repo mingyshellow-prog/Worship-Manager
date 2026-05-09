@@ -2237,20 +2237,22 @@ async function saveScore() {
     };
     scores[idx] = updated;
     saveData('wm_scores', scores);
-    // Supabase 업데이트
+    // Supabase upsert (없으면 insert, 있으면 update)
     try {
-      await sb.from('scores').update({
+      await sb.from('scores').upsert({
+        id: updated.id,
         title: updated.title,
         key: updated.key,
         artist: updated.artist,
-        yt: updated.yt,
-        ref: updated.ref,
-        memo: updated.memo,
+        yt: updated.yt || '',
+        ref: updated.ref || '',
+        memo: updated.memo || '',
         file_data: updated.file?.data || null,
         file_type: updated.file?.type || null,
-        last_edit: updated.lastEdit
-      }).eq('id', updated.id);
-    } catch(e) { console.log('score update error:', e); }
+        last_edit: updated.lastEdit,
+        uploaded_by: currentUser?.id
+      }, { onConflict: 'id' });
+    } catch(e) { console.log('score upsert error:', e); }
     renderScores(); updateArtistFilter();
     closeModal('addScoreModal');
     showToast('악보가 수정됐어요 ✅');
