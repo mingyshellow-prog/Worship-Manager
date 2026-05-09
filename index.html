@@ -3575,12 +3575,12 @@ async function renderMembers() {
   if(!el)return;
   const q=(document.getElementById('memberSearch')?.value||'').toLowerCase();
 
-  // Supabase profiles 조회 (email은 auth.users에서 가져오므로 별도 처리)
+  // Supabase profiles 조회
   const {data:profiles, error} = await sb.from('profiles').select('*').order('created_at',{ascending:false});
-  // 현재 유저의 email 보완
+  // email 보완 — 현재 유저는 확실히, 나머지는 profiles.email 우선
   if (profiles) {
     profiles.forEach(p => {
-      if (!p.email && p.id === currentUser?.id) p.email = currentUser.email;
+      if (p.id === currentUser?.id) p.email = currentUser.email || p.email;
     });
   }
 
@@ -3606,11 +3606,14 @@ async function renderMembers() {
       <div class="member-avatar">${u.avatar?`<img src="${u.avatar}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;"/>`:(u.name&&u.name!=='-'?u.name.charAt(0):'?')}</div>
       <div class="member-info">
         <div class="member-name" style="display:flex;align-items:center;gap:6px;">
-          ${hasName ? u.name : '<span style="color:var(--light);font-style:italic;">이름 미설정</span>'}
+          ${hasName ? u.name : `<span style="color:var(--light);font-style:italic;">이름 미설정</span>`}
           ${isMe?'<span style="font-size:10px;color:var(--olive);">(나)</span>':''}
           ${!hasName&&isSuperAdmin()?`<button class="btn btn-sm" style="font-size:10px;padding:1px 7px;" onclick="promptSetName('${u.id}')">✏️ 이름설정</button>`:''}
         </div>
-        <div class="member-sub">${email} · Last login: ${lastLogin}</div>
+        <div class="member-sub">
+          ${email !== '-' ? `<span style="${!hasName?'color:var(--olive-d);font-weight:600;':''}">${email}</span>` : '<span style="color:var(--light);">이메일 없음</span>'}
+          · Last login: ${lastLogin}
+        </div>
       </div>
       ${isOnline?'<div class="online-dot" title="최근 접속"></div>':''}
       <span class="${badgeClass}">${badgeText}</span>
