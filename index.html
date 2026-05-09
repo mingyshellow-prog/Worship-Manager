@@ -1234,7 +1234,8 @@ nav{flex:1;padding:4px 8px;overflow-y:auto;}
     <div id="assignWeeklyInfo" style="background:var(--olive-bg);border-radius:10px;padding:12px 14px;margin-bottom:16px;font-size:13px;font-weight:600;color:var(--olive-d);"></div>
     <div class="form-group">
       <label class="form-label">할당할 팀원 선택</label>
-      <div id="assignMemberList" style="display:flex;flex-direction:column;gap:6px;max-height:200px;overflow-y:auto;"></div>
+      <input class="form-input" id="assignMemberSearch" placeholder="🔍 이름으로 검색..." style="margin-bottom:8px;"/>
+      <div id="assignMemberList" style="display:flex;flex-direction:column;gap:6px;max-height:220px;overflow-y:auto;"></div>
     </div>
     <div class="form-group">
       <label class="form-label">메시지 (선택)</label>
@@ -4182,22 +4183,35 @@ async function openAssignModal(wi) {
   document.getElementById('assignMessage').value = `이번 주 콘티가 등록됐어요! 악보를 확인해주세요 🎵`;
 
   // 멤버 목록 로드
-  const { data: profiles } = await sb.from('profiles').select('*').neq('id', currentUser?.id);
+  let { data: profiles } = await sb.from('profiles').select('*').neq('id', currentUser?.id);
+  // 이름 없는 계정 필터링
+  profiles = (profiles||[]).filter(p => p.name && p.name.trim() !== '');
   const memberEl = document.getElementById('assignMemberList');
-  if (!profiles?.length) {
-    memberEl.innerHTML = '<div style="font-size:12px;color:var(--light);">팀원이 없습니다</div>';
-  } else {
-    memberEl.innerHTML = profiles.map(p => `
-      <label style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--border);border-radius:10px;cursor:pointer;transition:all .15s;" 
+
+  function renderAssignList(list) {
+    if (!list.length) {
+      memberEl.innerHTML = '<div style="font-size:12px;color:var(--light);padding:10px;">팀원이 없습니다</div>';
+      return;
+    }
+    memberEl.innerHTML = list.map(p => `
+      <label style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--border);border-radius:10px;cursor:pointer;transition:all .15s;"
              onmouseover="this.style.background='var(--olive-bg)'" onmouseout="this.style.background=''">
-        <input type="checkbox" value="${p.id}" onchange="toggleAssignee('${p.id}')" style="width:16px;height:16px;accent-color:var(--olive);"/>
-        <div style="width:32px;height:32px;border-radius:50%;background:var(--olive);color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;">${(p.name||'?')[0]}</div>
-        <div>
-          <div style="font-size:13px;font-weight:600;">${p.name||'이름없음'}</div>
-          <div style="font-size:11px;color:var(--light);">${p.role==='admin'?'관리자':'멤버'}</div>
+        <input type="checkbox" value="${p.id}" ${_selectedAssignees.has(p.id)?'checked':''} onchange="toggleAssignee('${p.id}')" style="width:16px;height:16px;accent-color:var(--olive);"/>
+        <div style="width:32px;height:32px;border-radius:50%;background:var(--olive);color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;">${(p.name||'?')[0]}</div>
+        <div style="flex:1;">
+          <div style="font-size:13px;font-weight:600;">${p.name}</div>
+          <div style="font-size:11px;color:var(--light);">${getRoleLabel(p.role)}</div>
         </div>
       </label>`).join('');
   }
+
+  // 검색바 추가
+  document.getElementById('assignMemberSearch').value = '';
+  document.getElementById('assignMemberSearch').oninput = function() {
+    const q = this.value.toLowerCase();
+    renderAssignList(q ? profiles.filter(p => p.name.toLowerCase().includes(q)) : profiles);
+  };
+  renderAssignList(profiles);
   openModal('assignModal');
 }
 
