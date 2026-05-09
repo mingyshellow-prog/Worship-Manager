@@ -3177,7 +3177,7 @@ JSON으로만 답하세요:
                 channel: item.snippet.channelTitle,
                 thumbnail: item.snippet.thumbnails.medium?.url,
                 query: q,
-                isRelated: !!kw0 && title.includes(kw0)
+                isRelated: !!mainKw && title.includes(mainKw)
               });
             }
           }
@@ -4379,7 +4379,7 @@ async function openAssignModal(wi) {
   profiles = (profiles||[]);
   const memberEl = document.getElementById('assignMemberList');
 
-  function renderAssignList(list) {
+  window._renderAssignList = function renderAssignList(list) {
     if (!list.length) {
       memberEl.innerHTML = '<div style="font-size:12px;color:var(--light);padding:10px;">팀원이 없습니다</div>';
       return;
@@ -4390,7 +4390,7 @@ async function openAssignModal(wi) {
       return `
       <label style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid ${_selectedAssignees.has(p.id)?'var(--olive)':'var(--border)'};border-radius:10px;cursor:pointer;transition:all .15s;background:${_selectedAssignees.has(p.id)?'var(--olive-bg)':''};"
              onmouseover="this.style.background='var(--olive-bg)'" onmouseout="this.style.background='${_selectedAssignees.has(p.id)?'var(--olive-bg)':''}'">
-        <input type="checkbox" value="${p.id}" ${_selectedAssignees.has(p.id)?'checked':''} onchange="toggleAssignee('${p.id}');renderAssignList(window._assignProfiles||[])" style="width:16px;height:16px;accent-color:var(--olive);"/>
+        <input type="checkbox" value="${p.id}" ${_selectedAssignees.has(p.id)?'checked':''} onchange="toggleAssignee('${p.id}');if(window._renderAssignList)window._renderAssignList(window._assignProfiles||[])" style="width:16px;height:16px;accent-color:var(--olive);"/>
         <div style="width:32px;height:32px;border-radius:50%;background:var(--olive);color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;">${initial}</div>
         <div style="flex:1;">
           <div style="font-size:13px;font-weight:600;">${displayName}</div>
@@ -4415,7 +4415,7 @@ async function openAssignModal(wi) {
         profiles.forEach(p => _selectedAssignees.add(p.id));
         this.textContent = '전체 해제';
       }
-      renderAssignList(window._assignProfiles||[]);
+      if(window._renderAssignList)window._renderAssignList(window._assignProfiles||[]);
     };
   }
 
@@ -4423,12 +4423,12 @@ async function openAssignModal(wi) {
   document.getElementById('assignMemberSearch').value = '';
   document.getElementById('assignMemberSearch').oninput = function() {
     const q = this.value.toLowerCase();
-    renderAssignList(q ? profiles.filter(p => {
+    window._renderAssignList(q ? profiles.filter(p => {
       const name = (p.name||p.email||'').toLowerCase();
       return name.includes(q);
     }) : profiles);
   };
-  renderAssignList(profiles);
+  window._renderAssignList(profiles);
   openModal('assignModal');
 }
 
