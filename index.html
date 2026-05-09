@@ -4206,7 +4206,7 @@ async function loadScoresFromSupabase() {
         uploadedBy: s.uploaded_by,
         file: s.file_data ? { data: s.file_data, type: s.file_type, name: s.title } : null
       }));
-      saveData('wm_scores', scores); // 로컬 캐시
+      saveData('wm_scores', scores); // 로컬 캐시 (Supabase가 원본)
     } else {
       // Supabase에 없으면 localStorage 데이터를 Supabase로 마이그레이션
       const localScores = JSON.parse(localStorage.getItem('wm_scores')||'[]');
@@ -4221,20 +4221,21 @@ async function loadScoresFromSupabase() {
 async function migrateScoresToSupabase(localScores) {
   for (const s of localScores) {
     try {
-      await sb.from('scores').upsert({
+      // insert only - 이미 있는 데이터는 덮어쓰지 않음
+      await sb.from('scores').insert({
         id: s.id,
         title: s.title,
-        key: s.key,
-        artist: s.artist,
-        yt: s.yt,
-        ref: s.ref,
-        memo: s.memo,
+        key: s.key || '',
+        artist: s.artist || '',
+        yt: (s.yt && s.yt !== '-') ? s.yt : '',
+        ref: (s.ref && s.ref !== '-') ? s.ref : '',
+        memo: s.memo || '',
         file_data: s.file?.data || null,
         file_type: s.file?.type || null,
         last_edit: s.lastEdit,
         uploaded_by: currentUser?.id
-      }, { onConflict: 'id' });
-    } catch(e) { console.log('migrate error:', e); }
+      });
+    } catch(e) { /* 이미 있으면 skip */ }
   }
   showToast('악보 데이터가 전체 공유로 마이그레이션되었습니다!');
 }
