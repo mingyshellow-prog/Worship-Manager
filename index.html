@@ -127,6 +127,7 @@ nav{flex:1;padding:4px 8px;overflow-y:auto;}
 .yt-icon-btn svg{width:12px;height:12px;}
 .badge-admin{background:#FEF3C7;color:#92400E;font-size:10px;padding:2px 7px;border-radius:10px;font-weight:600;}
 .badge-super{background:#EDE9FE;color:#5B21B6;font-size:10px;padding:2px 7px;border-radius:10px;font-weight:600;}
+.badge-worship{background:#DCFCE7;color:#166534;font-size:10px;padding:2px 7px;border-radius:10px;font-weight:600;}
 .badge-member{background:var(--olive-bg);color:var(--olive-d);font-size:10px;padding:2px 7px;border-radius:10px;font-weight:600;}
 .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--text);color:var(--cream);padding:10px 20px;border-radius:20px;font-size:13px;z-index:9000;opacity:0;transition:opacity .3s;pointer-events:none;}
 .toast.show{opacity:1;}
@@ -558,6 +559,17 @@ nav{flex:1;padding:4px 8px;overflow-y:auto;}
           <div class="quick-card" onclick="showPage('weekly',null)"><div class="quick-card-icon">📅</div><div class="quick-card-label">주차 기록</div></div>
           <div class="quick-card" onclick="showPage('mypage',null)"><div class="quick-card-icon">👤</div><div class="quick-card-label">마이 페이지</div></div>
           <div class="quick-card" onclick="showPage('merge',null)"><div class="quick-card-icon">📋</div><div class="quick-card-label">악보 합치기</div></div>
+        </div>
+
+        <!-- 역할 안내 카드 -->
+        <div id="roleGuideCard" style="margin-bottom:14px;display:none;">
+          <div class="card" style="padding:14px 16px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+              <div style="font-size:13px;font-weight:700;color:var(--text);">🎯 내 역할 안내</div>
+              <span id="roleGuideBadge" class="badge-member"></span>
+            </div>
+            <div id="roleGuideContent" style="font-size:12px;color:var(--muted);line-height:1.8;"></div>
+          </div>
         </div>
 
         <div class="dash-grid">
@@ -1265,6 +1277,7 @@ nav{flex:1;padding:4px 8px;overflow-y:auto;}
       <label class="form-label">권한</label>
       <select class="form-select" id="caRole">
         <option value="member">멤버</option>
+        <option value="worship_leader">워십리더</option>
         <option value="admin">관리자</option>
       </select>
     </div>
@@ -1584,10 +1597,30 @@ function hideSplash() {
 
 // 권한 체크 헬퍼
 function isAdmin() {
-  return currentUser?.role === 'admin' || currentUser?.role === 'super_admin';
+  return currentUser?.role === 'admin' || currentUser?.role === 'super_admin' || currentUser?.role === 'worship_leader';
+}
+function isWorshipLeader() {
+  return currentUser?.role === 'worship_leader';
 }
 function isSuperAdmin() {
   return currentUser?.role === 'super_admin';
+}
+function getRoleLabel(role) {
+  switch(role) {
+    case 'super_admin':  return '슈퍼관리자';
+    case 'admin':        return '관리자';
+    case 'worship_leader': return '워십리더';
+    case 'member':       return '멤버';
+    default:             return '멤버';
+  }
+}
+function getRoleBadgeClass(role) {
+  switch(role) {
+    case 'super_admin':    return 'badge-super';
+    case 'admin':          return 'badge-admin';
+    case 'worship_leader': return 'badge-worship';
+    default:               return 'badge-member';
+  }
 }
 // ════════════════════════════════════════════
 const SUPABASE_URL = 'https://uvyahitvpuvtwcejavqj.supabase.co';
@@ -1689,7 +1722,7 @@ function updateUserUI() {
   if (avatar) { sa.innerHTML=`<img src="${avatar}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;"/>`; }
   else sa.textContent = initial;
   document.getElementById('sidebarName').textContent = currentUser.name;
-  document.getElementById('sidebarRole').textContent = isSuperAdmin()?'슈퍼관리자':isAdmin()?'관리자':'멤버';
+  document.getElementById('sidebarRole').textContent = getRoleLabel(currentUser.role);
   // admin features
   if (isAdmin()) {
     document.getElementById('annEditBtn').style.display = 'block';
@@ -1713,9 +1746,10 @@ function updateUserUI() {
   }
   document.getElementById('myName').textContent = currentUser.name;
   document.getElementById('myEmail').textContent = currentUser.email || '게스트';
-  document.getElementById('myRoleBadge').className = isSuperAdmin()?'badge-super':isAdmin()?'badge-admin':'badge-member';
-  document.getElementById('myRoleBadge').textContent = isSuperAdmin()?'슈퍼관리자':isAdmin()?'관리자':'멤버';
+  document.getElementById('myRoleBadge').className = getRoleBadgeClass(currentUser.role);
+  document.getElementById('myRoleBadge').textContent = getRoleLabel(currentUser.role);
   document.getElementById('dashSub').textContent = `환영합니다, ${currentUser.name}님!`;
+  renderRoleGuideCard();
   renderRoles();
   renderWishes();
   renderScoreMemos();
@@ -2902,12 +2936,12 @@ JSON으로만 답하세요:
       const ytQueries = [
         // AI가 준 검색어 우선 (가장 정확)
         ...aiQueries.slice(0,2),
-        // 키워드 기반 아티스트 검색
-        `${searchKw} 찬양 피아`,
+        // 키워드 기반 아티스트 검색 (찬양팀 위주)
+        `${searchKw} 찬양 CCM 피아노`,
         `${searchKw} 찬양 위러브`,
-        `${searchKw}${subKw?' '+subKw:''} 찬양`,
-        // 책 이름 직접 검색
-        `${book} 찬양 CCM`,
+        `${searchKw}${subKw?' '+subKw:''} 찬양 live`,
+        // 책 이름 + 한국 찬양 검색
+        `${book} 찬양 CCM 한국`,
       ];
 
       const EXCLUDE = ['설교','강해','강의','목사','주일예배','새벽기도','큐티','묵상',
@@ -2918,7 +2952,7 @@ JSON으로만 답하세요:
       for (const q of ytQueries) {
         if (ytResults.length >= 6) break;
         try {
-          const ytRes = await fetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=5&q=${encodeURIComponent(q)}&type=video&videoDuration=medium&key=${YT_API_KEY}`);
+          const ytRes = await fetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=6&q=${encodeURIComponent(q)}&type=video&relevanceLanguage=ko&key=${YT_API_KEY}`);
           const ytData = await ytRes.json();
           if (!ytData.items) continue;
           for (const item of ytData.items) {
@@ -3411,7 +3445,7 @@ async function createAccount() {
   res.innerHTML=`✅ 계정이 생성되었습니다!<br><br>
     📧 이메일: <strong>${email}</strong><br>
     🔑 임시 비밀번호: <strong>${pw}</strong><br>
-    👤 권한: <strong>${role==='admin'?'관리자':'멤버'}</strong><br><br>
+    👤 권한: <strong>${getRoleLabel(role)}</strong><br><br>
     위 정보를 해당 팀원에게 전달해주세요.<br>
     <small style="color:var(--light);">팀원이 첫 로그인 시 이메일 인증이 필요할 수 있습니다.</small>`;
   renderMembers();renderStats();
@@ -3447,9 +3481,8 @@ async function renderMembers() {
     const isMe=u.id===currentUser?.id;
     const email = u.email || '-';
     const isSA = u.role==='super_admin';
-    const isAd = u.role==='admin'||isSA;
-    const badgeClass = isSA?'badge-super':isAd?'badge-admin':'badge-member';
-    const badgeText = isSA?'슈퍼관리자':isAd?'관리자':'멤버';
+    const badgeClass = getRoleBadgeClass(u.role);
+    const badgeText = getRoleLabel(u.role);
     return `<div class="member-row">
       <div class="member-avatar">${u.avatar?`<img src="${u.avatar}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;"/>`:(u.name||'?').charAt(0)}</div>
       <div class="member-info">
@@ -3458,19 +3491,31 @@ async function renderMembers() {
       </div>
       ${isOnline?'<div class="online-dot" title="최근 접속"></div>':''}
       <span class="${badgeClass}">${badgeText}</span>
-      ${isAdmin()&&!isMe&&!isSA?`
-        <button class="btn btn-sm" onclick="toggleMemberRole('${u.id}','${u.role}')">${isAd?'멤버로':'관리자로'}</button>
+      ${isSuperAdmin()&&!isMe&&!isSA?`
+        <select class="form-select" style="font-size:11px;padding:2px 6px;height:auto;width:auto;" onchange="changeMemberRole('${u.id}',this.value)">
+          <option value="member" ${u.role==='member'?'selected':''}>멤버</option>
+          <option value="worship_leader" ${u.role==='worship_leader'?'selected':''}>워십리더</option>
+          <option value="admin" ${u.role==='admin'?'selected':''}>관리자</option>
+        </select>
+        <button class="btn btn-danger btn-sm" onclick="deleteMember('${u.id}')">삭제</button>
+      `:''}
+      ${isAdmin()&&!isSuperAdmin()&&!isMe&&!isSA&&u.role!=='worship_leader'?`
+        <button class="btn btn-sm" onclick="changeMemberRole('${u.id}',${u.role==='admin'?''member'':''admin''}">${u.role==='admin'?'멤버로':'관리자로'}</button>
         <button class="btn btn-danger btn-sm" onclick="deleteMember('${u.id}')">삭제</button>
       `:''}
     </div>`;
   }).join('');
 }
 
+async function changeMemberRole(id, newRole) {
+  await sb.from('profiles').update({role: newRole}).eq('id', id);
+  renderMembers();
+  showToast('권한이 변경되었습니다: ' + getRoleLabel(newRole));
+}
+
 async function toggleMemberRole(id,role) {
   const newRole=role==='admin'?'member':'admin';
-  await sb.from('profiles').update({role:newRole}).eq('id',id);
-  renderMembers();
-  showToast('권한이 변경되었습니다');
+  await changeMemberRole(id, newRole);
 }
 
 async function deleteMember(id) {
@@ -3480,7 +3525,67 @@ async function deleteMember(id) {
   showToast('계정이 삭제되었습니다');
 }
 
-async function renderStats() {
+function renderRoleGuideCard() {
+  const card = document.getElementById('roleGuideCard');
+  const badge = document.getElementById('roleGuideBadge');
+  const content = document.getElementById('roleGuideContent');
+  if (!card || !currentUser) return;
+
+  const role = currentUser.role;
+  badge.className = getRoleBadgeClass(role);
+  badge.textContent = getRoleLabel(role);
+
+  const guides = {
+    super_admin: {
+      show: true,
+      items: [
+        { icon: '⚙️', text: '모든 기능에 접근할 수 있어요', page: null },
+        { icon: '👥', text: '멤버 관리 · 계정 생성 · 권한 변경', page: 'members' },
+        { icon: '📅', text: '주차 콘티 등록 · 삭제', page: 'weekly' },
+        { icon: '🎵', text: '악보 추가 · 삭제', page: 'library' },
+        { icon: '📢', text: '전달사항 · Dev Note 편집', page: 'dashboard' },
+      ]
+    },
+    admin: {
+      show: true,
+      items: [
+        { icon: '📅', text: '주차 콘티 등록 · 삭제', page: 'weekly' },
+        { icon: '🎵', text: '악보 추가 · 삭제', page: 'library' },
+        { icon: '👥', text: '멤버 권한 변경 (워십리더 이하)', page: 'members' },
+        { icon: '📢', text: '전달사항 · Dev Note 편집', page: 'dashboard' },
+        { icon: '📤', text: '콘티 할당 · 알림 전송', page: 'weekly' },
+      ]
+    },
+    worship_leader: {
+      show: true,
+      items: [
+        { icon: '📅', text: '주차 콘티 등록 · 편집', page: 'weekly' },
+        { icon: '🎵', text: '악보 추가 · 악보창고 관리', page: 'library' },
+        { icon: '✍️', text: '빠른 콘티 짜기', page: 'conti' },
+        { icon: '🔮', text: '찬양 추천기 사용', page: 'recommend' },
+        { icon: '📤', text: '콘티 할당 · 알림 전송', page: 'weekly' },
+      ]
+    },
+    member: {
+      show: false,
+      items: []
+    }
+  };
+
+  const g = guides[role] || guides.member;
+  if (!g.show) { card.style.display = 'none'; return; }
+
+  card.style.display = 'block';
+  content.innerHTML = g.items.map(item =>
+    `<div style="display:flex;align-items:center;gap:8px;padding:3px 0;${item.page?'cursor:pointer;':''}border-radius:6px;" ${item.page?`onclick="showPage('${item.page}',null)"`:''}>
+      <span style="font-size:14px;">${item.icon}</span>
+      <span style="${item.page?'color:var(--olive-d);text-decoration:underline dotted;':''}">${item.text}</span>
+      ${item.page?'<span style="margin-left:auto;font-size:10px;color:var(--light);">바로가기 →</span>':''}
+    </div>`
+  ).join('');
+}
+
+
   const s=document.getElementById('statSongs');
   const w=document.getElementById('statWeeks');
   const m=document.getElementById('statMembers');
