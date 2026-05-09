@@ -2837,7 +2837,7 @@ Reply ONLY with this exact JSON structure, no markdown, no extra text:
     document.getElementById('recLoadingMsg').textContent = '📖 성경 본문 불러오는 중...';
     document.getElementById('recLoadingBar').style.width = '20%';
 
-    const fullVerseText = await getVerseText(book, ch, vs, ve);
+    let fullVerseText = await getVerseText(book, ch, vs, ve);
 
     // 본문 미리보기 표시
     if (previewEl) {
