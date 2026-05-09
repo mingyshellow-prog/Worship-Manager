@@ -1237,7 +1237,10 @@ nav{flex:1;padding:4px 8px;overflow-y:auto;}
     </div>
     <div id="assignWeeklyInfo" style="background:var(--olive-bg);border-radius:10px;padding:12px 14px;margin-bottom:16px;font-size:13px;font-weight:600;color:var(--olive-d);"></div>
     <div class="form-group">
-      <label class="form-label">할당할 팀원 선택</label>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+        <label class="form-label" style="margin:0;">할당할 팀원 선택</label>
+        <button class="btn btn-sm" id="assignSelectAll" style="font-size:11px;">전체 선택</button>
+      </div>
       <input class="form-input" id="assignMemberSearch" placeholder="🔍 이름으로 검색..." style="margin-bottom:8px;"/>
       <div id="assignMemberList" style="display:flex;flex-direction:column;gap:6px;max-height:220px;overflow-y:auto;"></div>
     </div>
@@ -4281,10 +4284,9 @@ async function openAssignModal(wi) {
     `📅 ${date} · ${service}<br/><span style="font-size:11px;color:var(--light);">찬양 ${songs.length}곡</span>`;
   document.getElementById('assignMessage').value = `이번 주 콘티가 등록됐어요! 악보를 확인해주세요 🎵`;
 
-  // 멤버 목록 로드
+  // 멤버 목록 로드 (이름 없어도 다 표시)
   let { data: profiles } = await sb.from('profiles').select('*').neq('id', currentUser?.id);
-  // 이름 없는 계정 필터링
-  profiles = (profiles||[]).filter(p => p.name && p.name.trim() !== '');
+  profiles = (profiles||[]);
   const memberEl = document.getElementById('assignMemberList');
 
   function renderAssignList(list) {
@@ -4292,23 +4294,49 @@ async function openAssignModal(wi) {
       memberEl.innerHTML = '<div style="font-size:12px;color:var(--light);padding:10px;">팀원이 없습니다</div>';
       return;
     }
-    memberEl.innerHTML = list.map(p => `
-      <label style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--border);border-radius:10px;cursor:pointer;transition:all .15s;"
-             onmouseover="this.style.background='var(--olive-bg)'" onmouseout="this.style.background=''">
-        <input type="checkbox" value="${p.id}" ${_selectedAssignees.has(p.id)?'checked':''} onchange="toggleAssignee('${p.id}')" style="width:16px;height:16px;accent-color:var(--olive);"/>
-        <div style="width:32px;height:32px;border-radius:50%;background:var(--olive);color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;">${(p.name||'?')[0]}</div>
+    memberEl.innerHTML = list.map(p => {
+      const displayName = (p.name && p.name.trim() && p.name !== '-') ? p.name : (p.email||'이름없음');
+      const initial = displayName[0].toUpperCase();
+      return `
+      <label style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid ${_selectedAssignees.has(p.id)?'var(--olive)':'var(--border)'};border-radius:10px;cursor:pointer;transition:all .15s;background:${_selectedAssignees.has(p.id)?'var(--olive-bg)':''};"
+             onmouseover="this.style.background='var(--olive-bg)'" onmouseout="this.style.background='${_selectedAssignees.has(p.id)?'var(--olive-bg)':''}'">
+        <input type="checkbox" value="${p.id}" ${_selectedAssignees.has(p.id)?'checked':''} onchange="toggleAssignee('${p.id}');renderAssignList(window._assignProfiles||[])" style="width:16px;height:16px;accent-color:var(--olive);"/>
+        <div style="width:32px;height:32px;border-radius:50%;background:var(--olive);color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;">${initial}</div>
         <div style="flex:1;">
-          <div style="font-size:13px;font-weight:600;">${p.name}</div>
+          <div style="font-size:13px;font-weight:600;">${displayName}</div>
           <div style="font-size:11px;color:var(--light);">${getRoleLabel(p.role)}</div>
         </div>
-      </label>`).join('');
+        ${_selectedAssignees.has(p.id)?'<span style="font-size:16px;">✅</span>':''}
+      </label>`;
+    }).join('');
   }
 
-  // 검색바 추가
+  window._assignProfiles = profiles;
+
+  // 전체선택 버튼
+  const selectAllBtn = document.getElementById('assignSelectAll');
+  if (selectAllBtn) {
+    selectAllBtn.onclick = function() {
+      const allSelected = profiles.every(p => _selectedAssignees.has(p.id));
+      if (allSelected) {
+        profiles.forEach(p => _selectedAssignees.delete(p.id));
+        this.textContent = '전체 선택';
+      } else {
+        profiles.forEach(p => _selectedAssignees.add(p.id));
+        this.textContent = '전체 해제';
+      }
+      renderAssignList(window._assignProfiles||[]);
+    };
+  }
+
+  // 검색바
   document.getElementById('assignMemberSearch').value = '';
   document.getElementById('assignMemberSearch').oninput = function() {
     const q = this.value.toLowerCase();
-    renderAssignList(q ? profiles.filter(p => p.name.toLowerCase().includes(q)) : profiles);
+    renderAssignList(q ? profiles.filter(p => {
+      const name = (p.name||p.email||'').toLowerCase();
+      return name.includes(q);
+    }) : profiles);
   };
   renderAssignList(profiles);
   openModal('assignModal');
