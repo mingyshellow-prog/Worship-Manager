@@ -1805,6 +1805,10 @@ function showPage(id, btn) {
       if (n.getAttribute('onclick')&&n.getAttribute('onclick').includes("'"+id+"'")) n.classList.add('active');
     });
   }
+  // 주차별 찬양 진입 시 내 할당 목록 로드 후 렌더
+  if (id === 'weekly') {
+    loadMyAssignments().then(() => renderWeekly());
+  }
   location.hash = id;
 }
 
@@ -2009,6 +2013,21 @@ function saveWeekly() {
   }
 }
 
+async function loadMyAssignments() {
+  if (!currentUser) return;
+  try {
+    const { data } = await sb.from('notifications')
+      .select('data')
+      .eq('user_id', currentUser.id)
+      .eq('type', 'assignment');
+    window._myAssignedWeeks = (data||[])
+      .map(n => n.data?.weekly_idx)
+      .filter(idx => idx !== undefined && idx !== null);
+  } catch(e) {
+    window._myAssignedWeeks = [];
+  }
+}
+
 function renderWeekly() {
   const el = document.getElementById('weeklyList');
   if (!weeklyContis.length) { el.innerHTML='<div style="text-align:center;padding:30px;font-size:13px;color:var(--light);">등록된 주차가 없습니다</div>'; return; }
@@ -2031,14 +2050,19 @@ function renderWeekly() {
     const songs   = Array.isArray(w.songs) ? w.songs :
                     Array.isArray(w.song_list) ? w.song_list :
                     Array.isArray(w.song_ids) ? w.song_ids.map(id=>({title:id,key:''})) : [];
+    // 나에게 할당된 주차인지 확인
+    const isAssignedToMe = (window._myAssignedWeeks||[]).includes(wi);
 
     return `
-    <div class="week-card">
+    <div class="week-card" ${isAssignedToMe?'style="border-color:var(--olive);box-shadow:0 0 0 2px rgba(107,124,63,0.18);"':''}>
       <div class="week-card-header" onclick="toggleWeek(this)">
-        <div style="display:flex;align-items:center;flex:1;min-width:0;">
+        <div style="display:flex;align-items:center;flex:1;min-width:0;gap:8px;">
           <span class="week-date-badge">${date||'날짜없음'}</span>
           <div>
-            <div class="week-title">${service}${title?' — '+title:''}</div>
+            <div class="week-title" style="display:flex;align-items:center;gap:6px;">
+              ${service}${title?' — '+title:''}
+              ${isAssignedToMe?'<span style="font-size:10px;background:var(--olive);color:#fff;padding:2px 7px;border-radius:10px;font-weight:700;">🎵 나에게 할당됨</span>':''}
+            </div>
             <div class="week-meta">찬양 ${songs.length}곡${practice?' · 연습 '+practice:''}</div>
           </div>
         </div>
