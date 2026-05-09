@@ -61,7 +61,7 @@ html,body{height:100%;font-family:'Noto Sans KR',sans-serif;background:var(--cre
 .btn-login:hover{background:var(--olive-d);}
 .login-divider{text-align:center;font-size:11px;color:var(--light);margin:8px 0;}
 .btn-guest{width:100%;padding:10px;background:none;border:1px solid var(--bs);border-radius:8px;font-size:12px;color:var(--muted);cursor:pointer;font-family:'Noto Sans KR',sans-serif;}
-.login-err{font-size:12px;color:#CC2200;text-align:center;margin-top:4px;}
+.login-err{font-size:12px;color:#A0522D;text-align:center;margin-top:4px;}
 
 /* ── SIDEBAR ── */
 .sidebar{width:var(--sw);background:var(--white);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;height:100vh;overflow:hidden;transition:width .2s;}
@@ -440,8 +440,8 @@ nav{flex:1;padding:4px 8px;overflow-y:auto;}
       <button class="login-tab active">로그인</button>
     </div>
     <div id="loginForm" class="login-form">
-      <input class="form-inp" id="loginEmail" type="email" placeholder="이메일"/>
-      <input class="form-inp" id="loginPw" type="password" placeholder="비밀번호"/>
+      <input class="form-inp" id="loginEmail" type="email" placeholder="이메일" onkeydown="if(event.key==='Enter')document.getElementById('loginPw').focus()"/>
+      <input class="form-inp" id="loginPw" type="password" placeholder="비밀번호" onkeydown="if(event.key==='Enter')doLogin()"/>
       <button class="btn-login" onclick="doLogin()">로그인</button>
       <div style="font-size:11px;color:var(--light);text-align:center;margin-top:8px;">계정 문의는 관리자에게 연락해주세요</div>
       <div class="login-err" id="loginErr"></div>
@@ -968,6 +968,9 @@ nav{flex:1;padding:4px 8px;overflow-y:auto;}
     </button>
     <button id="mobileMenuMember" onclick="showPage('members',null);toggleMobileMenu()" style="display:none;flex-direction:column;align-items:center;gap:6px;padding:14px 8px;border:1px solid var(--border);border-radius:12px;background:var(--cream);cursor:pointer;font-family:'Noto Sans KR',sans-serif;">
       <span style="font-size:22px;">⚙️</span><span style="font-size:11px;color:var(--muted);">멤버 관리</span>
+    </button>
+    <button onclick="doLogout();toggleMobileMenu()" style="display:flex;flex-direction:column;align-items:center;gap:6px;padding:14px 8px;border:1px solid #F5C4A8;border-radius:12px;background:#FEF3EC;cursor:pointer;font-family:'Noto Sans KR',sans-serif;">
+      <span style="font-size:22px;">🚪</span><span style="font-size:11px;color:#A0522D;">로그아웃</span>
     </button>
   </div>
 </div>
