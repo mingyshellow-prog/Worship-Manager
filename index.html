@@ -3144,45 +3144,60 @@ JSON으로만 답하세요:
       const themeKw = BOOK_THEME[book] || book;
       const searchKw = kws.length > 0 ? mainKw : themeKw;
 
+      // 유명 찬양팀 우선 검색 쿼리
+      const WORSHIP_TEAMS = ['위러브','예수전도단','어노인팅','소망교회','사랑의교회',
+        'hillsong','elevation','bethel','passion','유기성','새노래민족'];
+
       const ytQueries = [
-        // AI가 준 검색어 우선 (가장 정확)
+        // 유명 찬양팀 + 키워드 (상단 우선)
+        `${searchKw} 위러브 official`,
+        `${searchKw} 예수전도단 official`,
+        `${searchKw} 어노인팅 official`,
+        // AI가 준 검색어
         ...aiQueries.slice(0,2),
-        // 키워드 기반 아티스트 검색 (찬양팀 위주)
-        `${searchKw} 찬양 CCM 피아노`,
-        `${searchKw} 찬양 위러브`,
-        `${searchKw}${subKw?' '+subKw:''} 찬양 live`,
-        // 책 이름 + 한국 찬양 검색
-        `${book} 찬양 CCM 한국`,
+        // 키워드 기반
+        `${searchKw} 찬양 CCM live`,
+        `${searchKw}${subKw?' '+subKw:''} 찬양`,
+        `${book} 찬양 CCM`,
       ];
 
+      // 제외 키워드 (모음집, 설교 등)
       const EXCLUDE = ['설교','강해','강의','목사','주일예배','새벽기도','큐티','묵상',
         '모음','전곡','전집','앨범전체','찬양모음','메들리','medley','full album','playlist',
-        '1시간','2시간','연속','모아보기','compilation','예배전체','실황전체'];
+        '1시간','2시간','3시간','연속','모아보기','compilation','예배전체','실황전체',
+        'collection','all songs','best of','노래모음','worship set','세트리스트'];
       const seenIds = new Set();
 
       for (const q of ytQueries) {
         if (ytResults.length >= 6) break;
         try {
-          const ytRes = await fetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=6&q=${encodeURIComponent(q)}&type=video&relevanceLanguage=ko&key=${YT_API_KEY}`);
+          const ytRes = await fetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=8&q=${encodeURIComponent(q)}&type=video&relevanceLanguage=ko&key=${YT_API_KEY}`);
           const ytData = await ytRes.json();
           if (!ytData.items) continue;
           for (const item of ytData.items) {
             if (seenIds.has(item.id.videoId) || ytResults.length >= 6) continue;
             const title = item.snippet.title.toLowerCase();
-            if (!EXCLUDE.some(w => title.includes(w))) {
-              seenIds.add(item.id.videoId);
-              ytResults.push({
-                id: item.id.videoId,
-                title: item.snippet.title,
-                channel: item.snippet.channelTitle,
-                thumbnail: item.snippet.thumbnails.medium?.url,
-                query: q,
-                isRelated: !!mainKw && title.includes(mainKw)
-              });
-            }
+            const channel = item.snippet.channelTitle.toLowerCase();
+            if (EXCLUDE.some(w => title.includes(w.toLowerCase()))) continue;
+            // 유명 찬양팀 여부 체크 → 상단 표시용 플래그
+            const isFamous = WORSHIP_TEAMS.some(t => 
+              channel.includes(t.toLowerCase()) || title.includes(t.toLowerCase())
+            );
+            seenIds.add(item.id.videoId);
+            ytResults.push({
+              id: item.id.videoId,
+              title: item.snippet.title,
+              channel: item.snippet.channelTitle,
+              thumbnail: item.snippet.thumbnails.medium?.url,
+              query: q,
+              isRelated: !!mainKw && title.includes(mainKw),
+              isFamous
+            });
           }
         } catch(e) { console.log('YT error:', e); }
       }
+      // 유명 찬양팀 상단으로 정렬
+      ytResults.sort((a,b) => (b.isFamous?1:0) - (a.isFamous?1:0));
     } else {
       const queries = aiResult.youtube_search_queries || [ref + ' 찬양'];
       queries.slice(0,3).forEach(q => ytResults.push({ id: null, title: q, query: q }));
@@ -3381,6 +3396,7 @@ function renderRecResults(ai, ytItems, ref) {
         </a>
         <div style="padding:12px;">
           <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
+            ${v.isFamous ? '<span style="font-size:10px;background:#FEF3C7;color:#92400E;padding:2px 8px;border-radius:8px;font-weight:700;">⭐ 유명 찬양팀</span>' : ''}
             ${v.isRelated ? '<span style="font-size:10px;background:#E8F5E9;color:#1B5E20;padding:2px 8px;border-radius:8px;font-weight:700;">🎯 관련 찬양</span>' : '<span style="font-size:10px;background:var(--olive-bg);color:var(--olive-d);padding:2px 8px;border-radius:8px;font-weight:700;">🎵 추천 찬양</span>'}
           </div>
           <div style="font-size:13px;font-weight:600;color:var(--text);line-height:1.4;margin-bottom:3px;">${v.title.slice(0,45)}${v.title.length>45?'...':''}</div>
