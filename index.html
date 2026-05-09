@@ -1060,10 +1060,10 @@ nav{flex:1;padding:4px 8px;overflow-y:auto;}
   </div>
 </div>
 
-<!-- 악보 추가 -->
+<!-- 악보 추가/수정 -->
 <div class="modal-bg" id="addScoreModal" onclick="bgClose(event,'addScoreModal')">
   <div class="modal-box">
-    <div class="modal-header"><div class="modal-title">🎵 악보 추가</div><button class="modal-close" onclick="closeModal('addScoreModal')">✕</button></div>
+    <div class="modal-header"><div class="modal-title" id="addScoreModalTitle">🎵 악보 추가</div><button class="modal-close" onclick="closeModal('addScoreModal')">✕</button></div>
     <div class="form-group"><label class="form-label">악보 파일 선택</label>
       <div style="display:flex;gap:8px;align-items:center;">
         <input class="form-input" id="scoreFileName" readonly placeholder="파일을 선택해주세요..." style="cursor:pointer;" onclick="document.getElementById('scoreFileInput').click()"/>
@@ -1081,7 +1081,7 @@ nav{flex:1;padding:4px 8px;overflow-y:auto;}
     </div>
     <div class="form-group"><label class="form-label">레퍼런스 링크 (악보 출처 등)</label><input class="form-input" id="scoreRef" placeholder="https://..."/></div>
     <div class="form-group"><label class="form-label">메모 / 송폼</label><input class="form-input" id="scoreMemo" placeholder="예) INTRO / VERSE / CHORUS"/></div>
-    <div class="modal-footer"><button class="btn" onclick="closeModal('addScoreModal')">취소</button><button class="btn btn-primary" onclick="saveScore()">저장</button></div>
+    <div class="modal-footer"><button class="btn" onclick="closeModal('addScoreModal')">취소</button><button class="btn btn-primary" id="saveScoreBtn" onclick="saveScore()">저장</button></div>
   </div>
 </div>
 
@@ -2147,7 +2147,12 @@ function renderThisWeek() {
 // ════════════════════════════════════════════
 // LIBRARY / SCORES
 // ════════════════════════════════════════════
+window._editingScoreId = null;
+
 function openAddScore() {
+  window._editingScoreId = null;
+  document.getElementById('addScoreModalTitle').textContent = '🎵 악보 추가';
+  document.getElementById('saveScoreBtn').textContent = '저장';
   document.getElementById('scoreFileName').value='';
   document.getElementById('scoreTitle').value='';
   document.getElementById('scoreKey').value='';
@@ -2156,6 +2161,23 @@ function openAddScore() {
   document.getElementById('scoreRef').value='';
   document.getElementById('scoreMemo').value='';
   window._pendingScoreFile = null;
+  openModal('addScoreModal');
+}
+
+function openEditScore(id) {
+  const s = scores.find(x => x.id === id);
+  if (!s) return;
+  window._editingScoreId = id;
+  document.getElementById('addScoreModalTitle').textContent = '✏️ 악보 수정';
+  document.getElementById('saveScoreBtn').textContent = '수정 저장';
+  document.getElementById('scoreFileName').value = s.file?.name || (s.file ? '기존 파일 유지' : '');
+  document.getElementById('scoreTitle').value = s.title || '';
+  document.getElementById('scoreKey').value = s.key || '';
+  document.getElementById('scoreArtist').value = s.artist || '';
+  document.getElementById('scoreYt').value = s.yt || '';
+  document.getElementById('scoreRef').value = s.ref || '';
+  document.getElementById('scoreMemo').value = s.memo || '';
+  window._pendingScoreFile = null; // 새 파일 선택 시 교체, 아니면 기존 유지
   openModal('addScoreModal');
 }
 
@@ -2192,6 +2214,46 @@ function handleScoreFile(input) {
 async function saveScore() {
   const title = document.getElementById('scoreTitle').value.trim();
   if (!title) { showToast('곡 제목을 입력해주세요'); return; }
+
+  // 수정 모드
+  if (window._editingScoreId) {
+    const idx = scores.findIndex(x => x.id === window._editingScoreId);
+    if (idx === -1) { showToast('악보를 찾을 수 없습니다'); return; }
+    const existing = scores[idx];
+    const updated = {
+      ...existing,
+      title,
+      key: document.getElementById('scoreKey').value,
+      artist: document.getElementById('scoreArtist').value,
+      yt: document.getElementById('scoreYt').value,
+      ref: document.getElementById('scoreRef').value,
+      memo: document.getElementById('scoreMemo').value,
+      file: window._pendingScoreFile || existing.file, // 새 파일 없으면 기존 유지
+      lastEdit: new Date().toISOString().split('T')[0]
+    };
+    scores[idx] = updated;
+    saveData('wm_scores', scores);
+    // Supabase 업데이트
+    try {
+      await sb.from('scores').update({
+        title: updated.title,
+        key: updated.key,
+        artist: updated.artist,
+        yt: updated.yt,
+        ref: updated.ref,
+        memo: updated.memo,
+        file_data: updated.file?.data || null,
+        file_type: updated.file?.type || null,
+        last_edit: updated.lastEdit
+      }).eq('id', updated.id);
+    } catch(e) { console.log('score update error:', e); }
+    renderScores(); updateArtistFilter();
+    closeModal('addScoreModal');
+    showToast('악보가 수정됐어요 ✅');
+    return;
+  }
+
+  // 추가 모드
   const score = {
     id:'s'+Date.now(), title,
     key: document.getElementById('scoreKey').value,
@@ -2241,6 +2303,7 @@ function renderScores() {
         ${s.yt?`<a href="${s.yt}" target="_blank" class="yt-icon-btn"><svg viewBox="0 0 24 24" fill="white" width="12" height="12"><path d="M8 5v14l11-7z"/></svg></a>`:''}
         <button class="link-btn score btn-sm" onclick="viewScore('${s.id}')">악보</button>
         ${s.file?`<button class="btn btn-sm" onclick="downloadScore('${s.id}')">⬇️</button>`:''}
+        ${isAdmin()?`<button class="btn btn-sm" onclick="openEditScore('${s.id}')">✏️</button>`:''}
         ${isAdmin()?`<button class="btn btn-danger btn-sm" onclick="deleteScore('${s.id}')">삭제</button>`:''}
       </div>
     </div>`).join('');
