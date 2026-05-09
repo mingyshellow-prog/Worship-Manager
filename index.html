@@ -1093,12 +1093,13 @@ nav{flex:1;padding:4px 8px;overflow-y:auto;}
         <div class="modal-title" id="scoreViewTitle">악보</div>
         <div id="scoreViewInfo" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
       </div>
-      <div style="display:flex;gap:6px;align-items:flex-start;flex-shrink:0;">
-        <button class="btn btn-sm" id="scoreYtBtn" onclick="window.open(window._viewingScoreYt,'_blank')" style="display:none;background:#FF0000;color:#fff;border-color:#FF0000;">▶ 유튜브</button>
-        <button class="btn btn-sm" id="scoreDownloadBtn" onclick="downloadScore(window._viewingScoreId)" style="display:none;">⬇️ 다운로드</button>
-        <button class="btn btn-sm" onclick="toggleScoreFullscreen()" title="풀스크린">⛶ 전체화면</button>
-        <button class="modal-close" onclick="closeModal('scoreViewModal')">✕</button>
-      </div>
+      <button class="modal-close" onclick="closeModal('scoreViewModal')" style="flex-shrink:0;margin-left:8px;">✕</button>
+    </div>
+    <!-- 버튼 바 (X 아래) -->
+    <div id="scoreActionBar" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;">
+      <button class="btn btn-sm" id="scoreYtBtn" onclick="window.open(window._viewingScoreYt,'_blank')" style="display:none;background:#FF0000;color:#fff;border-color:#FF0000;">▶ 유튜브</button>
+      <button class="btn btn-sm" id="scoreDownloadBtn" onclick="downloadScore(window._viewingScoreId)" style="display:none;">⬇️ 다운로드</button>
+      <button class="btn btn-sm" onclick="toggleScoreFullscreen()">⛶ 전체화면</button>
     </div>
     <div id="scoreViewImg"></div>
     <div id="scoreViewLinks" style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;"></div>
@@ -3642,17 +3643,20 @@ async function promptSetName(id) {
 }
 
 async function changeMemberRole(id, newRole) {
-  await sb.from('profiles').update({role: newRole}).eq('id', id);
-  // 역할 변경 알림 전송
-  const roleEmoji = {super_admin:'👑', admin:'⚙️', worship_leader:'🎵', member:'👤'};
-  await sb.from('notifications').insert({
-    user_id: id,
-    type: 'role_change',
-    title: `역할이 변경됐어요! ${roleEmoji[newRole]||''}`,
-    body: `${getRoleLabel(newRole)}(으)로 지정되었습니다.`,
-    data: { new_role: newRole },
-    is_read: false
-  });
+  const { error } = await sb.from('profiles').update({role: newRole}).eq('id', id);
+  if (error) { showToast('권한 변경 실패: ' + error.message); return; }
+  // 역할 변경 알림 전송 (실패해도 role 변경은 유지)
+  try {
+    const roleEmoji = {super_admin:'👑', admin:'⚙️', worship_leader:'🎵', member:'👤'};
+    await sb.from('notifications').insert({
+      user_id: id,
+      type: 'role_change',
+      title: `역할이 변경됐어요! ${roleEmoji[newRole]||''}`,
+      body: `${getRoleLabel(newRole)}(으)로 지정되었습니다.`,
+      data: { new_role: newRole },
+      is_read: false
+    });
+  } catch(e) { console.log('notif error:', e); }
   renderMembers();
   showToast('권한이 변경됐어요: ' + getRoleLabel(newRole));
 }
