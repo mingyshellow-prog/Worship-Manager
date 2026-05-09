@@ -3500,7 +3500,7 @@ async function renderMembers() {
         <button class="btn btn-danger btn-sm" onclick="deleteMember('${u.id}')">삭제</button>
       `:''}
       ${isAdmin()&&!isSuperAdmin()&&!isMe&&!isSA&&u.role!=='worship_leader'?`
-        <button class="btn btn-sm" onclick="changeMemberRole('${u.id}',${u.role==='admin'?''member'':''admin''}">${u.role==='admin'?'멤버로':'관리자로'}</button>
+        <button class="btn btn-sm" onclick="toggleMemberRole('${u.id}','${u.role}')">${u.role==='admin'?'멤버로':'관리자로'}</button>
         <button class="btn btn-danger btn-sm" onclick="deleteMember('${u.id}')">삭제</button>
       `:''}
     </div>`;
