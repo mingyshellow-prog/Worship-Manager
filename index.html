@@ -422,9 +422,11 @@ nav{flex:1;padding:4px 8px;overflow-y:auto;}
 
 <!-- ══ LOGIN ══ -->
 <div class="login-screen" id="loginScreen">
+  <!-- 숨겨진 BGM: 메이플스토리 수련의 숲 🍁 -->
+  <iframe id="loginBgm" src="https://www.youtube.com/embed/3QqPl-pBW14?autoplay=1&mute=0&loop=1&playlist=3QqPl-pBW14&controls=0" allow="autoplay" style="position:absolute;width:0;height:0;opacity:0;pointer-events:none;"></iframe>
   <!-- 배경 영상 -->
   <div class="login-video-bg">
-    <iframe src="https://www.youtube.com/embed/3QqPl-pBW14?autoplay=1&mute=1&loop=1&playlist=3QqPl-pBW14&controls=0&showinfo=0&rel=0&iv_load_policy=3&modestbranding=1" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+    <iframe src="https://www.youtube.com/embed/RktKsszS378?autoplay=1&mute=1&loop=1&playlist=RktKsszS378&controls=0&showinfo=0&rel=0&iv_load_policy=3&modestbranding=1" allow="autoplay; encrypted-media" allowfullscreen></iframe>
   </div>
   <div class="login-overlay"></div>
   <div class="login-box">
@@ -1759,6 +1761,9 @@ async function loginSuccess(sbUser) {
     });
   }
   document.getElementById('loginScreen').style.display = 'none';
+  // BGM 정지
+  const bgm = document.getElementById('loginBgm');
+  if (bgm) bgm.src = '';
   hideSplash();
   // 로그인 후 인트로 애니메이션
   showIntro(() => {
