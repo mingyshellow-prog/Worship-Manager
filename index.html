@@ -4199,7 +4199,7 @@ async function loadScoresFromSupabase() {
         title: s.title,
         key: s.key||'',
         artist: s.artist||'',
-        yt: s.yt||'',
+        yt: (s.yt && s.yt !== '-') ? s.yt : '',
         ref: s.ref||'',
         memo: s.memo||'',
         lastEdit: s.last_edit||'',
