@@ -2749,19 +2749,23 @@ function renderImportList() {
 
 function clearImport() { importFiles=[]; renderImportList(); }
 
-function confirmImport() {
+async function confirmImport() {
   let count=0;
   const pending = importFiles.filter(f=>f.title.trim());
-  const readNext = (idx)=>{
+  const readNext = async (idx)=>{
     if (idx>=pending.length) {
       saveData('wm_scores', scores); renderScores(); updateArtistFilter();
       clearImport(); switchLibTab('scores');
+      // 일괄 임포트 로그
+      logActivity('일괄 임포트', `${count}개 악보`, pending.map(f=>f.title).join(', ').slice(0,80));
       showToast(`${count}개 악보가 등록되었습니다`); return;
     }
     const f=pending[idx];
     const reader=new FileReader();
-    reader.onload=e=>{
-      scores.push({id:'s'+Date.now()+idx, title:f.title, key:f.key, artist:f.artist, yt:'', memo:'', file:{data:e.target.result,type:f.file.type,name:f.file.name}, lastEdit:new Date().toISOString().split('T')[0]});
+    reader.onload= async e=>{
+      const score = {id:'s'+Date.now()+idx, title:f.title, key:f.key, artist:f.artist, yt:'', memo:'', file:{data:e.target.result,type:f.file.type,name:f.file.name}, lastEdit:new Date().toISOString().split('T')[0]};
+      scores.push(score);
+      await saveScoreToSupabase(score);
       count++; readNext(idx+1);
     };
     reader.readAsDataURL(f.file);
