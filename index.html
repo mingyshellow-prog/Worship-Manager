@@ -629,8 +629,8 @@ nav{flex:1;padding:4px 8px;overflow-y:auto;}
         </div>
         <div class="tab-panel active" id="panel-scores">
           <div class="search-bar">
-            <input class="search-input" type="text" placeholder="곡 제목, 아티스트, Key 검색..." id="scoreSearch" oninput="renderScores()"/>
-            <select class="btn" onchange="renderScores()" id="artistFilter" style="padding:8px 12px;">
+            <input class="search-input" type="text" placeholder="곡 제목, 아티스트, Key 검색..." id="scoreSearch" oninput="renderScores(true)"/>
+            <select class="btn" onchange="renderScores(true)" id="artistFilter" style="padding:8px 12px;">
               <option value="">전체</option>
             </select>
           </div>
@@ -2578,18 +2578,33 @@ function downloadScore(id) {
   showToast('다운로드 시작!');
 }
 
-function renderScores() {
+// 페이지네이션 상태
+window._scorePage = 1;
+const SCORE_PAGE_SIZE = 15;
+
+function renderScores(resetPage) {
+  if (resetPage) window._scorePage = 1;
   const q = (document.getElementById('scoreSearch')?.value||'').toLowerCase();
   const artist = document.getElementById('artistFilter')?.value||'';
   const filtered = scores.filter(s=>{
-    const match = s.title.toLowerCase().includes(q)||s.artist.toLowerCase().includes(q)||s.key.toLowerCase().includes(q);
+    const match = s.title.toLowerCase().includes(q)||s.artist.toLowerCase().includes(q)||(s.key||'').toLowerCase().includes(q);
     const artistMatch = !artist || s.artist===artist;
     return match && artistMatch;
   });
   const el = document.getElementById('scoreList');
   if (!el) return;
-  if (!filtered.length) { el.innerHTML='<div style="text-align:center;padding:20px;font-size:13px;color:var(--light);">악보가 없습니다. 악보 추가 버튼을 눌러 등록해보세요!</div>'; return; }
-  el.innerHTML = filtered.map(s=>`
+  if (!filtered.length) {
+    el.innerHTML='<div style="text-align:center;padding:20px;font-size:13px;color:var(--light);">악보가 없습니다. 악보 추가 버튼을 눌러 등록해보세요!</div>';
+    return;
+  }
+
+  const totalPages = Math.ceil(filtered.length / SCORE_PAGE_SIZE);
+  const page = Math.min(window._scorePage, totalPages);
+  window._scorePage = page;
+  const start = (page-1) * SCORE_PAGE_SIZE;
+  const paged = filtered.slice(start, start + SCORE_PAGE_SIZE);
+
+  const scoreRows = paged.map(s=>`
     <div class="score-row" onclick="viewScore('${s.id}')">
       <div class="score-info">
         <div class="score-name">${s.title} ${s.file?.type==='application/pdf'?'<span style="font-size:10px;background:#FEE2E2;color:#CC2200;padding:1px 5px;border-radius:4px;">PDF</span>':s.file?'<span style="font-size:10px;background:var(--olive-bg);color:var(--olive-d);padding:1px 5px;border-radius:4px;">IMG</span>':''}</div>
@@ -2603,6 +2618,35 @@ function renderScores() {
         ${isAdmin()?`<button class="btn btn-danger btn-sm" onclick="deleteScore('${s.id}')">삭제</button>`:''}
       </div>
     </div>`).join('');
+
+  // 페이지네이션 UI
+  const pagination = totalPages > 1 ? `
+    <div style="display:flex;align-items:center;justify-content:center;gap:6px;padding:16px 0;flex-wrap:wrap;">
+      <button class="btn btn-sm" onclick="goScorePage(1)" ${page===1?'disabled':''} style="font-size:11px;">«</button>
+      <button class="btn btn-sm" onclick="goScorePage(${page-1})" ${page===1?'disabled':''} style="font-size:11px;">‹ 이전</button>
+      ${Array.from({length:totalPages},(_, i)=>i+1).filter(p=>Math.abs(p-page)<=2).map(p=>`
+        <button class="btn btn-sm" onclick="goScorePage(${p})" style="font-size:11px;${p===page?'background:var(--olive);color:#fff;border-color:var(--olive);':''}">
+          ${p}
+        </button>`).join('')}
+      <button class="btn btn-sm" onclick="goScorePage(${page+1})" ${page===totalPages?'disabled':''} style="font-size:11px;">다음 ›</button>
+      <button class="btn btn-sm" onclick="goScorePage(${totalPages})" ${page===totalPages?'disabled':''} style="font-size:11px;">»</button>
+      <span style="font-size:11px;color:var(--muted);margin-left:4px;">${start+1}–${Math.min(start+SCORE_PAGE_SIZE, filtered.length)} / 총 ${filtered.length}곡</span>
+    </div>` : `<div style="text-align:center;padding:8px;font-size:11px;color:var(--light);">총 ${filtered.length}곡</div>`;
+
+  el.innerHTML = scoreRows + pagination;
+}
+
+function goScorePage(page) {
+  const q = (document.getElementById('scoreSearch')?.value||'').toLowerCase();
+  const artist = document.getElementById('artistFilter')?.value||'';
+  const filtered = scores.filter(s=>{
+    const match = s.title.toLowerCase().includes(q)||s.artist.toLowerCase().includes(q)||(s.key||'').toLowerCase().includes(q);
+    return match && (!artist || s.artist===artist);
+  });
+  const totalPages = Math.ceil(filtered.length / SCORE_PAGE_SIZE);
+  window._scorePage = Math.max(1, Math.min(page, totalPages));
+  renderScores();
+  document.getElementById('scoreList')?.scrollIntoView({ behavior:'smooth', block:'start' });
 }
 
 function viewScore(id) {
