@@ -4420,15 +4420,28 @@ async function renderSuggestions() {
             <span style="font-size:10px;font-weight:600;padding:1px 7px;border-radius:8px;background:${st.bg};color:${st.color};">${st.label}</span>
           </div>
         </div>
-        <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0;align-items:flex-end;min-width:100px;">
-          ${isAdmin()?`
-            <div style="display:flex;flex-direction:column;gap:3px;width:100%;">
-              <button onclick="setSuggStatus('${s.id}','pending')" style="font-size:10px;padding:3px 8px;border-radius:6px;border:1px solid ${s.status==='pending'?'var(--olive)':'var(--border)'};background:${s.status==='pending'?'var(--olive-bg)':'transparent'};color:${s.status==='pending'?'var(--olive-d)':'var(--light)'};cursor:pointer;font-weight:${s.status==='pending'?'700':'400'};text-align:left;">💬 대기중</button>
-              <button onclick="setSuggStatus('${s.id}','in_progress')" style="font-size:10px;padding:3px 8px;border-radius:6px;border:1px solid ${s.status==='in_progress'?'#FCD34D':'var(--border)'};background:${s.status==='in_progress'?'#FEF3C7':'transparent'};color:${s.status==='in_progress'?'#92400E':'var(--light)'};cursor:pointer;font-weight:${s.status==='in_progress'?'700':'400'};text-align:left;">⏳ 진행중</button>
-              <button onclick="setSuggStatus('${s.id}','done')" style="font-size:10px;padding:3px 8px;border-radius:6px;border:1px solid ${s.status==='done'?'#86EFAC':'var(--border)'};background:${s.status==='done'?'#DCFCE7':'transparent'};color:${s.status==='done'?'#166534':'var(--light)'};cursor:pointer;font-weight:${s.status==='done'?'700':'400'};text-align:left;">✅ 배포완료</button>
+        <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0;align-items:flex-end;">
+          <!-- 지라 스타일 상태 뱃지 -->
+          <div style="position:relative;">
+            <button onclick="toggleSuggStatusMenu('${s.id}')" style="display:flex;align-items:center;gap:5px;font-size:11px;font-weight:700;padding:4px 10px;border-radius:20px;border:none;cursor:pointer;background:${s.status==='done'?'#DCFCE7':s.status==='in_progress'?'#FEF3C7':'var(--olive-bg)'};color:${s.status==='done'?'#166534':s.status==='in_progress'?'#92400E':'var(--olive-d)'};">
+              ${s.status==='done'?'✅ 배포완료':s.status==='in_progress'?'⏳ 진행중':'💬 대기중'}
+              ${isAdmin()?'<span style="font-size:9px;opacity:0.6;">▼</span>':''}
+            </button>
+            ${isAdmin()?`
+            <div id="statusMenu_${s.id}" style="display:none;position:absolute;right:0;top:110%;background:white;border:1px solid var(--border);border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,0.12);z-index:100;min-width:130px;overflow:hidden;">
+              <div onclick="setSuggStatus('${s.id}','pending');toggleSuggStatusMenu('${s.id}')" style="padding:8px 14px;font-size:12px;cursor:pointer;display:flex;align-items:center;gap:8px;color:var(--olive-d);font-weight:${s.status==='pending'?'700':'400'};" onmouseover="this.style.background='var(--olive-bg)'" onmouseout="this.style.background=''">
+                <span style="width:8px;height:8px;border-radius:50%;background:var(--olive);display:inline-block;"></span> 대기중
+              </div>
+              <div onclick="setSuggStatus('${s.id}','in_progress');toggleSuggStatusMenu('${s.id}')" style="padding:8px 14px;font-size:12px;cursor:pointer;display:flex;align-items:center;gap:8px;color:#92400E;font-weight:${s.status==='in_progress'?'700':'400'};" onmouseover="this.style.background='#FFFBEB'" onmouseout="this.style.background=''">
+                <span style="width:8px;height:8px;border-radius:50%;background:#F59E0B;display:inline-block;"></span> 진행중
+              </div>
+              <div onclick="setSuggStatus('${s.id}','done');toggleSuggStatusMenu('${s.id}')" style="padding:8px 14px;font-size:12px;cursor:pointer;display:flex;align-items:center;gap:8px;color:#166534;font-weight:${s.status==='done'?'700':'400'};" onmouseover="this.style.background='#F0FDF4'" onmouseout="this.style.background=''">
+                <span style="width:8px;height:8px;border-radius:50%;background:#22C55E;display:inline-block;"></span> 배포완료
+              </div>
             </div>
-          `:`<span style="font-size:10px;font-weight:600;padding:3px 9px;border-radius:8px;background:${s.status==='done'?'#DCFCE7':s.status==='in_progress'?'#FEF3C7':'var(--olive-bg)'};color:${s.status==='done'?'#166534':s.status==='in_progress'?'#92400E':'var(--olive-d)'};">${s.status==='done'?'✅ 배포완료':s.status==='in_progress'?'⏳ 진행중':'💬 대기중'}</span>`}
-          <button onclick="toggleSuggReply('${s.id}')" style="font-size:11px;color:#fff;background:var(--olive);border:none;border-radius:8px;cursor:pointer;padding:5px 10px;font-weight:600;width:100%;">💬 댓글 ${rc}개</button>
+            `:''}
+          </div>
+          <button onclick="toggleSuggReply('${s.id}')" style="font-size:11px;color:var(--olive-d);background:var(--olive-bg);border:1px solid var(--border);border-radius:20px;cursor:pointer;padding:3px 10px;font-weight:600;">💬 ${rc}</button>
         </div>
       </div>
       <!-- 댓글 영역 -->
@@ -4541,10 +4554,33 @@ async function resolveSuggestion(id) {
 }
 
 async function setSuggStatus(id, status) {
-  await sb.from('suggestions').update({ status }).eq('id', id);
+  const { error } = await sb.from('suggestions').update({ status }).eq('id', id);
+  if (error) { showToast('변경 실패: ' + error.message); return; }
   renderSuggestions();
   const labels = { pending:'대기중', in_progress:'진행중', done:'배포완료' };
-  showToast(`상태가 "${labels[status]||status}"(으)로 변경됐어요`);
+  showToast(`"${labels[status]||status}"으로 변경됐어요`);
+}
+
+function toggleSuggStatusMenu(id) {
+  // 다른 열린 메뉴 닫기
+  document.querySelectorAll('[id^="statusMenu_"]').forEach(m => {
+    if (m.id !== `statusMenu_${id}`) m.style.display = 'none';
+  });
+  const menu = document.getElementById(`statusMenu_${id}`);
+  if (!menu) return;
+  menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+  // 외부 클릭 시 닫기
+  if (menu.style.display === 'block') {
+    setTimeout(() => {
+      const close = (e) => {
+        if (!menu.contains(e.target)) {
+          menu.style.display = 'none';
+          document.removeEventListener('click', close);
+        }
+      };
+      document.addEventListener('click', close);
+    }, 0);
+  }
 }
 
 // ════════════════════════════════════════════
