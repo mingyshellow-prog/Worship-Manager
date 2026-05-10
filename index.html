@@ -929,11 +929,37 @@ nav{flex:1;padding:4px 8px;overflow-y:auto;}
         <div><div class="page-title">멤버 관리</div><div class="page-sub">팀원 계정을 관리합니다</div></div>
         <button class="btn btn-primary" onclick="openCreateAccount()">＋ 계정 생성</button>
       </div>
+      <!-- 서브탭 -->
+      <div style="display:flex;gap:4px;margin-bottom:16px;border-bottom:2px solid var(--border);padding-bottom:0;">
+        <button id="memberTabBtn" onclick="switchMemberTab('members')" style="padding:8px 16px;font-size:13px;font-weight:700;border:none;background:none;cursor:pointer;color:var(--olive-d);border-bottom:2px solid var(--olive);margin-bottom:-2px;">👥 멤버 목록</button>
+        <button id="logTabBtn" onclick="switchMemberTab('logs')" style="padding:8px 16px;font-size:13px;font-weight:600;border:none;background:none;cursor:pointer;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-2px;" id="logTabBtn">📋 활동 로그</button>
+      </div>
+      <div id="memberTabContent">
+      </div>
+      <div id="logTabContent" style="display:none;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+          <div style="font-size:12px;color:var(--muted);">슈퍼관리자만 볼 수 있는 유저 활동 기록이에요</div>
+          <div style="display:flex;gap:6px;">
+            <select id="logFilterAction" onchange="loadActivityLogs()" style="font-size:11px;padding:4px 8px;border-radius:8px;border:1px solid var(--border);">
+              <option value="">전체 액션</option>
+              <option value="악보 추가">악보 추가</option>
+              <option value="악보 수정">악보 수정</option>
+              <option value="악보 삭제">악보 삭제</option>
+              <option value="콘티 등록">콘티 등록</option>
+              <option value="로그인">로그인</option>
+              <option value="역할 변경">역할 변경</option>
+            </select>
+            <button class="btn btn-sm" onclick="loadActivityLogs()">🔄 새로고침</button>
+          </div>
+        </div>
+        <div id="activityLogList" style="display:flex;flex-direction:column;gap:6px;"></div>
+      </div>
       <div class="page-body">
         <div class="search-bar">
           <input class="search-input" type="text" placeholder="이름, 이메일 검색..." id="memberSearch" oninput="renderMembers()"/>
         </div>
         <div id="memberList"></div>
+      </div>
       </div>
     </div>
 
@@ -1877,6 +1903,7 @@ async function loginSuccess(sbUser) {
   }
   document.getElementById('loginScreen').style.display = 'none';
   // BGM 정지
+  logActivity('로그인', null, `${currentUser?.email} 로그인`);
   const bgm = document.getElementById('loginBgm');
   if (bgm) bgm.src = '';
   hideSplash();
@@ -2227,6 +2254,7 @@ function saveWeekly() {
   saveData('wm_weekly', weeklyContis);
   renderWeekly(); renderThisWeek();
   closeModal('weeklyModal');
+  logActivity('콘티 등록', `${entry.date} ${entry.service}`, `${entry.songs?.length||0}곡`);
   showToast('주차가 등록되었습니다!');
   // 등록 직후 할당 제안 (관리자/워십리더만)
   if (isAdmin()) {
@@ -2497,7 +2525,8 @@ async function saveScore() {
     } catch(e) { console.log('score upsert error:', e); }
     renderScores(); updateArtistFilter();
     closeModal('addScoreModal');
-    showToast('악보가 수정됐어요 ✅');
+    logActivity('악보 수정', updated.title, `Key: ${updated.key||'-'}`);
+  showToast('악보가 수정됐어요 ✅');
     return;
   }
 
@@ -2534,7 +2563,8 @@ async function saveScore() {
     await saveScoreToSupabase(score);
     renderScores(); updateArtistFilter();
     closeModal('addScoreModal');
-    showToast('악보가 추가되었습니다 🎵');
+    logActivity('악보 추가', score.title, `Key: ${score.key||'-'} / ${score.artist||'-'}`);
+  showToast('악보가 추가되었습니다 🎵');
   }
 }
 
@@ -3855,6 +3885,85 @@ async function createAccount() {
   showToast(`${name} 계정이 생성되었습니다`);
 }
 
+function switchMemberTab(tab) {
+  const memberContent = document.getElementById('memberTabContent');
+  const logContent = document.getElementById('logTabContent');
+  const memberBtn = document.getElementById('memberTabBtn');
+  const logBtn = document.getElementById('logTabBtn');
+  const pageBody = document.querySelector('#page-members .page-body');
+
+  if (tab === 'members') {
+    if (pageBody) pageBody.style.display = 'block';
+    if (logContent) logContent.style.display = 'none';
+    memberBtn.style.color = 'var(--olive-d)';
+    memberBtn.style.borderBottomColor = 'var(--olive)';
+    logBtn.style.color = 'var(--muted)';
+    logBtn.style.borderBottomColor = 'transparent';
+  } else {
+    if (pageBody) pageBody.style.display = 'none';
+    if (logContent) logContent.style.display = 'block';
+    memberBtn.style.color = 'var(--muted)';
+    memberBtn.style.borderBottomColor = 'transparent';
+    logBtn.style.color = 'var(--olive-d)';
+    logBtn.style.borderBottomColor = 'var(--olive)';
+    if (!isSuperAdmin()) {
+      document.getElementById('activityLogList').innerHTML = '<div style="text-align:center;padding:30px;color:var(--light);font-size:13px;">슈퍼관리자만 볼 수 있어요</div>';
+      return;
+    }
+    loadActivityLogs();
+  }
+}
+
+async function logActivity(action, target, detail) {
+  try {
+    await sb.from('activity_logs').insert({
+      user_id: currentUser?.id,
+      user_name: currentUser?.name || currentUser?.email || '알 수 없음',
+      action,
+      target: target || null,
+      detail: detail || null
+    });
+  } catch(e) { console.log('log error:', e); }
+}
+
+async function loadActivityLogs() {
+  const el = document.getElementById('activityLogList');
+  if (!el) return;
+  el.innerHTML = '<div style="text-align:center;padding:20px;color:var(--light);">불러오는 중...</div>';
+
+  const filterAction = document.getElementById('logFilterAction')?.value || '';
+  let query = sb.from('activity_logs').select('*').order('created_at', { ascending: false }).limit(100);
+  if (filterAction) query = query.eq('action', filterAction);
+
+  const { data, error } = await query;
+  if (error || !data?.length) {
+    el.innerHTML = '<div style="text-align:center;padding:30px;color:var(--light);font-size:13px;">아직 기록이 없어요</div>';
+    return;
+  }
+
+  const ACTION_COLOR = {
+    '로그인':    { bg:'#EFF6FF', color:'#1D4ED8' },
+    '악보 추가': { bg:'#DCFCE7', color:'#166534' },
+    '악보 수정': { bg:'#FEF3C7', color:'#92400E' },
+    '악보 삭제': { bg:'#FEE2E2', color:'#DC2626' },
+    '콘티 등록': { bg:'var(--olive-bg)', color:'var(--olive-d)' },
+    '역할 변경': { bg:'#EDE9FE', color:'#5B21B6' },
+  };
+
+  el.innerHTML = data.map(log => {
+    const date = new Date(log.created_at).toLocaleDateString('ko-KR', { month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' });
+    const ac = ACTION_COLOR[log.action] || { bg:'var(--cream)', color:'var(--muted)' };
+    return `<div style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;background:var(--card);border:1px solid var(--border);border-radius:10px;">
+      <span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:8px;background:${ac.bg};color:${ac.color};white-space:nowrap;flex-shrink:0;">${log.action}</span>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:12px;font-weight:600;color:var(--text);">${log.user_name||'알 수 없음'} <span style="font-weight:400;color:var(--muted);">${log.target?'→ '+log.target:''}</span></div>
+        ${log.detail?`<div style="font-size:11px;color:var(--muted);margin-top:2px;">${log.detail}</div>`:''}
+      </div>
+      <div style="font-size:10px;color:var(--light);white-space:nowrap;flex-shrink:0;">${date}</div>
+    </div>`;
+  }).join('');
+}
+
 async function renderMembers() {
   const el=document.getElementById('memberList');
   if(!el)return;
@@ -3941,6 +4050,7 @@ async function changeMemberRole(id, newRole) {
       is_read: false
     });
   } catch(e) { console.log('notif error:', e); }
+  logActivity('역할 변경', `ID:${id}`, getRoleLabel(newRole)+'으로 변경');
   renderMembers();
   showToast('권한이 변경됐어요: ' + getRoleLabel(newRole));
 }
