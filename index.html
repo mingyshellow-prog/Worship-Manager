@@ -4420,15 +4420,15 @@ async function renderSuggestions() {
             <span style="font-size:10px;font-weight:600;padding:1px 7px;border-radius:8px;background:${st.bg};color:${st.color};">${st.label}</span>
           </div>
         </div>
-        <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0;align-items:flex-end;">
+        <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0;align-items:flex-end;min-width:100px;">
           ${isAdmin()?`
-            <select onchange="setSuggStatus('${s.id}',this.value)" style="font-size:11px;padding:4px 8px;border-radius:8px;border:1px solid var(--border);background:${s.status==='done'?'#DCFCE7':s.status==='in_progress'?'#FEF3C7':'var(--olive-bg)'};color:${s.status==='done'?'#166534':s.status==='in_progress'?'#92400E':'var(--olive-d)'};cursor:pointer;font-weight:600;">
-              <option value="pending" ${s.status==='pending'?'selected':''}>💬 대기중</option>
-              <option value="in_progress" ${s.status==='in_progress'?'selected':''}>⏳ 진행중</option>
-              <option value="done" ${s.status==='done'?'selected':''}>✅ 배포완료</option>
-            </select>
+            <div style="display:flex;flex-direction:column;gap:3px;width:100%;">
+              <button onclick="setSuggStatus('${s.id}','pending')" style="font-size:10px;padding:3px 8px;border-radius:6px;border:1px solid ${s.status==='pending'?'var(--olive)':'var(--border)'};background:${s.status==='pending'?'var(--olive-bg)':'transparent'};color:${s.status==='pending'?'var(--olive-d)':'var(--light)'};cursor:pointer;font-weight:${s.status==='pending'?'700':'400'};text-align:left;">💬 대기중</button>
+              <button onclick="setSuggStatus('${s.id}','in_progress')" style="font-size:10px;padding:3px 8px;border-radius:6px;border:1px solid ${s.status==='in_progress'?'#FCD34D':'var(--border)'};background:${s.status==='in_progress'?'#FEF3C7':'transparent'};color:${s.status==='in_progress'?'#92400E':'var(--light)'};cursor:pointer;font-weight:${s.status==='in_progress'?'700':'400'};text-align:left;">⏳ 진행중</button>
+              <button onclick="setSuggStatus('${s.id}','done')" style="font-size:10px;padding:3px 8px;border-radius:6px;border:1px solid ${s.status==='done'?'#86EFAC':'var(--border)'};background:${s.status==='done'?'#DCFCE7':'transparent'};color:${s.status==='done'?'#166534':'var(--light)'};cursor:pointer;font-weight:${s.status==='done'?'700':'400'};text-align:left;">✅ 배포완료</button>
+            </div>
           `:`<span style="font-size:10px;font-weight:600;padding:3px 9px;border-radius:8px;background:${s.status==='done'?'#DCFCE7':s.status==='in_progress'?'#FEF3C7':'var(--olive-bg)'};color:${s.status==='done'?'#166534':s.status==='in_progress'?'#92400E':'var(--olive-d)'};">${s.status==='done'?'✅ 배포완료':s.status==='in_progress'?'⏳ 진행중':'💬 대기중'}</span>`}
-          <button onclick="toggleSuggReply('${s.id}')" style="font-size:11px;color:#fff;background:var(--olive);border:none;border-radius:8px;cursor:pointer;padding:4px 10px;font-weight:600;">💬 댓글 ${rc}개</button>
+          <button onclick="toggleSuggReply('${s.id}')" style="font-size:11px;color:#fff;background:var(--olive);border:none;border-radius:8px;cursor:pointer;padding:5px 10px;font-weight:600;width:100%;">💬 댓글 ${rc}개</button>
         </div>
       </div>
       <!-- 댓글 영역 -->
