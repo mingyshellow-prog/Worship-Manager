@@ -1167,11 +1167,16 @@ nav{flex:1;padding:4px 8px;overflow-y:auto;}
 <div class="modal-bg" id="addScoreModal" onclick="bgClose(event,'addScoreModal')">
   <div class="modal-box">
     <div class="modal-header"><div class="modal-title" id="addScoreModalTitle">🎵 악보 추가</div><button class="modal-close" onclick="closeModal('addScoreModal')">✕</button></div>
-    <div class="form-group"><label class="form-label">악보 파일 선택</label>
-      <div style="display:flex;gap:8px;align-items:center;">
+    <div class="form-group"><label class="form-label">악보 파일 선택 <span style="font-size:11px;color:var(--light);">(최대 2개, 각 10MB)</span></label>
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:6px;">
         <input class="form-input" id="scoreFileName" readonly placeholder="파일을 선택해주세요..." style="cursor:pointer;" onclick="document.getElementById('scoreFileInput').click()"/>
         <button class="btn" onclick="document.getElementById('scoreFileInput').click()">📂 찾기</button>
         <input type="file" id="scoreFileInput" accept=".png,.jpg,.jpeg,.pdf" style="display:none;" onchange="handleScoreFile(this)"/>
+      </div>
+      <div id="scoreFile2Wrap" style="display:flex;gap:8px;align-items:center;">
+        <input class="form-input" id="scoreFileName2" readonly placeholder="두 번째 파일 (선택사항)..." style="cursor:pointer;font-size:12px;" onclick="document.getElementById('scoreFileInput2').click()"/>
+        <button class="btn" style="font-size:11px;padding:6px 10px;white-space:nowrap;" onclick="document.getElementById('scoreFileInput2').click()">📂 2번째</button>
+        <input type="file" id="scoreFileInput2" accept=".png,.jpg,.jpeg,.pdf" style="display:none;" onchange="handleScoreFile2(this)"/>
       </div>
     </div>
     <div class="form-row">
@@ -2359,6 +2364,8 @@ function openAddScore() {
   document.getElementById('scoreRef').value='';
   document.getElementById('scoreMemo').value='';
   window._pendingScoreFile = null;
+  window._pendingScoreFile2 = null;
+  document.getElementById('scoreFileName2').value = '';
   openModal('addScoreModal');
 }
 
@@ -2377,6 +2384,29 @@ function openEditScore(id) {
   document.getElementById('scoreMemo').value = s.memo || '';
   window._pendingScoreFile = null; // 새 파일 선택 시 교체, 아니면 기존 유지
   openModal('addScoreModal');
+}
+
+function handleScoreFile2(input) {
+  const file = input.files[0];
+  if (!file) return;
+  if (file.size > 10 * 1024 * 1024) {
+    showToast('두 번째 파일이 10MB를 초과해요.');
+    input.value = '';
+    return;
+  }
+  const allowedExts = ['.png','.jpg','.jpeg','.pdf'];
+  const ext = file.name.toLowerCase().match(/\.[^.]+$/)?.[0] || '';
+  if (!allowedExts.includes(ext)) {
+    showToast('PNG, JPG, PDF 파일만 가능해요.');
+    input.value = '';
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = e => {
+    window._pendingScoreFile2 = { data: e.target.result, type: file.type||'image/jpeg', name: file.name };
+    document.getElementById('scoreFileName2').value = file.name;
+  };
+  reader.readAsDataURL(file);
 }
 
 function handleScoreFile(input) {
@@ -2465,11 +2495,29 @@ async function saveScore() {
     lastEdit: new Date().toISOString().split('T')[0]
   };
   scores.push(score);
-  saveData('wm_scores', scores);
-  await saveScoreToSupabase(score);
-  renderScores(); updateArtistFilter();
-  closeModal('addScoreModal');
-  showToast('악보가 추가되었습니다 🎵');
+  // 두 번째 파일이 있으면 같은 메타데이터로 추가 등록
+  if (window._pendingScoreFile2) {
+    const score2 = {
+      ...score,
+      id: 's' + (Date.now() + 1),
+      title: title + ' (2)',
+      file: window._pendingScoreFile2
+    };
+    scores.push(score2);
+    saveData('wm_scores', scores);
+    await saveScoreToSupabase(score);
+    await saveScoreToSupabase(score2);
+    window._pendingScoreFile2 = null;
+    renderScores(); updateArtistFilter();
+    closeModal('addScoreModal');
+    showToast('악보 2개가 추가되었습니다 🎵');
+  } else {
+    saveData('wm_scores', scores);
+    await saveScoreToSupabase(score);
+    renderScores(); updateArtistFilter();
+    closeModal('addScoreModal');
+    showToast('악보가 추가되었습니다 🎵');
+  }
 }
 
 function downloadScore(id) {
@@ -4302,14 +4350,35 @@ async function submitSuggestion() {
   if (!content) { showToast('내용을 입력해주세요'); return; }
   const cat = document.querySelector('input[name="suggCat"]:checked')?.value || 'etc';
   const isAnon = document.getElementById('suggAnon').checked;
-  const { error } = await sb.from('suggestions').insert({
+  const { data: inserted, error } = await sb.from('suggestions').insert({
     category: cat,
     content,
     is_anonymous: isAnon,
     author_name: isAnon ? '익명' : (currentUser?.name || '익명'),
     user_id: isAnon ? null : currentUser?.id
-  });
+  }).select().single();
   if (error) { showToast('제출 중 오류가 발생했습니다'); return; }
+
+  // 관리자/슈퍼관리자에게 알림 전송
+  try {
+    const catLabel = {feature:'기능 요청', bug:'버그 신고', suggestion:'건의사항', etc:'기타'}[cat] || '의견';
+    const authorLabel = isAnon ? '익명' : (currentUser?.name || '익명');
+    const { data: admins } = await sb.from('profiles')
+      .select('id').in('role', ['super_admin', 'admin']);
+    if (admins?.length) {
+      await sb.from('notifications').insert(
+        admins.map(a => ({
+          user_id: a.id,
+          type: 'suggestion',
+          title: `📮 새 신문고 글이 올라왔어요!`,
+          body: `[${catLabel}] ${authorLabel}: ${content.slice(0,40)}${content.length>40?'...':''}`,
+          data: { suggestion_id: inserted?.id },
+          is_read: false
+        }))
+      );
+    }
+  } catch(e) { console.log('sugg notif error:', e); }
+
   closeModal('suggestionModal');
   showToast('의견이 제출되었습니다! 감사합니다 🙏');
   renderSuggestions();
@@ -4330,7 +4399,12 @@ async function renderSuggestions() {
   (replies||[]).forEach(r => { replyCounts[r.suggestion_id] = (replyCounts[r.suggestion_id]||0)+1; });
 
   const CAT = { feature:'🚀', bug:'🐛', suggestion:'💡', etc:'📝' };
-  const STATUS = { pending:{label:'검토중',bg:'#FEF3C7',color:'#92400E'}, done:{label:'완료',bg:'#F0FDF4',color:'#166534'}, rejected:{label:'보류',bg:'#FEE2E2',color:'#CC2200'} };
+  const STATUS = {
+    pending:     {label:'💬 대기중', bg:'var(--olive-bg)', color:'var(--olive-d)'},
+    in_progress: {label:'⏳ 진행중', bg:'#FEF3C7', color:'#92400E'},
+    done:        {label:'✅ 배포완료', bg:'#DCFCE7', color:'#166534'},
+    rejected:    {label:'보류', bg:'#FEE2E2', color:'#CC2200'}
+  };
   el.innerHTML = data.map(s => {
     const st = STATUS[s.status] || STATUS.pending;
     const date = new Date(s.created_at).toLocaleDateString('ko-KR', {month:'short', day:'numeric', hour:'2-digit', minute:'2-digit'});
@@ -4347,7 +4421,13 @@ async function renderSuggestions() {
           </div>
         </div>
         <div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0;align-items:flex-end;">
-          ${isAdmin()&&s.status==='pending'?`<button class="btn btn-sm" onclick="resolveSuggestion('${s.id}')" style="font-size:10px;padding:2px 8px;">✓ 완료</button>`:''}
+          ${isAdmin()?`
+            <div style="display:flex;gap:4px;">
+              ${s.status==='pending'?`<button class="btn btn-sm" onclick="setSuggStatus('${s.id}','in_progress')" style="font-size:10px;padding:2px 8px;background:#FEF3C7;color:#92400E;border-color:#FCD34D;">⏳ 진행중</button>`:''}
+              ${s.status==='in_progress'?`<button class="btn btn-sm" onclick="setSuggStatus('${s.id}','done')" style="font-size:10px;padding:2px 8px;background:#DCFCE7;color:#166534;border-color:#86EFAC;">✅ 배포완료</button>`:''}
+              ${s.status==='done'?`<button class="btn btn-sm" onclick="setSuggStatus('${s.id}','pending')" style="font-size:10px;padding:2px 8px;">↩️ 재오픈</button>`:''}
+            </div>
+          `:''}
           <button onclick="toggleSuggReply('${s.id}')" style="font-size:10px;color:var(--olive);background:none;border:none;cursor:pointer;padding:2px 4px;">💬 ${rc}개</button>
         </div>
       </div>
@@ -4399,21 +4479,64 @@ async function submitReply(suggId) {
   const input = document.getElementById(`replyInput_${suggId}`);
   const content = input?.value.trim();
   if (!content) return;
+
   await sb.from('suggestion_replies').insert({
     suggestion_id: suggId,
     content,
     author_name: currentUser?.name || '익명',
     user_id: currentUser?.id || null
   });
+
+  // 알림 전송
+  try {
+    const authorName = currentUser?.name || '익명';
+    const preview = content.slice(0, 40) + (content.length > 40 ? '...' : '');
+    const notifTitle = `💬 ${authorName}님이 댓글을 달았어요`;
+    const notifBody = preview;
+
+    // 신문고 원글 작성자 가져오기
+    const { data: sugg } = await sb.from('suggestions')
+      .select('user_id, author_name, content').eq('id', suggId).single();
+
+    // 이 글에 댓글 단 사람들 가져오기 (본인 제외)
+    const { data: prevReplies } = await sb.from('suggestion_replies')
+      .select('user_id').eq('suggestion_id', suggId).not('user_id', 'is', null);
+
+    // 알림 받을 사람 목록 (중복 제거, 본인 제외)
+    const targets = new Set();
+    if (sugg?.user_id && sugg.user_id !== currentUser?.id) targets.add(sugg.user_id);
+    (prevReplies||[]).forEach(r => {
+      if (r.user_id && r.user_id !== currentUser?.id) targets.add(r.user_id);
+    });
+
+    if (targets.size > 0) {
+      await sb.from('notifications').insert(
+        [...targets].map(uid => ({
+          user_id: uid,
+          type: 'suggestion_reply',
+          title: notifTitle,
+          body: `신문고: "${(sugg?.content||'').slice(0,20)}..." → ${notifBody}`,
+          data: { suggestion_id: suggId },
+          is_read: false
+        }))
+      );
+    }
+  } catch(e) { console.log('reply notif error:', e); }
+
   input.value = '';
   await loadReplies(suggId);
   showToast('댓글이 등록됐어요 💬');
 }
 
 async function resolveSuggestion(id) {
-  await sb.from('suggestions').update({ status: 'done' }).eq('id', id);
+  await setSuggStatus(id, 'done');
+}
+
+async function setSuggStatus(id, status) {
+  await sb.from('suggestions').update({ status }).eq('id', id);
   renderSuggestions();
-  showToast('완료 처리되었습니다');
+  const labels = { pending:'대기중', in_progress:'진행중', done:'배포완료' };
+  showToast(`상태가 "${labels[status]||status}"(으)로 변경됐어요`);
 }
 
 // ════════════════════════════════════════════
@@ -4473,21 +4596,38 @@ async function migrateScoresToSupabase(localScores) {
 
 async function saveScoreToSupabase(score) {
   try {
+    // file_data 크기 체크 (Supabase 컬럼 한도: ~1MB base64)
+    const fileData = score.file?.data || null;
+    if (fileData && fileData.length > 1000000) {
+      showToast('⚠️ 파일이 너무 커요! 악보 파일만 저장하고 파일은 로컬에 보관돼요.');
+    }
     const { error } = await sb.from('scores').insert({
       id: score.id,
       title: score.title,
-      key: score.key,
-      artist: score.artist,
-      yt: score.yt,
-      ref: score.ref,
-      memo: score.memo,
-      file_data: score.file?.data || null,
+      key: score.key || '',
+      artist: score.artist || '',
+      yt: (score.yt && score.yt !== '-') ? score.yt : '',
+      ref: (score.ref && score.ref !== '-') ? score.ref : '',
+      memo: score.memo || '',
+      file_data: fileData,
       file_type: score.file?.type || null,
       last_edit: score.lastEdit,
       uploaded_by: currentUser?.id
     });
-    if (error) throw error;
-  } catch(e) { console.log('Score save error:', e); }
+    if (error) {
+      console.log('Score save error:', error);
+      if (error.code === '23505') {
+        showToast('이미 같은 ID의 악보가 있어요. 다시 시도해주세요.');
+      } else if (error.message?.includes('value too long')) {
+        showToast('⚠️ 파일이 너무 커요! 더 작은 파일을 사용해주세요.');
+      } else {
+        showToast('저장 중 오류: ' + (error.message||'알 수 없는 오류'));
+      }
+    }
+  } catch(e) {
+    console.log('Score save error:', e);
+    showToast('저장 중 오류가 발생했어요. 콘솔을 확인해주세요.');
+  }
 }
 
 async function deleteScoreFromSupabase(id) {
@@ -4808,6 +4948,7 @@ function esc(s){return (s||'').replace(/'/g,"\\'").replace(/"/g,'&quot;');}
               // 알림 타입별 이동
               if (n.type === 'assignment') showPage('weekly', null);
               else if (n.type === 'role_change') showPage('mypage', null);
+              else if (n.type === 'suggestion' || n.type === 'suggestion_reply') showPage('dashboard', null);
               else showPage('dashboard', null);
               this.close();
             };
