@@ -618,6 +618,7 @@ nav{flex:1;padding:4px 8px;overflow-y:auto;}
       <div class="page-header">
         <div><div class="page-title">악보 창고</div><div class="page-sub">악보를 관리합니다</div></div>
         <div style="display:flex;gap:8px;">
+          ${isAdmin()?`<button class="btn" onclick="openDuplicateChecker()">🔍 중복 검사</button>`:''}
           <button class="btn" onclick="downloadTemplate()">📄 Template</button>
           <button class="btn btn-primary" onclick="openAddScore()">＋ 악보 추가</button>
         </div>
@@ -1186,6 +1187,24 @@ nav{flex:1;padding:4px 8px;overflow-y:auto;}
     </div>
     <div id="wkSongList" style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px;"></div>
     <div class="modal-footer"><button class="btn" onclick="closeModal('weeklyModal')">취소</button><button class="btn btn-primary" onclick="saveWeekly()">✅ 등록</button></div>
+  </div>
+</div>
+
+<!-- 중복 악보 검사 모달 -->
+<div class="modal-bg" id="duplicateModal" onclick="bgClose(event,'duplicateModal')">
+  <div class="modal-box" style="max-width:600px;max-height:80vh;overflow-y:auto;">
+    <div class="modal-header">
+      <div class="modal-title">🔍 중복 악보 검사</div>
+      <button class="modal-close" onclick="closeModal('duplicateModal')">✕</button>
+    </div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:16px;line-height:1.7;">
+      <strong>제목 + Key가 완전히 같은 것</strong>만 중복으로 표시해요.<br>
+      같은 제목이라도 Key가 다르면 중복이 아니에요.
+    </div>
+    <div id="duplicateList" style="display:flex;flex-direction:column;gap:10px;"></div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('duplicateModal')">닫기</button>
+    </div>
   </div>
 </div>
 
@@ -2615,7 +2634,7 @@ function renderScores(resetPage) {
         <button class="link-btn score btn-sm" onclick="viewScore('${s.id}')">악보</button>
         ${s.file?`<button class="btn btn-sm" onclick="downloadScore('${s.id}')">⬇️</button>`:''}
         ${isAdmin()?`<button class="btn btn-sm" onclick="openEditScore('${s.id}')">✏️</button>`:''}
-        ${isAdmin()?`<button class="btn btn-danger btn-sm" onclick="deleteScore('${s.id}')">삭제</button>`:''}
+        ${(isAdmin() || s.uploadedBy === currentUser?.id)?`<button class="btn btn-danger btn-sm" onclick="deleteScore('${s.id}')">삭제</button>`:''}
       </div>
     </div>`).join('');
 
@@ -2703,12 +2722,77 @@ function toggleScoreFullscreen() {
 }
 
 function deleteScore(id) {
-  if (!confirm('삭제할까요?')) return;
-  scores = scores.filter(s=>s.id!==id);
+  const s = scores.find(x=>x.id===id);
+  // 권한 체크: 관리자 또는 본인이 올린 악보
+  if (!isAdmin() && s?.uploadedBy !== currentUser?.id) {
+    showToast('본인이 올린 악보만 삭제할 수 있어요'); return;
+  }
+  if (!confirm(`"${s?.title||'이 악보'}"를 삭제할까요?`)) return;
+  if (s) logActivity('악보 삭제', s.title, `Key: ${s.key||'-'}`);
+  scores = scores.filter(x=>x.id!==id);
   saveData('wm_scores', scores);
   deleteScoreFromSupabase(id);
   renderScores(); updateArtistFilter();
   showToast('삭제되었습니다');
+}
+
+function openDuplicateChecker() {
+  const el = document.getElementById('duplicateList');
+  if (!el) return;
+
+  // 제목 + Key 기준으로 그룹핑
+  const groups = {};
+  scores.forEach(s => {
+    const key = `${s.title.trim().toLowerCase()}__${(s.key||'').trim().toLowerCase()}`;
+    if (!groups[key]) groups[key] = [];
+    groups[key].push(s);
+  });
+
+  // 중복(2개 이상)인 그룹만 필터
+  const duplicates = Object.values(groups).filter(g => g.length > 1);
+
+  if (!duplicates.length) {
+    el.innerHTML = `<div style="text-align:center;padding:30px;color:var(--light);">
+      <div style="font-size:32px;margin-bottom:8px;">✅</div>
+      <div style="font-size:14px;font-weight:600;">중복 악보가 없어요!</div>
+    </div>`;
+    openModal('duplicateModal');
+    return;
+  }
+
+  el.innerHTML = duplicates.map(group => `
+    <div style="background:var(--cream);border:1px solid var(--border);border-radius:12px;padding:14px;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+        <span style="font-size:13px;font-weight:700;color:var(--text);">${group[0].title}</span>
+        <span style="font-size:11px;background:#FEF3C7;color:#92400E;padding:2px 8px;border-radius:8px;font-weight:600;">Key ${group[0].key||'-'}</span>
+        <span style="font-size:11px;background:#FEE2E2;color:#DC2626;padding:2px 8px;border-radius:8px;font-weight:600;">${group.length}개 중복</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px;">
+        ${group.map((s, i) => `
+          <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:white;border-radius:8px;border:1px solid var(--border);">
+            <span style="font-size:11px;color:var(--light);width:20px;">${i+1}</span>
+            <div style="flex:1;">
+              <div style="font-size:12px;font-weight:600;">${s.title} ${s.file?.type==='application/pdf'?'<span style="font-size:10px;background:#FEE2E2;color:#CC2200;padding:1px 5px;border-radius:4px;">PDF</span>':'<span style="font-size:10px;background:var(--olive-bg);color:var(--olive-d);padding:1px 5px;border-radius:4px;">IMG</span>'}</div>
+              <div style="font-size:11px;color:var(--light);">${s.artist||'-'} · ${s.lastEdit||'-'}</div>
+            </div>
+            ${i > 0 ? `<button class="btn btn-danger btn-sm" style="font-size:11px;" onclick="deleteDuplicate('${s.id}')">🗑️ 삭제</button>` : `<span style="font-size:10px;color:var(--olive-d);font-weight:600;padding:2px 8px;">✅ 유지</span>`}
+          </div>`).join('')}
+      </div>
+    </div>`).join('');
+
+  openModal('duplicateModal');
+}
+
+function deleteDuplicate(id) {
+  const s = scores.find(x=>x.id===id);
+  if (!confirm(`"${s?.title||'이 악보'}"를 삭제할까요?`)) return;
+  if (s) logActivity('악보 삭제(중복)', s.title, `Key: ${s.key||'-'}`);
+  scores = scores.filter(x=>x.id!==id);
+  saveData('wm_scores', scores);
+  deleteScoreFromSupabase(id);
+  renderScores(); updateArtistFilter();
+  showToast('삭제됐어요');
+  openDuplicateChecker(); // 목록 갱신
 }
 
 function updateArtistFilter() {
@@ -4416,37 +4500,32 @@ function renderDevNote() {
   // 기본 Dev Note — 배포 시 자동 설정
   const DEFAULT_NOTE = {
     version: 'v0.7.23',
-    content: `🎉 v0.7.23 업데이트 (2026-05-09)
+    content: `📱 v0.7.23 업데이트 (2026-05-10)
 
-👑 역할 4단계 도입
-슈퍼관리자 / 관리자 / 워십리더 / 멤버로 세분화됐어요. 역할별 권한이 다르고, 멤버 관리에서 드롭다운으로 변경 가능해요. 역할 변경 시 앱 알림도 자동 전송돼요.
+👑 역할 4단계
+슈퍼관리자 · 관리자 · 워십리더 · 멤버로 권한이 나뉘어요.
+멤버 관리에서 역할 변경 가능하고, 변경 시 본인에게 알림이 가요.
 
-📤 콘티 할당 개선
-주차 등록 직후 "바로 할당할까요?" 팝업이 뜨고, 주차 카드 상단에 📤 할당 버튼이 항상 보여요. 이름 검색 + 전체선택 기능도 추가됐어요. 할당받은 주차엔 🎵 나에게 할당됨 뱃지가 표시돼요.
+🎵 악보 창고
+✏️ 수정 버튼 추가 / 파일 2개 동시 업로드 / 15개씩 페이지 나눔
+악보 뷰어 상단 ▶ 유튜브 버튼 추가
 
-🎵 악보 창고 개선
-✏️ 수정 버튼 추가 — 제목·Key·아티스트·유튜브·메모 수정 가능해요. 악보 뷰어 상단에 ▶ 유튜브 버튼도 추가됐어요. 파일 크기 제한 10MB로 완화했어요.
+📅 콘티 할당
+주차 등록 후 바로 할당 팝업 / 카드 상단 📤 버튼
+할당받은 주차에 🎵 나에게 할당됨 뱃지 표시
 
-🔮 찬양 추천기 개선
-모음집·메들리·설교 영상 완전 차단, 위러브·예수전도단·어노인팅 등 유명 찬양팀 상단 우선 표시, ⭐ 유명 찬양팀 뱃지도 추가됐어요.
+📮 교회 신문고
+상태 변경 (대기중 → 진행중 → 배포완료)
+댓글 기능 / 새 글·댓글 시 관리자 자동 알림
 
-🏠 대시보드 역할 안내 카드
-로그인 후 내 역할에 맞는 권한 안내와 바로가기 버튼이 자동으로 표시돼요.
+📋 활동 로그
+멤버 관리 → 활동 로그 탭 (슈퍼관리자 전용)
+악보 추가·삭제·임포트·콘티 등록 시 알림 전송
 
-📖 사용 가이드
-사이드바 📖 버튼 또는 모바일 더보기에서 역할별 기능 안내를 확인할 수 있어요.
-
-🔔 알림 클릭 이동
-콘티 할당 알림 클릭 → 주차별 찬양으로 이동, 역할 변경 알림 → 마이페이지로 이동해요.
-
-🐛 버그 수정
-로그인 엔터키, 모바일 로그아웃 버튼, 악보 모바일 X버튼, 유튜브 링크 '-' 오류 등 다수 수정
-
-📋 예정 작업
-• 커스텀 도메인 연결 (연 1~3만원, 가비아·Namecheap 등)
-• 주차별 찬양 Supabase 연동 (현재 로컬스토리지)
-• assignments 테이블 Supabase 연동`,
-    updatedAt: '2026-05-09'
+⚠️ 알아두기
+주차별 찬양은 이 기기에만 저장돼요 (Supabase 연동 예정)
+찬양 추천기는 Gemini API 한도 초과 시 잠시 후 재시도하세요`,
+    updatedAt: '2026-05-10'
   };
 
   let note = JSON.parse(localStorage.getItem('wm_devnote')||'null');
