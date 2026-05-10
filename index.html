@@ -3971,6 +3971,28 @@ async function logActivity(action, target, detail) {
       target: target || null,
       detail: detail || null
     });
+
+    // 슈퍼관리자에게 알림 전송 (본인 제외)
+    const notifyActions = ['악보 추가', '악보 삭제', '일괄 임포트', '콘티 등록'];
+    if (notifyActions.includes(action)) {
+      const { data: supers } = await sb.from('profiles')
+        .select('id')
+        .eq('role', 'super_admin')
+        .neq('id', currentUser?.id);
+      if (supers?.length) {
+        const ACTION_EMOJI = { '악보 추가':'🎵', '악보 삭제':'🗑️', '일괄 임포트':'📦', '콘티 등록':'📅' };
+        await sb.from('notifications').insert(
+          supers.map(u => ({
+            user_id: u.id,
+            type: 'activity',
+            title: `${ACTION_EMOJI[action]||'📋'} ${currentUser?.name||'누군가'}님이 ${action}했어요`,
+            body: target ? `${target}${detail?' · '+detail:''}` : (detail||''),
+            data: { action },
+            is_read: false
+          }))
+        );
+      }
+    }
   } catch(e) { console.log('log error:', e); }
 }
 
@@ -5184,6 +5206,7 @@ function esc(s){return (s||'').replace(/'/g,"\\'").replace(/"/g,'&quot;');}
               if (n.type === 'assignment') showPage('weekly', null);
               else if (n.type === 'role_change') showPage('mypage', null);
               else if (n.type === 'suggestion' || n.type === 'suggestion_reply') showPage('dashboard', null);
+              else if (n.type === 'activity') { showPage('members', null); setTimeout(()=>switchMemberTab('logs'), 300); }
               else showPage('dashboard', null);
               this.close();
             };
