@@ -4420,15 +4420,15 @@ async function renderSuggestions() {
             <span style="font-size:10px;font-weight:600;padding:1px 7px;border-radius:8px;background:${st.bg};color:${st.color};">${st.label}</span>
           </div>
         </div>
-        <div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0;align-items:flex-end;">
+        <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0;align-items:flex-end;">
           ${isAdmin()?`
-            <div style="display:flex;gap:4px;">
-              ${s.status==='pending'?`<button class="btn btn-sm" onclick="setSuggStatus('${s.id}','in_progress')" style="font-size:10px;padding:2px 8px;background:#FEF3C7;color:#92400E;border-color:#FCD34D;">⏳ 진행중</button>`:''}
-              ${s.status==='in_progress'?`<button class="btn btn-sm" onclick="setSuggStatus('${s.id}','done')" style="font-size:10px;padding:2px 8px;background:#DCFCE7;color:#166534;border-color:#86EFAC;">✅ 배포완료</button>`:''}
-              ${s.status==='done'?`<button class="btn btn-sm" onclick="setSuggStatus('${s.id}','pending')" style="font-size:10px;padding:2px 8px;">↩️ 재오픈</button>`:''}
+            <div style="display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end;">
+              ${s.status==='pending'?`<button class="btn btn-sm" onclick="setSuggStatus('${s.id}','in_progress')" style="font-size:11px;padding:4px 10px;background:#FEF3C7;color:#92400E;border-color:#FCD34D;">⏳ 진행중으로</button>`:''}
+              ${s.status==='in_progress'?`<button class="btn btn-sm" onclick="setSuggStatus('${s.id}','done')" style="font-size:11px;padding:4px 10px;background:#DCFCE7;color:#166534;border-color:#86EFAC;">✅ 배포완료</button>`:''}
+              ${s.status==='done'?`<button class="btn btn-sm" onclick="setSuggStatus('${s.id}','pending')" style="font-size:11px;padding:4px 10px;">↩️ 재오픈</button>`:''}
             </div>
           `:''}
-          <button onclick="toggleSuggReply('${s.id}')" style="font-size:10px;color:var(--olive);background:none;border:none;cursor:pointer;padding:2px 4px;">💬 ${rc}개</button>
+          <button onclick="toggleSuggReply('${s.id}')" style="font-size:11px;color:#fff;background:var(--olive);border:none;border-radius:8px;cursor:pointer;padding:4px 10px;font-weight:600;">💬 댓글 ${rc}개</button>
         </div>
       </div>
       <!-- 댓글 영역 -->
