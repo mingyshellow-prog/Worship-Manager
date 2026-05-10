@@ -618,7 +618,7 @@ nav{flex:1;padding:4px 8px;overflow-y:auto;}
       <div class="page-header">
         <div><div class="page-title">악보 창고</div><div class="page-sub">악보를 관리합니다</div></div>
         <div style="display:flex;gap:8px;">
-          ${isAdmin()?`<button class="btn" onclick="openDuplicateChecker()">🔍 중복 검사</button>`:''}
+          <button class="btn" id="duplicateBtn" onclick="openDuplicateChecker()" style="display:none;">🔍 중복 검사</button>
           <button class="btn" onclick="downloadTemplate()">📄 Template</button>
           <button class="btn btn-primary" onclick="openAddScore()">＋ 악보 추가</button>
         </div>
@@ -1448,23 +1448,30 @@ nav{flex:1;padding:4px 8px;overflow-y:auto;}
     <div style="margin-bottom:20px;">
       <div style="font-size:12px;font-weight:700;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:10px;">📱 주요 기능</div>
       <div style="display:flex;flex-direction:column;gap:8px;">
-        ${[
-          {icon:'🏠', name:'대시보드', desc:'전달사항, D-Day, 이번주 콘티, 통계, 신문고, 역할 안내'},
-          {icon:'📅', name:'주차별 찬양', desc:'콘티 등록·조회, PDF 다운로드, 팀원 할당, View Mode'},
-          {icon:'🎵', name:'악보 창고', desc:'PDF/이미지 업로드, 전체 공유, Key·아티스트 관리, 수정'},
-          {icon:'📂', name:'Playlist', desc:'나만의 폴더에 악보·유튜브 모아두기'},
-          {icon:'✍️', name:'빠른 콘티 짜기', desc:'악보창고에서 선택해 임시 콘티 구성 (관리자↑)'},
-          {icon:'🔮', name:'찬양 추천기', desc:'성경 구절 → Gemini AI 해석 → 악보·유튜브 자동 추천'},
-          {icon:'🎓', name:'찬양 배움터', desc:'유튜브 임베드로 새 찬양 연습, 신곡·연습중·준비완료 상태'},
-          {icon:'📋', name:'악보 합치기', desc:'두 악보를 합쳐 PDF 출력 (굿노트/노타빌리티 활용)'},
-        ].map(f=>`
-          <div style="display:flex;gap:10px;padding:10px;border:1px solid var(--border);border-radius:10px;cursor:pointer;" onclick="this.querySelector('.guide-desc').style.display=this.querySelector('.guide-desc').style.display==='none'?'block':'none'">
-            <span style="font-size:20px;flex-shrink:0;">${f.icon}</span>
-            <div style="flex:1;">
-              <div style="font-size:13px;font-weight:700;">${f.name}</div>
-              <div class="guide-desc" style="font-size:12px;color:var(--muted);margin-top:4px;">${f.desc}</div>
-            </div>
-          </div>`).join('')}
+        <div style="display:flex;gap:10px;padding:10px;border:1px solid var(--border);border-radius:10px;cursor:pointer;" onclick="showPage('dashboard',null);closeModal('guideModal')">
+          <span style="font-size:20px;flex-shrink:0;">🏠</span>
+          <div style="flex:1;"><div style="font-size:13px;font-weight:700;">대시보드</div><div style="font-size:12px;color:var(--muted);margin-top:4px;">전달사항, D-Day, 이번주 콘티, 통계, 신문고, 역할 안내 →</div></div>
+        </div>
+        <div style="display:flex;gap:10px;padding:10px;border:1px solid var(--border);border-radius:10px;cursor:pointer;" onclick="showPage('weekly',null);closeModal('guideModal')">
+          <span style="font-size:20px;flex-shrink:0;">📅</span>
+          <div style="flex:1;"><div style="font-size:13px;font-weight:700;">주차별 찬양</div><div style="font-size:12px;color:var(--muted);margin-top:4px;">콘티 등록·조회, PDF 다운로드, 팀원 할당, View Mode →</div></div>
+        </div>
+        <div style="display:flex;gap:10px;padding:10px;border:1px solid var(--border);border-radius:10px;cursor:pointer;" onclick="showPage('library',null);closeModal('guideModal')">
+          <span style="font-size:20px;flex-shrink:0;">🎵</span>
+          <div style="flex:1;"><div style="font-size:13px;font-weight:700;">악보 창고</div><div style="font-size:12px;color:var(--muted);margin-top:4px;">PDF/이미지 업로드, 전체 공유, Key·아티스트 관리, 수정 →</div></div>
+        </div>
+        <div style="display:flex;gap:10px;padding:10px;border:1px solid var(--border);border-radius:10px;cursor:pointer;" onclick="showPage('recommend',null);closeModal('guideModal')">
+          <span style="font-size:20px;flex-shrink:0;">🔮</span>
+          <div style="flex:1;"><div style="font-size:13px;font-weight:700;">찬양 추천기</div><div style="font-size:12px;color:var(--muted);margin-top:4px;">성경 구절 → Gemini AI 해석 → 악보·유튜브 자동 추천 →</div></div>
+        </div>
+        <div style="display:flex;gap:10px;padding:10px;border:1px solid var(--border);border-radius:10px;cursor:pointer;" onclick="showPage('learning',null);closeModal('guideModal')">
+          <span style="font-size:20px;flex-shrink:0;">🎓</span>
+          <div style="flex:1;"><div style="font-size:13px;font-weight:700;">찬양 배움터</div><div style="font-size:12px;color:var(--muted);margin-top:4px;">유튜브로 새 찬양 연습, 신곡·연습중·준비완료 상태 →</div></div>
+        </div>
+        <div style="display:flex;gap:10px;padding:10px;border:1px solid var(--border);border-radius:10px;cursor:pointer;" onclick="showPage('merge',null);closeModal('guideModal')">
+          <span style="font-size:20px;flex-shrink:0;">📋</span>
+          <div style="flex:1;"><div style="font-size:13px;font-weight:700;">악보 합치기</div><div style="font-size:12px;color:var(--muted);margin-top:4px;">두 악보를 합쳐 PDF 출력 (굿노트/노타빌리티 활용) →</div></div>
+        </div>
       </div>
     </div>
 
@@ -1985,10 +1992,14 @@ function updateUserUI() {
     document.getElementById('quickContiBtn').style.display = 'flex';
     document.getElementById('weeklyAddBtn').style.display = 'flex';
     document.getElementById('adminNavBtn').style.display = 'flex';
+    const dupBtn = document.getElementById('duplicateBtn');
+    if (dupBtn) dupBtn.style.display = 'flex';
   } else {
     document.getElementById('annEditBtn').style.display = 'none';
     document.getElementById('weeklyAddBtn').style.display = 'none';
     document.getElementById('adminNavBtn').style.display = 'none';
+    const dupBtn = document.getElementById('duplicateBtn');
+    if (dupBtn) dupBtn.style.display = 'none';
   }
   // mypage
   const ma = document.getElementById('myAvatar');
