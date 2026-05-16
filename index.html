@@ -10,7 +10,7 @@
 <meta name="mobile-web-app-capable" content="yes"/>
 <link rel="manifest" href="manifest.json"/>
 <link rel="apple-touch-icon" href="icon-192.png"/>
-<title>악보/콘티 매니저 — 함께하는교회 안성</title>
+<title>워십매니저</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=Noto+Serif+KR:wght@600;700&display=swap" rel="stylesheet"/>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
@@ -132,6 +132,7 @@ nav{flex:1;padding:4px 8px;overflow-y:auto;}
 .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--text);color:var(--cream);padding:10px 20px;border-radius:20px;font-size:13px;z-index:9000;opacity:0;transition:opacity .3s;pointer-events:none;}
 .toast.show{opacity:1;}
 @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+@keyframes onboardIn{from{opacity:0;transform:scale(0.85) translateY(20px)}to{opacity:1;transform:scale(1) translateY(0)}}
 
 /* ── UNIVERSAL HOVER LIFT ── */
 .week-card,.score-row,.coll-card,.member-row,.quick-btn,.conti-song-row{transition:transform .18s ease, box-shadow .18s ease, border-color .18s ease !important;}
@@ -361,8 +362,8 @@ nav{flex:1;padding:4px 8px;overflow-y:auto;}
       </div>
     </div>
 
-    <div style="font-family:'Noto Serif KR',serif;font-size:28px;font-weight:700;color:#fff;letter-spacing:2px;margin-bottom:8px;text-shadow:0 0 20px rgba(167,175,100,0.8);">함께하는교회</div>
-    <div style="font-size:13px;color:rgba(255,255,255,0.5);letter-spacing:3px;text-transform:uppercase;margin-bottom:4px;">안성</div>
+    <div id="introChurchName" style="font-family:'Noto Serif KR',serif;font-size:28px;font-weight:700;color:#fff;letter-spacing:2px;margin-bottom:8px;text-shadow:0 0 20px rgba(167,175,100,0.8);">워십매니저</div>
+    <div id="introChurchLocation" style="font-size:13px;color:rgba(255,255,255,0.5);letter-spacing:3px;text-transform:uppercase;margin-bottom:4px;"></div>
     <div style="font-size:11px;color:rgba(255,255,255,0.3);letter-spacing:4px;text-transform:uppercase;">Worship Team</div>
 
     <!-- 하단 라인 -->
@@ -403,7 +404,7 @@ nav{flex:1;padding:4px 8px;overflow-y:auto;}
 
     <!-- 교회 이름 -->
     <div style="text-align:center;">
-      <div style="font-family:'Noto Serif KR',serif;font-size:20px;font-weight:700;color:#fff;letter-spacing:1px;margin-bottom:4px;">함께하는교회</div>
+      <div id="splashChurchName" style="font-family:'Noto Serif KR',serif;font-size:20px;font-weight:700;color:#fff;letter-spacing:1px;margin-bottom:4px;">워십매니저</div>
       <div style="font-size:11px;color:rgba(255,255,255,0.45);letter-spacing:2px;text-transform:uppercase;">Worship Manager</div>
     </div>
 
@@ -423,10 +424,10 @@ nav{flex:1;padding:4px 8px;overflow-y:auto;}
 <!-- ══ LOGIN ══ -->
 <div class="login-screen" id="loginScreen">
   <!-- 숨겨진 BGM: 메이플스토리 수련의 숲 🍁 -->
-  <iframe id="loginBgm" src="https://www.youtube.com/embed/3QqPl-pBW14?autoplay=1&mute=0&loop=1&playlist=3QqPl-pBW14&controls=0" allow="autoplay" style="position:absolute;width:0;height:0;opacity:0;pointer-events:none;"></iframe>
+  <iframe id="loginBgm" src="" allow="autoplay" style="position:absolute;width:0;height:0;opacity:0;pointer-events:none;"></iframe>
   <!-- 배경 영상 -->
   <div class="login-video-bg">
-    <iframe src="https://www.youtube.com/embed/RktKsszS378?autoplay=1&mute=1&loop=1&playlist=RktKsszS378&controls=0&showinfo=0&rel=0&iv_load_policy=3&modestbranding=1" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+    <iframe id="loginBgVideo" src="" allow="autoplay; encrypted-media" allowfullscreen></iframe>
   </div>
   <div class="login-overlay"></div>
   <div class="login-box">
@@ -434,7 +435,7 @@ nav{flex:1;padding:4px 8px;overflow-y:auto;}
       <img src="logo.png" alt="로고" onerror="this.style.display='none';document.querySelector('.login-logo-fallback').style.display='flex'"/>
       <div class="login-logo-fallback" style="display:none;">🌿</div>
       <div>
-        <div class="login-title">함께하는교회</div>
+        <div class="login-title" id="loginChurchName">워십매니저</div>
         <div class="login-sub">악보/콘티 매니저</div>
       </div>
     </div>
@@ -460,9 +461,9 @@ nav{flex:1;padding:4px 8px;overflow-y:auto;}
           <div class="logo-img-wrap">
             <img src="logo.png" alt="로고" onerror="this.style.display='none'"/>
           </div>
-          <div class="logo-name">함께하는교회</div>
+          <div class="logo-name" id="sidebarChurchName">워십매니저</div>
         </div>
-        <div class="logo-tagline">세상을 하나님의 사랑으로 품는 · 안성</div>
+        <div class="logo-tagline" id="sidebarTagline"></div>
       </div>
       <div class="app-badge">악보 / 콘티 매니저</div>
       <nav>
@@ -920,6 +921,33 @@ nav{flex:1;padding:4px 8px;overflow-y:auto;}
           <div class="card-title">📝 악보별 메모</div>
           <div id="scoreMemoList"></div>
         </div>
+
+        <!-- 교회 정보 카드 -->
+        <div class="card" id="churchInfoCard" style="margin-top:14px;display:none;">
+          <div class="card-title">🏛️ 교회 정보</div>
+          <div id="churchInfoContent" style="font-size:13px;color:var(--muted);line-height:1.8;"></div>
+        </div>
+
+        <!-- 튜토리얼 & 도움말 카드 -->
+        <div class="card" style="margin-top:14px;">
+          <div class="card-title">❓ 도움말</div>
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            <button onclick="replayOnboarding()" style="display:flex;align-items:center;gap:10px;padding:11px 14px;border:1px solid var(--border);border-radius:10px;background:var(--cream);cursor:pointer;font-family:'Noto Sans KR',sans-serif;text-align:left;width:100%;">
+              <span style="font-size:20px;">🎓</span>
+              <div>
+                <div style="font-size:13px;font-weight:600;color:var(--text);">시작 튜토리얼 다시 보기</div>
+                <div style="font-size:11px;color:var(--light);margin-top:2px;">워십매니저 사용법을 단계별로 안내해요</div>
+              </div>
+            </button>
+            <button onclick="openModal('guideModal')" style="display:flex;align-items:center;gap:10px;padding:11px 14px;border:1px solid var(--border);border-radius:10px;background:var(--cream);cursor:pointer;font-family:'Noto Sans KR',sans-serif;text-align:left;width:100%;">
+              <span style="font-size:20px;">📖</span>
+              <div>
+                <div style="font-size:13px;font-weight:600;color:var(--text);">사용 가이드</div>
+                <div style="font-size:11px;color:var(--light);margin-top:2px;">전체 기능 사용법을 확인해요</div>
+              </div>
+            </button>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -979,7 +1007,6 @@ nav{flex:1;padding:4px 8px;overflow-y:auto;}
           <input class="search-input" type="text" placeholder="이름, 이메일 검색..." id="memberSearch" oninput="renderMembers()"/>
         </div>
         <div id="memberList"></div>
-      </div>
       </div>
     </div>
 
@@ -1756,6 +1783,7 @@ const BIBLE_VERSES = {
 // STATE
 // ════════════════════════════════════════════
 let currentUser = null;
+let currentChurch = null; // ← 현재 교회 정보 (멀티테넌트)
 let scores = [];
 let weeklyContis = [];
 let savedContis = [];
@@ -1910,6 +1938,58 @@ function getRoleBadgeClass(role) {
   }
 }
 // ════════════════════════════════════════════
+// ════════════════════════════════════════════
+// 교회 브랜딩 적용 (멀티테넌트)
+// ════════════════════════════════════════════
+function applyChurchBranding() {
+  const c = currentChurch;
+  const name = c?.name || '워십매니저';
+  const location = c?.location || '';
+  const tagline = c?.tagline ? `${c.tagline}${location ? ' · ' + location : ''}` : location;
+  const bgVideoId = c?.bg_video_id || '';
+  const bgmVideoId = c?.bgm_video_id || '';
+  const logoUrl = c?.logo_url || '';
+
+  // 페이지 타이틀
+  document.title = c ? `${name} — 워십매니저` : '워십매니저';
+
+  // 스플래시 & 인트로 교회명
+  const splashName = document.getElementById('splashChurchName');
+  if (splashName) splashName.textContent = name;
+  const introName = document.getElementById('introChurchName');
+  if (introName) introName.textContent = name;
+  const introLoc = document.getElementById('introChurchLocation');
+  if (introLoc) introLoc.textContent = location;
+
+  // 로그인 화면
+  const loginTitle = document.getElementById('loginChurchName');
+  if (loginTitle) loginTitle.textContent = name;
+
+  // 로그인 배경 영상
+  const bgVideo = document.getElementById('loginBgVideo');
+  if (bgVideo && bgVideoId) {
+    bgVideo.src = `https://www.youtube.com/embed/${bgVideoId}?autoplay=1&mute=1&loop=1&playlist=${bgVideoId}&controls=0&showinfo=0&rel=0&iv_load_policy=3&modestbranding=1`;
+  }
+  // 로그인 BGM
+  const bgm = document.getElementById('loginBgm');
+  if (bgm && bgmVideoId) {
+    bgm.src = `https://www.youtube.com/embed/${bgmVideoId}?autoplay=1&mute=0&loop=1&playlist=${bgmVideoId}&controls=0`;
+  }
+
+  // 사이드바 교회명/태그라인
+  const sidebarName = document.getElementById('sidebarChurchName');
+  if (sidebarName) sidebarName.textContent = name;
+  const sidebarTag = document.getElementById('sidebarTagline');
+  if (sidebarTag) sidebarTag.textContent = tagline;
+
+  // 로고 이미지 (있으면 적용)
+  if (logoUrl) {
+    document.querySelectorAll('.logo-img-wrap img, .login-logo img').forEach(img => {
+      img.src = logoUrl;
+    });
+  }
+}
+
 const SUPABASE_URL = 'https://uvyahitvpuvtwcejavqj.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV2eWFoaXR2cHV2dHdjZWphdnFqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgwNDQ2MTYsImV4cCI6MjA5MzYyMDYxNn0.1HAaTNyKRoJb5jRR30PUkFO9Eubh9Io6Gao02UFTkTQ';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -1942,6 +2022,8 @@ async function loginSuccess(sbUser) {
     sessions: profile?.sessions || [],
     wishes: profile?.wishes || [],
     memos: profile?.memos || {},
+    church_id: profile?.church_id || null,
+    onboarding_done: profile?.onboarding_done || false,
   };
   // last_login 업데이트 (존재하는 row만 update)
   if (profile) {
@@ -1955,6 +2037,15 @@ async function loginSuccess(sbUser) {
       last_login: new Date().toISOString(),
     });
   }
+
+  // ── 교회 정보 로드 (멀티테넌트)
+  if (currentUser.church_id) {
+    const { data: church } = await sb.from('churches').select('*').eq('id', currentUser.church_id).single();
+    currentChurch = church;
+  } else {
+    currentChurch = null;
+  }
+  applyChurchBranding();
   document.getElementById('loginScreen').style.display = 'none';
   // BGM 정지
   logActivity('로그인', null, `${currentUser?.email} 로그인`);
@@ -1969,6 +2060,10 @@ async function loginSuccess(sbUser) {
     restoreTab();
     checkNotifBadge();
     setTimeout(requestPushPermission, 3000);
+    // ── 온보딩 튜토리얼 (첫 로그인 유저)
+    if (!currentUser.onboarding_done) {
+      setTimeout(() => startOnboarding(), 800);
+    }
   });
 }
 
@@ -2049,6 +2144,7 @@ function updateUserUI() {
   renderWishes();
   renderScoreMemos();
   renderStats();
+  renderChurchInfo();
 }
 
 // ════════════════════════════════════════════
@@ -4453,7 +4549,7 @@ function downloadWeeklyPDF(wi) {
             <div class="song-meta">${date} · ${service}${s.key ? ' · Key ' + s.key : ''}</div>
           </div>
         </div>
-        <div class="church-badge">함께하는교회</div>
+        <div class="church-badge">${currentChurch?.name || '워십매니저'}</div>
       </div>
       <!-- 악보 콘텐츠 -->
       <div class="score-area">
@@ -4467,7 +4563,7 @@ function downloadWeeklyPDF(wi) {
     <div class="page cover-page">
       <div class="cover-content">
         <div class="cover-cross">✝</div>
-        <div class="cover-church">함께하는교회 안성</div>
+        <div class="cover-church">${currentChurch ? currentChurch.name + (currentChurch.location ? ' ' + currentChurch.location : '') : '워십매니저'}</div>
         <div class="cover-title">${service}</div>
         <div class="cover-date">${date}</div>
         <div class="cover-divider"></div>
@@ -4481,7 +4577,7 @@ function downloadWeeklyPDF(wi) {
         </div>
         ${memo ? `<div class="cover-memo">📝 ${memo}</div>` : ''}
       </div>
-      <div class="cover-footer">Worship Manager · 함께하는교회 안성 찬양팀</div>
+      <div class="cover-footer">Worship Manager · ${currentChurch ? currentChurch.name + (currentChurch.location ? ' ' + currentChurch.location : '') + ' 찬양팀' : '워십매니저'}</div>
     </div>`;
 
   const html = `<!DOCTYPE html>
@@ -4954,7 +5050,12 @@ function toggleSuggStatusMenu(id) {
 // ════════════════════════════════════════════
 async function loadScoresFromSupabase() {
   try {
-    const { data, error } = await sb.from('scores').select('*').order('created_at', { ascending: false });
+    let query = sb.from('scores').select('*').order('created_at', { ascending: false });
+    // ── 교회별 필터 (멀티테넌트)
+    if (currentUser?.church_id) {
+      query = query.eq('church_id', currentUser.church_id);
+    }
+    const { data, error } = await query;
     if (error) throw error;
     if (data?.length) {
       // Supabase 데이터를 로컬 형식으로 변환
@@ -5022,7 +5123,8 @@ async function saveScoreToSupabase(score) {
       file_data: fileData,
       file_type: score.file?.type || null,
       last_edit: score.lastEdit,
-      uploaded_by: currentUser?.id
+      uploaded_by: currentUser?.id,
+      church_id: currentUser?.church_id || null  // ← 멀티테넌트
     });
     if (error) {
       console.log('Score save error:', error);
@@ -5279,6 +5381,270 @@ function updateDday() {
 // ════════════════════════════════════════════
 // MODAL HELPERS
 // ════════════════════════════════════════════
+// ════════════════════════════════════════════
+// 교회 정보 렌더링 (마이페이지)
+// ════════════════════════════════════════════
+function renderChurchInfo() {
+  const card = document.getElementById('churchInfoCard');
+  const content = document.getElementById('churchInfoContent');
+  if (!card || !content) return;
+  if (!currentChurch) { card.style.display = 'none'; return; }
+  card.style.display = 'block';
+  const c = currentChurch;
+  content.innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:6px;">
+      <div style="display:flex;gap:8px;">
+        <span style="color:var(--light);min-width:60px;font-size:12px;">교회명</span>
+        <span style="font-weight:600;">${c.name}</span>
+      </div>
+      ${c.location ? `<div style="display:flex;gap:8px;"><span style="color:var(--light);min-width:60px;font-size:12px;">지역</span><span>${c.location}</span></div>` : ''}
+      ${c.tagline ? `<div style="display:flex;gap:8px;"><span style="color:var(--light);min-width:60px;font-size:12px;">소개</span><span>${c.tagline}</span></div>` : ''}
+      <div style="display:flex;gap:8px;">
+        <span style="color:var(--light);min-width:60px;font-size:12px;">요금제</span>
+        <span style="background:${c.plan==='pro'?'#EDE9FE':c.plan==='enterprise'?'#FEF3C7':'var(--olive-bg)'};color:${c.plan==='pro'?'#5B21B6':c.plan==='enterprise'?'#92400E':'var(--olive-d)'};padding:2px 8px;border-radius:8px;font-size:11px;font-weight:700;">
+          ${c.plan==='pro'?'⭐ Pro':c.plan==='enterprise'?'💎 Enterprise':'Free'}
+        </span>
+      </div>
+    </div>
+    ${isSuperAdmin() ? `<button onclick="openChurchEditor()" style="margin-top:12px;padding:7px 14px;border:1px solid var(--border);border-radius:8px;background:var(--white);font-size:12px;cursor:pointer;font-family:'Noto Sans KR',sans-serif;">⚙️ 교회 설정 편집</button>` : ''}
+  `;
+}
+
+// ── 슈퍼어드민: 교회 설정 편집
+async function openChurchEditor() {
+  if (!currentChurch) return;
+  const c = currentChurch;
+  const name = prompt('교회명:', c.name);
+  if (name === null) return;
+  const tagline = prompt('소개 문구:', c.tagline || '');
+  if (tagline === null) return;
+  const location = prompt('지역:', c.location || '');
+  if (location === null) return;
+  const bgVideoId = prompt('로그인 배경 유튜브 ID:', c.bg_video_id || '');
+  if (bgVideoId === null) return;
+  try {
+    const { error } = await sb.from('churches').update({
+      name: name.trim(),
+      tagline: tagline.trim(),
+      location: location.trim(),
+      bg_video_id: bgVideoId.trim(),
+      updated_at: new Date().toISOString()
+    }).eq('id', c.id);
+    if (error) throw error;
+    currentChurch = { ...currentChurch, name: name.trim(), tagline: tagline.trim(), location: location.trim(), bg_video_id: bgVideoId.trim() };
+    applyChurchBranding();
+    renderChurchInfo();
+    showToast('교회 설정이 저장됐어요 ✅');
+  } catch(e) {
+    showToast('저장 실패: ' + e.message);
+  }
+}
+
+// ── 슈퍼어드민: 전체 교회 목록 (멤버 관리 탭에서 사용)
+async function loadAllChurches() {
+  if (!isSuperAdmin()) return [];
+  const { data } = await sb.from('churches').select('*').order('created_at', { ascending: false });
+  return data || [];
+}
+
+// ════════════════════════════════════════════
+// 온보딩 튜토리얼 시스템
+// ════════════════════════════════════════════
+const ONBOARDING_STEPS = [
+  {
+    id: 'welcome',
+    title: '🙏 워십매니저에 오신 것을 환영해요!',
+    desc: '찬양팀을 위한 악보·콘티 관리 툴이에요.\n3분이면 기본 세팅이 완료돼요!',
+    target: null,
+    page: null,
+    position: 'center',
+    action: null,
+  },
+  {
+    id: 'library',
+    title: '🎵 Step 1 — 악보 창고 채우기',
+    desc: '가장 먼저 찬양팀이 자주 사용하는 악보를 등록해요.\nPDF나 이미지 파일을 올리고, 곡명·Key·아티스트를 입력하면 돼요.',
+    target: 'page-library',
+    page: 'library',
+    position: 'center',
+    action: { label: '+ 악보 추가 해보기', fn: 'openAddScore' },
+  },
+  {
+    id: 'conti',
+    title: '✍️ Step 2 — 콘티 짜기',
+    desc: '등록한 악보들로 이번 주 콘티를 구성해요.\n왼쪽에서 곡을 클릭하면 오른쪽 콘티에 추가돼요.',
+    target: 'page-conti',
+    page: 'conti',
+    position: 'center',
+    action: { label: '콘티 짜러 가기', fn: null },
+  },
+  {
+    id: 'weekly',
+    title: '📅 Step 3 — 주차 기록하기',
+    desc: '완성된 콘티를 날짜별로 저장해요.\n팀원들이 언제든 주차별 콘티를 확인할 수 있어요.',
+    target: 'page-weekly',
+    page: 'weekly',
+    position: 'center',
+    action: null,
+  },
+  {
+    id: 'members',
+    title: '👥 Step 4 — 팀원 초대하기',
+    desc: '관리자라면 팀원 계정을 만들어 함께 사용해요.\n멤버 관리 → 계정 생성에서 이메일·임시비밀번호를 생성할 수 있어요.',
+    target: null,
+    page: null,
+    position: 'center',
+    action: null,
+  },
+  {
+    id: 'done',
+    title: '✅ 준비 완료!',
+    desc: '이제 워십매니저를 자유롭게 사용해보세요 🎶\n궁금한 점은 대시보드 → 교회 신문고에 남겨주세요!',
+    target: null,
+    page: null,
+    position: 'center',
+    action: null,
+  },
+];
+
+let _onboardStep = 0;
+
+function startOnboarding() {
+  _onboardStep = 0;
+  renderOnboardingStep();
+}
+
+function renderOnboardingStep() {
+  // 기존 오버레이 제거
+  document.getElementById('onboardingOverlay')?.remove();
+
+  const step = ONBOARDING_STEPS[_onboardStep];
+  if (!step) return;
+
+  // 해당 페이지로 이동
+  if (step.page) showPage(step.page, null);
+
+  const isLast = _onboardStep === ONBOARDING_STEPS.length - 1;
+  const isFirst = _onboardStep === 0;
+
+  const overlay = document.createElement('div');
+  overlay.id = 'onboardingOverlay';
+  overlay.style.cssText = `
+    position:fixed;inset:0;z-index:9500;
+    background:rgba(0,0,0,0.6);
+    display:flex;align-items:center;justify-content:center;
+    backdrop-filter:blur(2px);
+  `;
+
+  overlay.innerHTML = `
+    <div style="
+      background:var(--white);border-radius:20px;
+      padding:32px 36px;max-width:440px;width:90%;
+      box-shadow:0 20px 60px rgba(0,0,0,0.3);
+      position:relative;animation:onboardIn .35s cubic-bezier(.34,1.56,.64,1);
+    ">
+      <!-- 진행 도트 -->
+      <div style="display:flex;gap:6px;justify-content:center;margin-bottom:20px;">
+        ${ONBOARDING_STEPS.map((_, i) => `
+          <div style="
+            width:${i === _onboardStep ? 20 : 8}px;height:8px;border-radius:4px;
+            background:${i === _onboardStep ? 'var(--olive)' : 'var(--border)'};
+            transition:all .3s;
+          "></div>`).join('')}
+      </div>
+
+      <!-- 내용 -->
+      <div style="text-align:center;margin-bottom:24px;">
+        <div style="font-family:'Noto Serif KR',serif;font-size:19px;font-weight:700;color:var(--text);margin-bottom:12px;line-height:1.4;">
+          ${step.title}
+        </div>
+        <div style="font-size:13px;color:var(--muted);line-height:1.85;white-space:pre-line;">
+          ${step.desc}
+        </div>
+      </div>
+
+      <!-- 액션 버튼 (있으면) -->
+      ${step.action ? `
+        <div style="text-align:center;margin-bottom:16px;">
+          <button onclick="${step.action.fn ? step.action.fn + '()' : ''};document.getElementById('onboardingOverlay').remove();"
+            style="padding:10px 20px;background:var(--olive);color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;font-family:'Noto Sans KR',sans-serif;">
+            ${step.action.label}
+          </button>
+        </div>` : ''}
+
+      <!-- 네비게이션 버튼 -->
+      <div style="display:flex;gap:10px;justify-content:center;">
+        ${!isFirst ? `
+          <button onclick="onboardPrev()"
+            style="padding:10px 20px;border:1px solid var(--border);border-radius:10px;background:var(--white);color:var(--muted);font-size:13px;cursor:pointer;font-family:'Noto Sans KR',sans-serif;">
+            ← 이전
+          </button>` : ''}
+        ${!isLast ? `
+          <button onclick="onboardNext()"
+            style="padding:10px 24px;background:var(--olive);color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;font-family:'Noto Sans KR',sans-serif;">
+            다음 →
+          </button>
+          <button onclick="skipOnboarding()"
+            style="padding:10px 16px;border:none;background:none;color:var(--light);font-size:12px;cursor:pointer;font-family:'Noto Sans KR',sans-serif;">
+            건너뛰기
+          </button>` : `
+          <button onclick="finishOnboarding()"
+            style="padding:10px 28px;background:var(--olive);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;font-family:'Noto Sans KR',sans-serif;">
+            시작하기 🎉
+          </button>`}
+      </div>
+
+      <!-- 단계 표시 -->
+      <div style="text-align:center;margin-top:14px;font-size:11px;color:var(--light);">
+        ${_onboardStep + 1} / ${ONBOARDING_STEPS.length}
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(overlay);
+}
+
+function onboardNext() {
+  if (_onboardStep < ONBOARDING_STEPS.length - 1) {
+    _onboardStep++;
+    renderOnboardingStep();
+  }
+}
+
+function onboardPrev() {
+  if (_onboardStep > 0) {
+    _onboardStep--;
+    renderOnboardingStep();
+  }
+}
+
+async function skipOnboarding() {
+  document.getElementById('onboardingOverlay')?.remove();
+  await markOnboardingDone();
+  showPage('dashboard', null);
+}
+
+async function finishOnboarding() {
+  document.getElementById('onboardingOverlay')?.remove();
+  await markOnboardingDone();
+  showPage('library', null);
+  showToast('🎉 환영해요! 악보부터 등록해볼까요?');
+}
+
+async function markOnboardingDone() {
+  if (!currentUser) return;
+  currentUser.onboarding_done = true;
+  try {
+    await sb.from('profiles').update({ onboarding_done: true }).eq('id', currentUser.id);
+  } catch(e) {}
+}
+
+// 튜토리얼 다시 보기 (마이페이지에서 호출)
+function replayOnboarding() {
+  currentUser.onboarding_done = false;
+  startOnboarding();
+}
+
 function openModal(id){document.getElementById(id).classList.add('open');}
 function closeModal(id){document.getElementById(id).classList.remove('open');}
 function bgClose(e,id){if(e.target===document.getElementById(id))closeModal(id);}
