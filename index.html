@@ -2992,8 +2992,7 @@ async function saveScore() {
       lastEdit: new Date().toISOString().split('T')[0]
     };
     scores[idx] = updated;
-    saveData('wm_scores', scores);
-    // Supabase upsert (없으면 insert, 있으면 update)
+    // Supabase upsert
     try {
       await sb.from('scores').upsert({
         id: updated.id,
@@ -3380,7 +3379,7 @@ function importData(input) {
   const file = input.files[0];
   if (!file) return;
   const reader = new FileReader();
-  reader.onload = e => {
+  reader.onload = async e => {
     try {
       const data = JSON.parse(e.target.result);
       if (!data.version) { showToast('올바른 백업 파일이 아닙니다'); return; }
@@ -5212,7 +5211,7 @@ async function submitSuggestion() {
 window._suggPage = window._suggPage || 1;
 const SUGG_PAGE_SIZE = 5;
 
-async function renderSuggestions(resetPage) {
+async async function renderSuggestions(resetPage) {
   if (resetPage) window._suggPage = 1;
   const el = document.getElementById('suggestionList');
   if (!el) return;
