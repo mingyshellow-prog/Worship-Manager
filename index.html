@@ -974,17 +974,21 @@ nav{flex:1;padding:4px 8px;overflow-y:auto;}
     <!-- ══ MEMBERS ══ -->
     <div id="page-members" class="page">
       <div class="page-header">
-        <div><div class="page-title">멤버 관리</div><div class="page-sub">팀원 계정을 관리합니다</div></div>
-        <button class="btn btn-primary" onclick="openCreateAccount()">＋ 계정 생성</button>
+        <div><div class="page-title" id="membersPageTitle">멤버 관리</div><div class="page-sub" id="membersPageSub">팀원 계정을 관리합니다</div></div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-primary" id="createAccountHeaderBtn" onclick="openCreateAccount()">＋ 계정 생성</button>
+          <button class="btn btn-primary" id="createChurchHeaderBtn" style="display:none;" onclick="openCreateChurchModal()">🏛️ 교회 생성</button>
+        </div>
       </div>
       <!-- 서브탭 -->
-      <div style="display:flex;gap:4px;margin-bottom:16px;border-bottom:2px solid var(--border);padding-bottom:0;">
+      <div style="display:flex;gap:4px;border-bottom:2px solid var(--border);padding:0 24px;flex-shrink:0;">
         <button id="memberTabBtn" onclick="switchMemberTab('members')" style="padding:8px 16px;font-size:13px;font-weight:700;border:none;background:none;cursor:pointer;color:var(--olive-d);border-bottom:2px solid var(--olive);margin-bottom:-2px;">👥 멤버 목록</button>
-        <button id="logTabBtn" onclick="switchMemberTab('logs')" style="padding:8px 16px;font-size:13px;font-weight:600;border:none;background:none;cursor:pointer;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-2px;" id="logTabBtn">📋 활동 로그</button>
+        <button id="logTabBtn" onclick="switchMemberTab('logs')" style="padding:8px 16px;font-size:13px;font-weight:600;border:none;background:none;cursor:pointer;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-2px;">📋 활동 로그</button>
+        <button id="churchTabBtn" onclick="switchMemberTab('churches')" style="display:none;padding:8px 16px;font-size:13px;font-weight:600;border:none;background:none;cursor:pointer;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-2px;">🏛️ 교회 관리</button>
       </div>
       <div id="memberTabContent">
       </div>
-      <div id="logTabContent" style="display:none;">
+      <div id="logTabContent" style="display:none;padding:20px 24px;">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
           <div style="font-size:12px;color:var(--muted);">슈퍼관리자만 볼 수 있는 유저 활동 기록이에요</div>
           <div style="display:flex;gap:6px;">
@@ -1001,6 +1005,49 @@ nav{flex:1;padding:4px 8px;overflow-y:auto;}
           </div>
         </div>
         <div id="activityLogList" style="display:flex;flex-direction:column;gap:6px;"></div>
+      </div>
+
+      <!-- 교회 관리 탭 (슈퍼어드민 전용) -->
+      <div id="churchTabContent" style="display:none;padding:20px 24px;overflow-y:auto;flex:1;">
+        <!-- 통계 요약 -->
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px;">
+          <div style="background:var(--olive-bg);border-radius:12px;padding:16px;text-align:center;">
+            <div id="churchStatTotal" style="font-size:28px;font-weight:700;color:var(--olive-d);">-</div>
+            <div style="font-size:11px;color:var(--muted);margin-top:4px;">총 교회 수</div>
+          </div>
+          <div style="background:#EDE9FE;border-radius:12px;padding:16px;text-align:center;">
+            <div id="churchStatPro" style="font-size:28px;font-weight:700;color:#5B21B6;">-</div>
+            <div style="font-size:11px;color:#6D28D9;margin-top:4px;">Pro 교회</div>
+          </div>
+          <div style="background:#DCFCE7;border-radius:12px;padding:16px;text-align:center;">
+            <div id="churchStatMembers" style="font-size:28px;font-weight:700;color:#166534;">-</div>
+            <div style="font-size:11px;color:#166534;margin-top:4px;">전체 사용자</div>
+          </div>
+        </div>
+
+        <!-- 구글 시트 신청 연동 -->
+        <div style="background:#FFFBEB;border:1px solid #FDE68A;border-radius:14px;padding:16px 18px;margin-bottom:20px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+            <div style="display:flex;align-items:center;gap:10px;">
+              <div style="width:36px;height:36px;background:#F59E0B;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;">📋</div>
+              <div>
+                <div style="font-size:13px;font-weight:700;color:#92400E;">구글 폼 신청 현황</div>
+                <div style="font-size:11px;color:#B45309;">워십매니저 사용 신청 목록</div>
+              </div>
+            </div>
+            <button class="btn btn-sm" onclick="loadSheetApplications()" style="background:#F59E0B;color:#fff;border-color:#F59E0B;font-weight:600;">🔄 새로고침</button>
+          </div>
+          <div id="sheetApplicationList" style="display:flex;flex-direction:column;gap:8px;">
+            <div style="text-align:center;padding:20px;font-size:13px;color:#B45309;">새로고침을 눌러 신청 목록을 불러오세요</div>
+          </div>
+        </div>
+
+        <!-- 교회 목록 -->
+        <div style="margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;">
+          <div style="font-size:12px;font-weight:700;color:var(--light);letter-spacing:1px;text-transform:uppercase;">등록된 교회</div>
+          <input class="search-input" type="text" placeholder="교회명 검색..." id="churchSearch" oninput="renderChurchList()" style="max-width:200px;padding:6px 10px;font-size:12px;"/>
+        </div>
+        <div id="churchList" style="display:flex;flex-direction:column;gap:10px;"></div>
       </div>
       <div class="page-body">
         <div class="search-bar">
@@ -1610,6 +1657,105 @@ nav{flex:1;padding:4px 8px;overflow-y:auto;}
   </div>
 </div>
 
+<!-- 교회 생성 모달 (슈퍼어드민 전용) -->
+<div class="modal-bg" id="createChurchModal" onclick="bgClose(event,'createChurchModal')">
+  <div class="modal-box wide">
+    <div class="modal-header">
+      <div class="modal-title">🏛️ 새 교회 등록</div>
+      <button class="modal-close" onclick="closeModal('createChurchModal')">✕</button>
+    </div>
+
+    <!-- 신청 데이터 자동 채우기 배너 -->
+    <div id="churchFromSheet" style="display:none;background:var(--olive-bg);border:1px solid var(--bs);border-radius:10px;padding:12px 14px;margin-bottom:16px;font-size:12px;color:var(--olive-d);">
+      📋 구글 폼 신청 데이터가 자동으로 채워졌어요! 확인 후 저장해주세요.
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">교회명 *</label>
+        <input class="form-input" id="ccName" placeholder="예) 오송생명교회"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">지역</label>
+        <input class="form-input" id="ccLocation" placeholder="예) 청주"/>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">교회 소개 문구</label>
+      <input class="form-input" id="ccTagline" placeholder="예) 생명을 나누는 교회"/>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">로그인 배경 유튜브 ID</label>
+        <input class="form-input" id="ccBgVideo" placeholder="예) RktKsszS378"/>
+        <div style="font-size:11px;color:var(--light);margin-top:4px;">유튜브 URL에서 v= 뒤 값</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">요금제</label>
+        <select class="form-select" id="ccPlan">
+          <option value="free">Free</option>
+          <option value="pro">⭐ Pro</option>
+          <option value="enterprise">💎 Enterprise</option>
+        </select>
+      </div>
+    </div>
+
+    <hr class="form-divider"/>
+    <div style="font-size:12px;font-weight:700;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:12px;">👤 관리자 계정 (동시 생성)</div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">담당자 이름 *</label>
+        <input class="form-input" id="ccAdminName" placeholder="예) 홍길동"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">이메일 *</label>
+        <input class="form-input" id="ccAdminEmail" type="email" placeholder="예) pastor@church.com"/>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">권한</label>
+        <select class="form-select" id="ccAdminRole">
+          <option value="admin">관리자</option>
+          <option value="worship_leader">워십리더</option>
+          <option value="super_admin">슈퍼관리자</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">임시 비밀번호 *</label>
+        <div style="display:flex;gap:8px;">
+          <input class="form-input" id="ccAdminPw" placeholder="6자 이상" style="flex:1;"/>
+          <button class="btn" onclick="genChurchPw()">🔀</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="ccResult" style="display:none;padding:14px;background:var(--olive-bg);border-radius:10px;margin-bottom:12px;font-size:12px;line-height:1.9;color:var(--olive-d);"></div>
+
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('createChurchModal')">취소</button>
+      <button class="btn btn-primary" id="ccSaveBtn" onclick="createChurchWithAdmin()">🏛️ 교회 + 계정 생성</button>
+    </div>
+  </div>
+</div>
+
+<!-- 교회 상세/편집 모달 -->
+<div class="modal-bg" id="churchDetailModal" onclick="bgClose(event,'churchDetailModal')">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="modal-title" id="churchDetailTitle">교회 상세</div>
+      <button class="modal-close" onclick="closeModal('churchDetailModal')">✕</button>
+    </div>
+    <div id="churchDetailContent"></div>
+    <div class="modal-footer">
+      <button class="btn btn-danger" id="churchDeleteBtn" onclick="deleteChurch()">교회 삭제</button>
+      <button class="btn" onclick="closeModal('churchDetailModal')">닫기</button>
+      <button class="btn btn-primary" onclick="saveChurchDetail()">저장</button>
+    </div>
+  </div>
+</div>
+
 <script>
 // ════════════════════════════════════════════
 // BIBLE DATA (구약/신약 장수)
@@ -2124,6 +2270,9 @@ function updateUserUI() {
     const dupBtn = document.getElementById('duplicateBtn');
     if (dupBtn) dupBtn.style.display = 'none';
   }
+  // 슈퍼어드민 전용 교회 관리 탭
+  const churchTabBtn = document.getElementById('churchTabBtn');
+  if (churchTabBtn) churchTabBtn.style.display = isSuperAdmin() ? 'block' : 'none';
   // mypage
   const ma = document.getElementById('myAvatar');
   const ap = document.getElementById('avatarPreview');
@@ -4168,29 +4317,50 @@ async function createAccount() {
 function switchMemberTab(tab) {
   const memberContent = document.getElementById('memberTabContent');
   const logContent = document.getElementById('logTabContent');
+  const churchContent = document.getElementById('churchTabContent');
   const memberBtn = document.getElementById('memberTabBtn');
   const logBtn = document.getElementById('logTabBtn');
+  const churchBtn = document.getElementById('churchTabBtn');
   const pageBody = document.querySelector('#page-members .page-body');
+
+  // 모두 초기화
+  [memberBtn, logBtn, churchBtn].forEach(b => { if(b){ b.style.color='var(--muted)'; b.style.borderBottomColor='transparent'; b.style.fontWeight='600'; }});
+  [memberContent, logContent, churchContent].forEach(c => { if(c) c.style.display='none'; });
+  if (pageBody) pageBody.style.display = 'none';
 
   if (tab === 'members') {
     if (pageBody) pageBody.style.display = 'block';
-    if (logContent) logContent.style.display = 'none';
     memberBtn.style.color = 'var(--olive-d)';
     memberBtn.style.borderBottomColor = 'var(--olive)';
-    logBtn.style.color = 'var(--muted)';
-    logBtn.style.borderBottomColor = 'transparent';
-  } else {
-    if (pageBody) pageBody.style.display = 'none';
+    memberBtn.style.fontWeight = '700';
+    // 헤더 버튼
+    document.getElementById('createAccountHeaderBtn').style.display = 'flex';
+    document.getElementById('createChurchHeaderBtn').style.display = 'none';
+    document.getElementById('membersPageTitle').textContent = '멤버 관리';
+    document.getElementById('membersPageSub').textContent = '팀원 계정을 관리합니다';
+  } else if (tab === 'logs') {
     if (logContent) logContent.style.display = 'block';
-    memberBtn.style.color = 'var(--muted)';
-    memberBtn.style.borderBottomColor = 'transparent';
     logBtn.style.color = 'var(--olive-d)';
     logBtn.style.borderBottomColor = 'var(--olive)';
+    logBtn.style.fontWeight = '700';
+    document.getElementById('createAccountHeaderBtn').style.display = 'none';
+    document.getElementById('createChurchHeaderBtn').style.display = 'none';
+    document.getElementById('membersPageTitle').textContent = '활동 로그';
+    document.getElementById('membersPageSub').textContent = '슈퍼관리자 전용 활동 기록';
     if (!isSuperAdmin()) {
       document.getElementById('activityLogList').innerHTML = '<div style="text-align:center;padding:30px;color:var(--light);font-size:13px;">슈퍼관리자만 볼 수 있어요</div>';
       return;
     }
     loadActivityLogs();
+  } else if (tab === 'churches') {
+    if (churchContent) churchContent.style.display = 'block';
+    if (churchBtn) { churchBtn.style.color='var(--olive-d)'; churchBtn.style.borderBottomColor='var(--olive)'; churchBtn.style.fontWeight='700'; }
+    document.getElementById('createAccountHeaderBtn').style.display = 'none';
+    document.getElementById('createChurchHeaderBtn').style.display = 'flex';
+    document.getElementById('membersPageTitle').textContent = '교회 관리';
+    document.getElementById('membersPageSub').textContent = '전체 교회 목록 · 신청 관리';
+    renderChurchList();
+    loadChurchStats();
   }
 }
 
@@ -5381,6 +5551,362 @@ function updateDday() {
 // ════════════════════════════════════════════
 // MODAL HELPERS
 // ════════════════════════════════════════════
+// ════════════════════════════════════════════
+// 슈퍼어드민 — 교회 관리
+// ════════════════════════════════════════════
+let _allChurches = [];
+let _editingChurchId = null;
+const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/1Iw5WlS0Pg9uB4P5S7ZQxtDWr-5hY6PFW9Ii-fo-lFkA/export?format=csv&gid=876261369';
+
+// 교회 통계 로드
+async function loadChurchStats() {
+  try {
+    const { data: churches } = await sb.from('churches').select('id, plan');
+    const { count: totalMembers } = await sb.from('profiles').select('*', { count: 'exact', head: true });
+    const el1 = document.getElementById('churchStatTotal');
+    const el2 = document.getElementById('churchStatPro');
+    const el3 = document.getElementById('churchStatMembers');
+    if (el1) el1.textContent = churches?.length || 0;
+    if (el2) el2.textContent = churches?.filter(c => c.plan !== 'free').length || 0;
+    if (el3) el3.textContent = totalMembers || 0;
+  } catch(e) { console.log('stats error:', e); }
+}
+
+// 교회 목록 렌더링
+async function renderChurchList() {
+  const el = document.getElementById('churchList');
+  if (!el) return;
+  el.innerHTML = '<div style="text-align:center;padding:20px;font-size:13px;color:var(--light);">불러오는 중...</div>';
+  try {
+    const { data } = await sb.from('churches').select('*').order('created_at', { ascending: false });
+    _allChurches = data || [];
+    const q = (document.getElementById('churchSearch')?.value || '').toLowerCase();
+    const filtered = _allChurches.filter(c => c.name.toLowerCase().includes(q));
+    if (!filtered.length) { el.innerHTML = '<div style="text-align:center;padding:20px;font-size:13px;color:var(--light);">등록된 교회가 없습니다</div>'; return; }
+
+    // 각 교회 멤버 수
+    const churchIds = filtered.map(c => c.id);
+    const { data: profileCounts } = await sb.from('profiles').select('church_id').in('church_id', churchIds);
+    const countMap = {};
+    (profileCounts || []).forEach(p => { countMap[p.church_id] = (countMap[p.church_id] || 0) + 1; });
+
+    el.innerHTML = filtered.map(c => {
+      const planColor = c.plan === 'pro' ? '#5B21B6' : c.plan === 'enterprise' ? '#92400E' : 'var(--olive-d)';
+      const planBg = c.plan === 'pro' ? '#EDE9FE' : c.plan === 'enterprise' ? '#FEF3C7' : 'var(--olive-bg)';
+      const planLabel = c.plan === 'pro' ? '⭐ Pro' : c.plan === 'enterprise' ? '💎 Enterprise' : 'Free';
+      const members = countMap[c.id] || 0;
+      return `
+      <div style="background:var(--white);border:1px solid var(--border);border-radius:14px;padding:16px 18px;display:flex;align-items:center;gap:14px;cursor:pointer;transition:all .15s;" onclick="openChurchDetail('${c.id}')" onmouseover="this.style.borderColor='var(--olive-l)'" onmouseout="this.style.borderColor='var(--border)'">
+        <div style="width:44px;height:44px;border-radius:12px;background:var(--olive-bg);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;">🏛️</div>
+        <div style="flex:1;min-width:0;">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:3px;">
+            <div style="font-size:14px;font-weight:700;color:var(--text);">${c.name}</div>
+            <span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:8px;background:${planBg};color:${planColor};">${planLabel}</span>
+            ${!c.is_active ? '<span style="font-size:10px;background:#FEE2E2;color:#CC2200;padding:2px 6px;border-radius:6px;">비활성</span>' : ''}
+          </div>
+          <div style="font-size:11px;color:var(--light);">${c.location || '-'} · 멤버 ${members}명 · ${c.created_at?.split('T')[0] || ''}</div>
+        </div>
+        <div style="font-size:12px;color:var(--muted);">›</div>
+      </div>`;
+    }).join('');
+  } catch(e) {
+    el.innerHTML = '<div style="text-align:center;padding:20px;color:var(--light);">오류가 발생했습니다</div>';
+  }
+}
+
+// 구글 시트 신청 목록 로드
+async function loadSheetApplications() {
+  const el = document.getElementById('sheetApplicationList');
+  if (!el) return;
+  el.innerHTML = '<div style="text-align:center;padding:16px;font-size:13px;color:#B45309;">불러오는 중... ⏳</div>';
+  try {
+    const res = await fetch(SHEET_CSV_URL);
+    const csv = await res.text();
+    const rows = csv.trim().split('\n').slice(1); // 헤더 제외
+    if (!rows.length || (rows.length === 1 && !rows[0].trim())) {
+      el.innerHTML = '<div style="text-align:center;padding:16px;font-size:13px;color:#B45309;">신청 내역이 없습니다</div>';
+      return;
+    }
+    el.innerHTML = rows.map((row, idx) => {
+      // CSV 파싱 (따옴표 포함 처리)
+      const cols = parseCSVRow(row);
+      const timestamp = cols[0] || '';
+      const churchName = cols[1] || '-';
+      const managerName = cols[2] || '-';
+      const email = cols[3] || '-';
+      const bgVideo = cols[5] || '';
+      const introText = cols[7] || '';
+      const memberCount = cols[8] || '-';
+      const services = cols[9] || '-';
+
+      // 이미 등록된 교회인지 확인
+      const alreadyExists = _allChurches.some(c => c.name === churchName);
+
+      return `
+      <div style="background:var(--white);border:1px solid #FDE68A;border-radius:12px;padding:14px 16px;">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;">
+          <div style="flex:1;">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+              <div style="font-size:13px;font-weight:700;color:var(--text);">${churchName}</div>
+              ${alreadyExists ? '<span style="font-size:10px;background:#DCFCE7;color:#166534;padding:2px 7px;border-radius:6px;font-weight:600;">✅ 등록됨</span>' : '<span style="font-size:10px;background:#FEF3C7;color:#92400E;padding:2px 7px;border-radius:6px;font-weight:600;">신청</span>'}
+            </div>
+            <div style="font-size:11px;color:var(--muted);line-height:1.7;">
+              👤 ${managerName} · 📧 ${email}<br>
+              👥 ${memberCount}명 · 🙏 ${services}<br>
+              🕐 ${timestamp}
+            </div>
+          </div>
+          ${!alreadyExists ? `
+          <button onclick="prefillChurchModal('${encodeURIComponent(JSON.stringify({name:churchName,manager:managerName,email,bgVideo,introText,memberCount}))}'); openModal('createChurchModal');"
+            style="padding:8px 14px;background:var(--olive);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;font-family:'Noto Sans KR',sans-serif;">
+            🏛️ 교회 생성
+          </button>` : ''}
+        </div>
+      </div>`;
+    }).join('');
+  } catch(e) {
+    el.innerHTML = `<div style="text-align:center;padding:16px;font-size:12px;color:#CC2200;">CORS 오류: 시트가 공개 공유 설정인지 확인해주세요<br><small>${e.message}</small></div>`;
+  }
+}
+
+// CSV 행 파싱 (따옴표 처리)
+function parseCSVRow(row) {
+  const result = [];
+  let cur = '', inQ = false;
+  for (let i = 0; i < row.length; i++) {
+    const ch = row[i];
+    if (ch === '"') { inQ = !inQ; }
+    else if (ch === ',' && !inQ) { result.push(cur.trim()); cur = ''; }
+    else cur += ch;
+  }
+  result.push(cur.trim());
+  return result;
+}
+
+// 신청 데이터 자동 채우기
+function prefillChurchModal(encodedData) {
+  try {
+    const d = JSON.parse(decodeURIComponent(encodedData));
+    document.getElementById('ccName').value = d.name || '';
+    document.getElementById('ccAdminName').value = d.manager || '';
+    document.getElementById('ccAdminEmail').value = d.email || '';
+    document.getElementById('ccTagline').value = d.introText || '';
+    if (d.bgVideo) {
+      const ytId = d.bgVideo.match(/(?:v=|youtu\.be\/)([^&?/]+)/)?.[1] || '';
+      document.getElementById('ccBgVideo').value = ytId;
+    }
+    document.getElementById('churchFromSheet').style.display = 'block';
+    genChurchPw();
+  } catch(e) {}
+}
+
+// 교회 생성 모달 열기
+function openCreateChurchModal() {
+  // 초기화
+  ['ccName','ccLocation','ccTagline','ccBgVideo','ccAdminName','ccAdminEmail','ccAdminPw'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  document.getElementById('ccPlan').value = 'free';
+  document.getElementById('ccAdminRole').value = 'admin';
+  document.getElementById('ccResult').style.display = 'none';
+  document.getElementById('churchFromSheet').style.display = 'none';
+  document.getElementById('ccSaveBtn').style.display = 'flex';
+  genChurchPw();
+  openModal('createChurchModal');
+}
+
+function genChurchPw() {
+  const chars = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#';
+  let pw = '';
+  for (let i = 0; i < 10; i++) pw += chars[Math.floor(Math.random() * chars.length)];
+  document.getElementById('ccAdminPw').value = pw;
+}
+
+// 교회 + 관리자 계정 동시 생성
+async function createChurchWithAdmin() {
+  const name = document.getElementById('ccName').value.trim();
+  const location = document.getElementById('ccLocation').value.trim();
+  const tagline = document.getElementById('ccTagline').value.trim();
+  const bgVideoId = document.getElementById('ccBgVideo').value.trim();
+  const plan = document.getElementById('ccPlan').value;
+  const adminName = document.getElementById('ccAdminName').value.trim();
+  const adminEmail = document.getElementById('ccAdminEmail').value.trim();
+  const adminRole = document.getElementById('ccAdminRole').value;
+  const adminPw = document.getElementById('ccAdminPw').value;
+
+  if (!name || !adminName || !adminEmail || !adminPw) {
+    showToast('필수 항목을 모두 입력해주세요'); return;
+  }
+  if (adminPw.length < 6) { showToast('비밀번호는 6자 이상이어야 합니다'); return; }
+
+  const btn = document.getElementById('ccSaveBtn');
+  btn.textContent = '⏳ 생성 중...';
+  btn.disabled = true;
+
+  try {
+    // 1. 교회 생성
+    const churchId = crypto.randomUUID();
+    const { error: churchErr } = await sb.from('churches').insert({
+      id: churchId,
+      name, location, tagline,
+      bg_video_id: bgVideoId || 'RktKsszS378',
+      bgm_video_id: '3QqPl-pBW14',
+      plan,
+      is_active: true,
+    });
+    if (churchErr) throw new Error('교회 생성 실패: ' + churchErr.message);
+
+    // 2. 관리자 계정 생성 (Supabase Auth)
+    const { data: authData, error: authErr } = await sb.auth.signUp({
+      email: adminEmail,
+      password: adminPw,
+    });
+    if (authErr) throw new Error('계정 생성 실패: ' + authErr.message);
+
+    // 3. profiles 저장
+    const userId = authData.user?.id;
+    if (userId) {
+      await sb.from('profiles').upsert({
+        id: userId,
+        name: adminName,
+        email: adminEmail,
+        role: adminRole,
+        church_id: churchId,
+        onboarding_done: false,
+        created_at: new Date().toISOString(),
+      }, { onConflict: 'id' });
+    }
+
+    // 결과 표시
+    const resultEl = document.getElementById('ccResult');
+    resultEl.style.display = 'block';
+    resultEl.innerHTML = `
+      ✅ <strong>${name}</strong> 교회가 생성됐어요!<br><br>
+      🏛️ 교회 ID: <code style="font-size:11px;background:rgba(0,0,0,0.06);padding:1px 5px;border-radius:4px;">${churchId}</code><br>
+      👤 관리자: <strong>${adminName}</strong> (${getRoleLabel(adminRole)})<br>
+      📧 이메일: <strong>${adminEmail}</strong><br>
+      🔑 임시 비밀번호: <strong>${adminPw}</strong><br><br>
+      📋 위 정보를 담당자에게 전달해주세요.<br>
+      <small style="color:var(--light);">첫 로그인 시 이메일 인증이 필요할 수 있어요.</small>
+    `;
+    btn.style.display = 'none';
+    renderChurchList();
+    loadChurchStats();
+    showToast(`🏛️ ${name} 교회가 생성됐어요!`);
+
+  } catch(e) {
+    showToast('오류: ' + e.message);
+    btn.textContent = '🏛️ 교회 + 계정 생성';
+    btn.disabled = false;
+  }
+}
+
+// 교회 상세 보기/편집
+async function openChurchDetail(id) {
+  _editingChurchId = id;
+  const church = _allChurches.find(c => c.id === id);
+  if (!church) return;
+
+  // 해당 교회 멤버 조회
+  const { data: members } = await sb.from('profiles').select('id, name, email, role').eq('church_id', id);
+  const { count: scoreCount } = await sb.from('scores').select('*', { count: 'exact', head: true }).eq('church_id', id);
+
+  document.getElementById('churchDetailTitle').textContent = church.name;
+  document.getElementById('churchDetailContent').innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:14px;">
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">교회명</label>
+          <input class="form-input" id="cdName" value="${church.name || ''}"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">지역</label>
+          <input class="form-input" id="cdLocation" value="${church.location || ''}"/>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">소개 문구</label>
+        <input class="form-input" id="cdTagline" value="${church.tagline || ''}"/>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">배경 유튜브 ID</label>
+          <input class="form-input" id="cdBgVideo" value="${church.bg_video_id || ''}"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">요금제</label>
+          <select class="form-select" id="cdPlan">
+            <option value="free" ${church.plan==='free'?'selected':''}>Free</option>
+            <option value="pro" ${church.plan==='pro'?'selected':''}>⭐ Pro</option>
+            <option value="enterprise" ${church.plan==='enterprise'?'selected':''}>💎 Enterprise</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- 통계 -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:14px;background:var(--cream);border-radius:10px;">
+        <div style="text-align:center;">
+          <div style="font-size:22px;font-weight:700;color:var(--olive-d);">${members?.length || 0}</div>
+          <div style="font-size:11px;color:var(--muted);">멤버 수</div>
+        </div>
+        <div style="text-align:center;">
+          <div style="font-size:22px;font-weight:700;color:var(--olive-d);">${scoreCount || 0}</div>
+          <div style="font-size:11px;color:var(--muted);">악보 수</div>
+        </div>
+      </div>
+
+      <!-- 멤버 목록 -->
+      <div>
+        <div style="font-size:11px;font-weight:700;color:var(--light);letter-spacing:1px;margin-bottom:8px;">👥 멤버</div>
+        <div style="display:flex;flex-direction:column;gap:5px;max-height:160px;overflow-y:auto;">
+          ${(members || []).map(m => `
+            <div style="display:flex;align-items:center;gap:8px;padding:7px 10px;background:var(--cream);border-radius:8px;">
+              <div style="width:28px;height:28px;border-radius:50%;background:var(--olive);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;">${(m.name||'?').charAt(0)}</div>
+              <div style="flex:1;">
+                <div style="font-size:12px;font-weight:500;">${m.name || '이름 없음'}</div>
+                <div style="font-size:10px;color:var(--light);">${m.email || ''}</div>
+              </div>
+              <span class="${getRoleBadgeClass(m.role)}">${getRoleLabel(m.role)}</span>
+            </div>`).join('') || '<div style="font-size:12px;color:var(--light);padding:8px;">멤버가 없습니다</div>'}
+        </div>
+      </div>
+    </div>
+  `;
+  openModal('churchDetailModal');
+}
+
+async function saveChurchDetail() {
+  if (!_editingChurchId) return;
+  try {
+    const { error } = await sb.from('churches').update({
+      name: document.getElementById('cdName').value.trim(),
+      location: document.getElementById('cdLocation').value.trim(),
+      tagline: document.getElementById('cdTagline').value.trim(),
+      bg_video_id: document.getElementById('cdBgVideo').value.trim(),
+      plan: document.getElementById('cdPlan').value,
+      updated_at: new Date().toISOString(),
+    }).eq('id', _editingChurchId);
+    if (error) throw error;
+    closeModal('churchDetailModal');
+    renderChurchList();
+    showToast('저장됐어요 ✅');
+  } catch(e) { showToast('저장 실패: ' + e.message); }
+}
+
+async function deleteChurch() {
+  if (!_editingChurchId) return;
+  const church = _allChurches.find(c => c.id === _editingChurchId);
+  if (!confirm(`"${church?.name}" 교회를 삭제할까요?\n⚠️ 해당 교회의 모든 데이터(악보, 콘티 등)가 삭제됩니다.`)) return;
+  try {
+    await sb.from('churches').delete().eq('id', _editingChurchId);
+    closeModal('churchDetailModal');
+    renderChurchList();
+    loadChurchStats();
+    showToast('교회가 삭제됐어요');
+  } catch(e) { showToast('삭제 실패: ' + e.message); }
+}
+
 // ════════════════════════════════════════════
 // 교회 정보 렌더링 (마이페이지)
 // ════════════════════════════════════════════
