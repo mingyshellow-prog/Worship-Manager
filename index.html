@@ -1228,7 +1228,7 @@ nav{flex:1;padding:4px 8px;overflow-y:auto;}
     <div class="form-row">
       <div class="form-group"><label class="form-label">예배 날짜</label><input class="form-input" id="qcDate" type="date"/></div>
       <div class="form-group"><label class="form-label">예배 구분 (직접 입력)</label>
-        <select class="form-input" id="qcService">
+        <select class="form-select" id="qcService">
           <option value="">예배 구분 선택</option>
           <option value="주일 1부 예배">주일 1부 예배</option>
           <option value="주일 2부 예배">주일 2부 예배</option>
@@ -1272,7 +1272,7 @@ nav{flex:1;padding:4px 8px;overflow-y:auto;}
     </div>
     <div class="form-row">
       <div class="form-group"><label class="form-label">연습 시간</label><input class="form-input" id="wkPractice" type="time" placeholder="연습 시간 선택"/></div>
-      <div class="form-group"><label class="form-label">예배 시간</label><input class="form-input" id="wkServiceTime" type="time" value="09:00"/></div>
+      <div class="form-group"><label class="form-label">예배 시간</label><input class="form-input" id="wkServiceTime" type="time" value=""/></div>
     </div>
     <div class="form-group"><label class="form-label">설교 제목 / 말씀 배경</label><input class="form-input" id="wkTitle" placeholder="예) 여호수아의 과업"/></div>
     <div class="form-group"><label class="form-label">콘티 참고 영상 (유튜브)</label><input class="form-input" id="wkContiYt" placeholder="예배 흐름 참고 영상 링크 (선택사항)"/></div>
@@ -2476,7 +2476,7 @@ function openAnnEdit() {
   document.getElementById('annServiceInp').value = a.service || '';
   document.getElementById('annThemeInp').value = a.theme || '';
   document.getElementById('annBodyInp').value = a.body || '';
-  document.getElementById('annPracticeInp').value = a.practice || '08:00';
+  document.getElementById('annPracticeInp').value = a.practice || '';
   document.getElementById('annServiceTimeInp').value = a.serviceTime || '09:00';
   openModal('annModal');
 }
@@ -2554,6 +2554,7 @@ function saveQuickConti() {
   updateAnnFromConti(entry);
   renderWeekly(); renderThisWeek();
   closeModal('quickContiModal');
+  showPage('weekly', null); // 빠른 콘티 후 주차별 찬양으로 이동
   showToast('콘티가 등록되었습니다!');
   setTimeout(()=>showPage('weekly',null), 400);
 }
@@ -4216,7 +4217,7 @@ function generateKakaoMsg() {
   const latest = weeklyContis[0];
   if (!latest) return;
   const songs = latest.songs.map((s,i)=>`${i+1}. ${s.title} (${s.key})`).join('\n');
-  const msg = `할렐루야! 🙌\n${latest.date} ${latest.service} 콘티입니다😁\n\n${songs}\n\n${latest.memo||''}\n\n⏰ 연습: ${latest.practice||'08:00'}\n공감표시나 아멘으로 화답해주시면 큰 힘이 됩니다 👍\n감사합니다`;
+  const msg = `할렐루야! 🙌\n${latest.date} ${latest.service} 콘티입니다😁\n\n${songs}\n\n${latest.memo||''}\n\n⏰ 연습: ${latest.practice||''}\n공감표시나 아멘으로 화답해주시면 큰 힘이 됩니다 👍\n감사합니다`;
   document.getElementById('kakaoPreview').textContent = msg;
 }
 
