@@ -632,7 +632,20 @@ nav{flex:1;padding:4px 8px;overflow-y:auto;}
           <div class="search-bar">
             <input class="search-input" type="text" placeholder="곡 제목, 아티스트, Key 검색..." id="scoreSearch" oninput="renderScores(true)"/>
             <select class="btn" onchange="renderScores(true)" id="artistFilter" style="padding:8px 12px;">
-              <option value="">전체</option>
+              <option value="">전체 아티스트</option>
+            </select>
+            <select class="btn" onchange="renderScores(true)" id="keyFilter" style="padding:8px 12px;">
+              <option value="">전체 Key</option>
+              <option>C</option><option>C#</option><option>D</option><option>Eb</option>
+              <option>E</option><option>F</option><option>F#</option><option>G</option>
+              <option>Ab</option><option>A</option><option>Bb</option><option>B</option>
+            </select>
+            <select class="btn" onchange="renderScores(true)" id="tempoFilter" style="padding:8px 12px;">
+              <option value="">전체 템포</option>
+              <option value="slow">느린 곡 (Slow)</option>
+              <option value="medium">중간 (Medium)</option>
+              <option value="fast">빠른 곡 (Fast)</option>
+              <option value="worship">경배 (Worship)</option>
             </select>
           </div>
           <div class="score-list" id="scoreList"></div>
@@ -1115,13 +1128,13 @@ nav{flex:1;padding:4px 8px;overflow-y:auto;}
       <div class="form-row">
         <input class="form-input" id="annDateInp" type="date"/>
         <input class="form-input" id="annServiceInp" placeholder="예) 주일 9시 예배" list="serviceList"/>
-        <datalist id="serviceList"><option value="주일 9시 예배"/><option value="주일 11시 예배"/><option value="수요 예배"/><option value="금요 예배"/></datalist>
+        <datalist id="serviceList"><option value="주일 1부 예배"/><option value="주일 2부 예배"/><option value="주일 3부 예배"/><option value="수요 예배"/><option value="금요 기도회"/><option value="새벽 예배"/><option value="특별 예배"/></datalist>
       </div>
     </div>
     <div class="form-group"><label class="form-label">말씀 배경 제목</label><input class="form-input" id="annThemeInp" placeholder="예) 여호수아의 과업"/></div>
     <div class="form-group"><label class="form-label">내용</label><textarea class="form-textarea" id="annBodyInp" rows="4"></textarea></div>
     <div class="form-row">
-      <div class="form-group"><label class="form-label">연습 시간</label><input class="form-input" id="annPracticeInp" type="time" value="08:00"/></div>
+      <div class="form-group"><label class="form-label">연습 시간</label><input class="form-input" id="annPracticeInp" type="time" placeholder="연습 시간 선택"/></div>
       <div class="form-group"><label class="form-label">예배 시간</label><input class="form-input" id="annServiceTimeInp" type="time" value="09:00"/></div>
     </div>
     <div class="modal-footer"><button class="btn" onclick="closeModal('annModal')">취소</button><button class="btn btn-primary" onclick="saveAnn()">저장</button></div>
@@ -1135,12 +1148,20 @@ nav{flex:1;padding:4px 8px;overflow-y:auto;}
     <div class="form-row">
       <div class="form-group"><label class="form-label">예배 날짜</label><input class="form-input" id="qcDate" type="date"/></div>
       <div class="form-group"><label class="form-label">예배 구분 (직접 입력)</label>
-        <input class="form-input" id="qcService" placeholder="예) 주일 9시 예배" list="qcServiceList"/>
-        <datalist id="qcServiceList"><option value="주일 9시 예배"/><option value="주일 11시 예배"/><option value="수요 예배"/><option value="금요 예배"/></datalist>
+        <select class="form-input" id="qcService">
+          <option value="">예배 구분 선택</option>
+          <option value="주일 1부 예배">주일 1부 예배</option>
+          <option value="주일 2부 예배">주일 2부 예배</option>
+          <option value="주일 3부 예배">주일 3부 예배</option>
+          <option value="수요 예배">수요 예배</option>
+          <option value="금요 기도회">금요 기도회</option>
+          <option value="새벽 예배">새벽 예배</option>
+          <option value="특별 예배">특별 예배</option>
+        </select>
       </div>
     </div>
     <div class="form-row">
-      <div class="form-group"><label class="form-label">연습 시간</label><input class="form-input" id="qcPractice" type="time" value="08:00"/></div>
+      <div class="form-group"><label class="form-label">연습 시간</label><input class="form-input" id="qcPractice" type="time" placeholder="연습 시간 선택"/></div>
       <div class="form-group"><label class="form-label">담당자</label><input class="form-input" id="qcLeader" placeholder="이름"/></div>
     </div>
     <div class="form-group"><label class="form-label">말씀 배경 / 전달사항</label><textarea class="form-textarea" id="qcNote"></textarea></div>
@@ -1166,14 +1187,15 @@ nav{flex:1;padding:4px 8px;overflow-y:auto;}
       <div class="form-group"><label class="form-label">날짜</label><input class="form-input" id="wkDate" type="date"/></div>
       <div class="form-group"><label class="form-label">예배 구분</label>
         <input class="form-input" id="wkService" placeholder="주일 9시 예배" list="wkServiceList"/>
-        <datalist id="wkServiceList"><option value="주일 9시 예배"/><option value="주일 11시 예배"/><option value="수요 예배"/></datalist>
+        <datalist id="wkServiceList"><option value="주일 1부 예배"/><option value="주일 2부 예배"/><option value="주일 3부 예배"/><option value="수요 예배"/><option value="금요 기도회"/><option value="새벽 예배"/><option value="특별 예배"/></datalist>
       </div>
     </div>
     <div class="form-row">
-      <div class="form-group"><label class="form-label">연습 시간</label><input class="form-input" id="wkPractice" type="time" value="08:00"/></div>
+      <div class="form-group"><label class="form-label">연습 시간</label><input class="form-input" id="wkPractice" type="time" placeholder="연습 시간 선택"/></div>
       <div class="form-group"><label class="form-label">예배 시간</label><input class="form-input" id="wkServiceTime" type="time" value="09:00"/></div>
     </div>
     <div class="form-group"><label class="form-label">설교 제목 / 말씀 배경</label><input class="form-input" id="wkTitle" placeholder="예) 여호수아의 과업"/></div>
+    <div class="form-group"><label class="form-label">콘티 참고 영상 (유튜브)</label><input class="form-input" id="wkContiYt" placeholder="예배 흐름 참고 영상 링크 (선택사항)"/></div>
     <div class="form-group"><label class="form-label">레퍼런스 링크</label><input class="form-input" id="wkRef" placeholder="https://youtube.com/..."/></div>
     <div class="form-group"><label class="form-label">전달사항 / 메모</label><textarea class="form-textarea" id="wkMemo"></textarea></div>
     <hr class="form-divider"/>
@@ -2213,14 +2235,14 @@ function saveQuickConti() {
   const service = document.getElementById('qcService').value || '주일 예배';
   if (!date) { showToast('날짜를 선택해주세요'); return; }
   const filled = qcSongs.filter(s=>s.title.trim());
-  const entry = {id:'wk'+Date.now(), date, service, practice: '08:00', note: document.getElementById('qcNote').value, leader: document.getElementById('qcLeader').value, songs: filled, createdAt: new Date().toISOString()};
+  const entry = {id:'wk'+Date.now(), date, service, practice: document.getElementById('qcPractice').value||'', note: document.getElementById('qcNote').value, leader: document.getElementById('qcLeader').value, songs: filled, createdAt: new Date().toISOString()};
   weeklyContis.unshift(entry);
   saveData('wm_weekly', weeklyContis);
   updateAnnFromConti(entry);
   renderWeekly(); renderThisWeek();
   closeModal('quickContiModal');
   showToast('콘티가 등록되었습니다!');
-  setTimeout(()=>showPage('dashboard',null), 400);
+  setTimeout(()=>showPage('weekly',null), 400);
 }
 
 function updateAnnFromConti(entry) {
@@ -2279,7 +2301,7 @@ function renderWkSongs() {
 function saveWeekly() {
   const date = document.getElementById('wkDate').value;
   if (!date) { showToast('날짜를 선택해주세요'); return; }
-  const entry = {id:'wk'+Date.now(), date, service: document.getElementById('wkService').value||'주일 예배', practice: document.getElementById('wkPractice').value, serviceTime: document.getElementById('wkServiceTime').value, title: document.getElementById('wkTitle').value, ref: document.getElementById('wkRef').value, memo: document.getElementById('wkMemo').value, songs: wkSongs.filter(s=>s.title.trim()), createdAt:new Date().toISOString()};
+  const entry = {id:'wk'+Date.now(), date, service: document.getElementById('wkService').value||'주일 예배', practice: document.getElementById('wkPractice').value, serviceTime: document.getElementById('wkServiceTime').value, title: document.getElementById('wkTitle').value, ref: document.getElementById('wkRef').value, contiYt: document.getElementById('wkContiYt').value||'', memo: document.getElementById('wkMemo').value, songs: wkSongs.filter(s=>s.title.trim()), createdAt:new Date().toISOString()};
   weeklyContis.unshift(entry);
   saveData('wm_weekly', weeklyContis);
   renderWeekly(); renderThisWeek();
@@ -2361,6 +2383,7 @@ function renderWeekly() {
         <div class="week-detail">
           ${memo?`<div style="font-size:12px;color:var(--light);margin-bottom:10px;padding:8px 12px;background:var(--olive-bg);border-radius:8px;">📝 ${memo}</div>`:''}
           ${ref?`<div style="margin-bottom:10px;"><a href="${ref}" target="_blank" class="link-btn">🔗 레퍼런스</a></div>`:''}
+          ${w.contiYt?`<div style="margin-bottom:10px;"><a href="${w.contiYt}" target="_blank" class="link-btn" style="background:#FF0000;color:#fff;border-color:#FF0000;">▶ 콘티 참고 영상</a></div>`:''}
           ${songs.map((s,i)=>{
             const songTitle = s.title || s.name || (typeof s==='string'?s:'');
             const songKey   = s.key || s.song_key || '';
@@ -2616,10 +2639,20 @@ function renderScores(resetPage) {
   if (resetPage) window._scorePage = 1;
   const q = (document.getElementById('scoreSearch')?.value||'').toLowerCase();
   const artist = document.getElementById('artistFilter')?.value||'';
+  const keyF = document.getElementById('keyFilter')?.value||'';
+  const tempoF = document.getElementById('tempoFilter')?.value||'';
   const filtered = scores.filter(s=>{
     const match = s.title.toLowerCase().includes(q)||s.artist.toLowerCase().includes(q)||(s.key||'').toLowerCase().includes(q);
     const artistMatch = !artist || s.artist===artist;
-    return match && artistMatch;
+    const keyMatch = !keyF || (s.key||'').toLowerCase().startsWith(keyF.toLowerCase());
+    // 템포는 메모 필드에서 키워드 매칭
+    const memoLow = (s.memo||'').toLowerCase();
+    const tempoMatch = !tempoF || 
+      (tempoF==='slow' && (memoLow.includes('slow') || memoLow.includes('느린') || memoLow.includes('ballad'))) ||
+      (tempoF==='medium' && (memoLow.includes('medium') || memoLow.includes('중간') || memoLow.includes('mid'))) ||
+      (tempoF==='fast' && (memoLow.includes('fast') || memoLow.includes('빠른') || memoLow.includes('uptempo'))) ||
+      (tempoF==='worship' && (memoLow.includes('worship') || memoLow.includes('경배') || memoLow.includes('찬미')));
+    return match && artistMatch && keyMatch && tempoMatch;
   });
   const el = document.getElementById('scoreList');
   if (!el) return;
@@ -2669,9 +2702,11 @@ function renderScores(resetPage) {
 function goScorePage(page) {
   const q = (document.getElementById('scoreSearch')?.value||'').toLowerCase();
   const artist = document.getElementById('artistFilter')?.value||'';
+  const keyF = document.getElementById('keyFilter')?.value||'';
   const filtered = scores.filter(s=>{
     const match = s.title.toLowerCase().includes(q)||s.artist.toLowerCase().includes(q)||(s.key||'').toLowerCase().includes(q);
-    return match && (!artist || s.artist===artist);
+    const keyMatch = !keyF || (s.key||'').toLowerCase().startsWith(keyF.toLowerCase());
+    return match && (!artist || s.artist===artist) && keyMatch;
   });
   const totalPages = Math.ceil(filtered.length / SCORE_PAGE_SIZE);
   window._scorePage = Math.max(1, Math.min(page, totalPages));
@@ -4672,10 +4707,15 @@ async function submitSuggestion() {
   renderSuggestions();
 }
 
-async function renderSuggestions() {
+window._suggPage = window._suggPage || 1;
+const SUGG_PAGE_SIZE = 5;
+
+async function renderSuggestions(resetPage) {
+  if (resetPage) window._suggPage = 1;
   const el = document.getElementById('suggestionList');
   if (!el) return;
-  const { data } = await sb.from('suggestions').select('*').order('created_at', { ascending: false }).limit(10);
+  const from = (window._suggPage - 1) * SUGG_PAGE_SIZE;
+  const { data, count } = await sb.from('suggestions').select('*', {count:'exact'}).order('created_at', { ascending: false }).range(from, from + SUGG_PAGE_SIZE - 1);
   if (!data?.length) {
     el.innerHTML = '<div style="font-size:12px;color:var(--light);text-align:center;padding:12px;">아직 등록된 의견이 없습니다</div>';
     return;
@@ -4693,6 +4733,7 @@ async function renderSuggestions() {
     done:        {label:'✅ 배포완료', bg:'#DCFCE7', color:'#166534'},
     rejected:    {label:'보류', bg:'#FEE2E2', color:'#CC2200'}
   };
+  const totalPages = Math.ceil((count||0) / SUGG_PAGE_SIZE);
   el.innerHTML = data.map(s => {
     const st = STATUS[s.status] || STATUS.pending;
     const date = new Date(s.created_at).toLocaleDateString('ko-KR', {month:'short', day:'numeric', hour:'2-digit', minute:'2-digit'});
@@ -4745,6 +4786,22 @@ async function renderSuggestions() {
       </div>
     </div>`;
   }).join('');
+
+  // 페이지네이션
+  if (totalPages > 1) {
+    el.innerHTML += `<div style="display:flex;align-items:center;justify-content:center;gap:6px;padding:12px 0;">
+      <button class="btn btn-sm" onclick="goSuggPage(${window._suggPage-1})" ${window._suggPage<=1?'disabled':''} style="font-size:11px;">‹ 이전</button>
+      <span style="font-size:12px;color:var(--muted);">${window._suggPage} / ${totalPages}</span>
+      <button class="btn btn-sm" onclick="goSuggPage(${window._suggPage+1})" ${window._suggPage>=totalPages?'disabled':''} style="font-size:11px;">다음 ›</button>
+    </div>`;
+  }
+}
+
+async function goSuggPage(page) {
+  const { count } = await sb.from('suggestions').select('*', {count:'exact', head:true});
+  const totalPages = Math.ceil((count||0) / SUGG_PAGE_SIZE);
+  window._suggPage = Math.max(1, Math.min(page, totalPages));
+  renderSuggestions();
 }
 
 async function toggleSuggReply(id) {
