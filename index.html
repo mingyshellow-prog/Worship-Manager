@@ -2157,8 +2157,20 @@ async function doLogin() {
 }
 
 async function loginSuccess(sbUser) {
-  // profiles 테이블에서 추가 정보 조회
-  const { data: profile } = await sb.from('profiles').select('*').eq('id', sbUser.id).single();
+  // profiles 조회 (본인 row는 RLS 무관하게 항상 읽힘)
+  let { data: profile } = await sb.from('profiles').select('*').eq('id', sbUser.id).single();
+
+  // 없으면 upsert 후 재조회
+  if (!profile) {
+    await sb.from('profiles').upsert({
+      id: sbUser.id, name: sbUser.email.split('@')[0],
+      email: sbUser.email, role: 'member',
+      last_login: new Date().toISOString(),
+    }, { onConflict: 'id' });
+    const { data: p2 } = await sb.from('profiles').select('*').eq('id', sbUser.id).single();
+    profile = p2;
+  }
+
   currentUser = {
     id: sbUser.id,
     email: sbUser.email,
@@ -2171,18 +2183,11 @@ async function loginSuccess(sbUser) {
     church_id: profile?.church_id || null,
     onboarding_done: profile?.onboarding_done || false,
   };
-  // last_login 업데이트 (존재하는 row만 update)
-  if (profile) {
-    await sb.from('profiles').update({ last_login: new Date().toISOString() }).eq('id', sbUser.id);
-  } else {
-    // 처음 로그인 시 insert
-    await sb.from('profiles').insert({
-      id: sbUser.id,
-      name: currentUser.name,
-      role: 'member',
-      last_login: new Date().toISOString(),
-    });
-  }
+
+  console.log('[WM] role:', currentUser.role, '| church_id:', currentUser.church_id);
+
+  // last_login 업데이트
+  await sb.from('profiles').update({ last_login: new Date().toISOString() }).eq('id', sbUser.id);
 
   // ── 교회 정보 로드 (멀티테넌트)
   if (currentUser.church_id) {
@@ -2193,12 +2198,10 @@ async function loginSuccess(sbUser) {
   }
   applyChurchBranding();
   document.getElementById('loginScreen').style.display = 'none';
-  // BGM 정지
   logActivity('로그인', null, `${currentUser?.email} 로그인`);
   const bgm = document.getElementById('loginBgm');
   if (bgm) bgm.src = '';
   hideSplash();
-  // 로그인 후 인트로 애니메이션
   showIntro(() => {
     document.getElementById('mainApp').style.display = 'flex';
     loadAllData();
@@ -2206,7 +2209,7 @@ async function loginSuccess(sbUser) {
     restoreTab();
     checkNotifBadge();
     setTimeout(requestPushPermission, 3000);
-    // ── 온보딩 튜토리얼 (첫 로그인 유저)
+    // 온보딩 튜토리얼 (첫 로그인만)
     if (!currentUser.onboarding_done) {
       setTimeout(() => startOnboarding(), 800);
     }
@@ -2451,7 +2454,7 @@ function qcSearchSongs() {
   const q = document.getElementById('qcSongSearch').value.toLowerCase();
   const drop = document.getElementById('qcSongDrop');
   if (!q) { drop.style.display='none'; return; }
-  const matches = scores.filter(s=>s.title.toLowerCase().includes(q)||s.artist.toLowerCase().includes(q));
+  const matches = scores.filter(s=>matchQuery(s.title,q)||matchQuery(s.artist,q));
   if (!matches.length) { drop.innerHTML='<div style="padding:10px 14px;font-size:12px;color:var(--light);">검색 결과 없음</div>'; drop.style.display='block'; return; }
   drop.innerHTML = matches.map(s=>`
     <div onclick="qcAddFromSearch('${esc(s.title)}','${esc(s.key)}')" style="display:flex;align-items:center;gap:8px;padding:9px 14px;cursor:pointer;border-bottom:1px solid var(--border);" onmouseover="this.style.background='var(--olive-bg)'" onmouseout="this.style.background=''">
@@ -2522,7 +2525,7 @@ function wkSearchSongs() {
   const q = document.getElementById('wkSongSearch').value.toLowerCase();
   const drop = document.getElementById('wkSongDrop');
   if (!q) { drop.style.display='none'; return; }
-  const matches = scores.filter(s=>s.title.toLowerCase().includes(q)||s.artist.toLowerCase().includes(q));
+  const matches = scores.filter(s=>matchQuery(s.title,q)||matchQuery(s.artist,q));
   drop.innerHTML = matches.length ? matches.map(s=>`
     <div onclick="wkAddFromSearch('${esc(s.title)}','${esc(s.key)}')" style="display:flex;align-items:center;gap:8px;padding:9px 14px;cursor:pointer;border-bottom:1px solid var(--border);" onmouseover="this.style.background='var(--olive-bg)'" onmouseout="this.style.background=''">
       <span style="flex:1;font-size:13px;">${s.title}</span><span class="tag key">${s.key}</span>
@@ -2886,6 +2889,29 @@ function downloadScore(id) {
 window._scorePage = 1;
 const SCORE_PAGE_SIZE = 15;
 
+// ════════════════════════════════════════════
+// 초성 검색 유틸리티
+// ════════════════════════════════════════════
+const CHOSUNG = ['ㄱ','ㄲ','ㄴ','ㄷ','ㄸ','ㄹ','ㅁ','ㅂ','ㅃ','ㅅ','ㅆ','ㅇ','ㅈ','ㅉ','ㅊ','ㅋ','ㅌ','ㅍ','ㅎ'];
+function getChosung(str) {
+  return (str||'').split('').map(ch => {
+    const code = ch.charCodeAt(0) - 0xAC00;
+    if (code < 0 || code > 11171) return ch;
+    return CHOSUNG[Math.floor(code / 28 / 21)];
+  }).join('');
+}
+function matchQuery(target, q) {
+  if (!q) return true;
+  const t = (target||'').toLowerCase();
+  const ql = q.toLowerCase();
+  // 일반 포함 검색
+  if (t.includes(ql)) return true;
+  // 초성 검색 (쿼리가 초성으로만 이루어진 경우)
+  const isChosungQuery = [...ql].every(ch => CHOSUNG.includes(ch));
+  if (isChosungQuery) return getChosung(target).includes(ql);
+  return false;
+}
+
 function renderScores(resetPage) {
   if (resetPage) window._scorePage = 1;
   const q = (document.getElementById('scoreSearch')?.value||'').toLowerCase();
@@ -2893,7 +2919,7 @@ function renderScores(resetPage) {
   const keyF = document.getElementById('keyFilter')?.value||'';
   const tempoF = document.getElementById('tempoFilter')?.value||'';
   const filtered = scores.filter(s=>{
-    const match = s.title.toLowerCase().includes(q)||s.artist.toLowerCase().includes(q)||(s.key||'').toLowerCase().includes(q);
+    const match = matchQuery(s.title, q) || matchQuery(s.artist, q) || matchQuery(s.key, q);
     const artistMatch = !artist || s.artist===artist;
     const keyMatch = !keyF || (s.key||'').toLowerCase().startsWith(keyF.toLowerCase());
     // 템포는 메모 필드에서 키워드 매칭
@@ -2955,7 +2981,7 @@ function goScorePage(page) {
   const artist = document.getElementById('artistFilter')?.value||'';
   const keyF = document.getElementById('keyFilter')?.value||'';
   const filtered = scores.filter(s=>{
-    const match = s.title.toLowerCase().includes(q)||s.artist.toLowerCase().includes(q)||(s.key||'').toLowerCase().includes(q);
+    const match = matchQuery(s.title,q)||matchQuery(s.artist,q)||matchQuery(s.key,q);
     const keyMatch = !keyF || (s.key||'').toLowerCase().startsWith(keyF.toLowerCase());
     return match && (!artist || s.artist===artist) && keyMatch;
   });
@@ -3279,7 +3305,7 @@ function renderCollAddSearch() {
   const el = document.getElementById('collAddResults');
   if (!q) { el.innerHTML=''; return; }
   const cSongs = collections[currentCollId]?.songs||[];
-  const matches = scores.filter(s=>s.title.toLowerCase().includes(q)&&!cSongs.find(x=>x.id===s.id));
+  const matches = scores.filter(s=>matchQuery(s.title, q)&&!cSongs.find(x=>x.id===s.id));
   el.innerHTML = matches.map(s=>`
     <div onclick="addToCollDetail('${s.id}')" style="display:flex;align-items:center;gap:8px;padding:8px 12px;border:1px solid var(--border);border-radius:8px;margin-bottom:5px;cursor:pointer;background:var(--white);" onmouseover="this.style.background='var(--olive-bg)'" onmouseout="this.style.background=''">
       <span style="flex:1;font-size:13px;">${s.title}</span><span class="tag key">${s.key}</span><span style="color:var(--olive);">＋</span>
@@ -3324,7 +3350,7 @@ function renderContiPool() {
   const q = (document.getElementById('contiSearch')?.value||'').toLowerCase();
   const el = document.getElementById('contiPool');
   if (!el) return;
-  const filtered = scores.filter(s=>s.title.toLowerCase().includes(q)||s.artist.toLowerCase().includes(q));
+  const filtered = scores.filter(s=>matchQuery(s.title, q)||matchQuery(s.artist, q));
   if (!filtered.length) { el.innerHTML='<div style="text-align:center;padding:20px;font-size:12px;color:var(--light);">악보 창고에 악보를 먼저 등록해주세요</div>'; return; }
   el.innerHTML = filtered.map(s=>{
     const added = currentConti.find(c=>c.id===s.id);
@@ -4072,7 +4098,7 @@ function mergeSearch(slot) {
   const q = document.getElementById(`ms${slot}Search`).value.toLowerCase();
   const drop = document.getElementById(`ms${slot}Drop`);
   if (!q) { drop.style.display='none'; return; }
-  const matches = scores.filter(s=>s.title.toLowerCase().includes(q)||s.artist.toLowerCase().includes(q));
+  const matches = scores.filter(s=>matchQuery(s.title,q)||matchQuery(s.artist,q));
   if (!matches.length) { drop.innerHTML='<div style="padding:10px 14px;font-size:12px;color:var(--light);">검색 결과 없음</div>'; drop.style.display='block'; return; }
   drop.innerHTML = matches.map(s=>`
     <div onclick="selectMergeScore(${slot},'${s.id}')" style="display:flex;align-items:center;gap:8px;padding:9px 14px;cursor:pointer;border-bottom:1px solid var(--border);" onmouseover="this.style.background='var(--olive-bg)'" onmouseout="this.style.background=''">
