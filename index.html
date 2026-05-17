@@ -2023,6 +2023,50 @@ function renderScoreRowSingle(s) {
     </div>`;
 }
 
+// ════════════════════════════════════════════
+// STATE
+// ════════════════════════════════════════════
+let currentUser = null;
+let currentChurch = null; // ← 현재 교회 정보 (멀티테넌트)
+let scores = [];
+let weeklyContis = [];
+let savedContis = [];
+let collections = {};
+let currentConti = [];
+let announcement = null;
+let importFiles = [];
+let qcSongs = [];
+let wkSongs = [];
+let currentCollId = null;
+let mergeSlot = {1:null, 2:null};
+
+// 권한 체크 헬퍼
+function isAdmin() {
+  return currentUser?.role === 'admin' || currentUser?.role === 'super_admin' || currentUser?.role === 'worship_leader';
+}
+function isWorshipLeader() {
+  return currentUser?.role === 'worship_leader';
+}
+function isSuperAdmin() {
+  return currentUser?.role === 'super_admin';
+}
+function getRoleLabel(role) {
+  switch(role) {
+    case 'super_admin': return '슈퍼관리자';
+    case 'admin': return '관리자';
+    case 'worship_leader': return '워십리더';
+    case 'member': return '멤버';
+    default: return '멤버';
+  }
+}
+function getRoleBadgeClass(role) {
+  switch(role) {
+    case 'super_admin': return 'badge-super';
+    case 'admin': return 'badge-admin';
+    case 'worship_leader': return 'badge-worship';
+    default: return 'badge-member';
+  }
+}
 const SUPABASE_URL = 'https://uvyahitvpuvtwcejavqj.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV2eWFoaXR2cHV2dHdjZWphdnFqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgwNDQ2MTYsImV4cCI6MjA5MzYyMDYxNn0.1HAaTNyKRoJb5jRR30PUkFO9Eubh9Io6Gao02UFTkTQ';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
