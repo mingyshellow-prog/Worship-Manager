@@ -1860,6 +1860,51 @@ async function sendNotifToAdmins(title, body) {
 }
 
 // ════════════════════════════════════════════
+// 교회 브랜딩 적용 (멀티테넌트)
+// ════════════════════════════════════════════
+function applyChurchBranding() {
+  const c = currentChurch;
+  const name = c?.name || '워십매니저';
+  const location = c?.location || '';
+  const tagline = c?.tagline ? `${c.tagline}${location ? ' · ' + location : ''}` : location;
+  const bgVideoId = c?.bg_video_id || '';
+  const bgmVideoId = c?.bgm_video_id || '';
+  const logoUrl = c?.logo_url || '';
+
+  document.title = c ? `${name} — 워십매니저` : '워십매니저';
+
+  const splashName = document.getElementById('splashChurchName');
+  if (splashName) splashName.textContent = name;
+  const introName = document.getElementById('introChurchName');
+  if (introName) introName.textContent = name;
+  const introLoc = document.getElementById('introChurchLocation');
+  if (introLoc) introLoc.textContent = location;
+
+  const loginTitle = document.getElementById('loginChurchName');
+  if (loginTitle) loginTitle.textContent = name;
+
+  const bgVideo = document.getElementById('loginBgVideo');
+  if (bgVideo && bgVideoId) {
+    bgVideo.src = `https://www.youtube.com/embed/${bgVideoId}?autoplay=1&mute=1&loop=1&playlist=${bgVideoId}&controls=0&showinfo=0&rel=0&iv_load_policy=3&modestbranding=1`;
+  }
+  const bgm = document.getElementById('loginBgm');
+  if (bgm && bgmVideoId) {
+    bgm.src = `https://www.youtube.com/embed/${bgmVideoId}?autoplay=1&mute=0&loop=1&playlist=${bgmVideoId}&controls=0`;
+  }
+
+  const sidebarName = document.getElementById('sidebarChurchName');
+  if (sidebarName) sidebarName.textContent = name;
+  const sidebarTag = document.getElementById('sidebarTagline');
+  if (sidebarTag) sidebarTag.textContent = tagline;
+
+  if (logoUrl) {
+    document.querySelectorAll('.logo-img-wrap img, .login-logo img').forEach(img => {
+      img.src = logoUrl;
+    });
+  }
+}
+
+// ════════════════════════════════════════════
 // 역할별 메뉴 필터링
 // ════════════════════════════════════════════
 function applyRoleBasedNav() {
